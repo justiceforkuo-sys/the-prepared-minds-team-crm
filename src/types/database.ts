@@ -1,0 +1,158 @@
+export type Rank = "JFAI" | "JFAII" | "JFAIII" | "FA" | "FC" | "CD" | "CR" | "CN";
+export type ClientStatus = "Client" | "Prospect";
+export type ProspectStage =
+  | "Contact"
+  | "Invité"
+  | "Présentation faite"
+  | "Suivi"
+  | "Partenaire"
+  | "Perdu";
+export type Priority = "A" | "B" | "C";
+export type RemovalStatus = "pending" | "approved" | "rejected";
+
+export interface Person {
+  id: string;
+  auth_user_id: string | null;
+  name: string;
+  rank: Rank;
+  active: boolean;
+  reports_to: string | null;
+  phone: string | null;
+  email: string | null;
+  is_admin: boolean;
+  personal_pts: number;
+  team_quarterly_pts: number;
+  directs_count: number;
+  notes: string | null;
+  vision: string | null;
+  ranking_position: number | null;
+  ranking_points: number | null;
+  ranking_days_to_promo: number | null;
+  created_at: string;
+}
+
+export interface Client {
+  id: string;
+  owner_id: string;
+  name: string;
+  status: ClientStatus;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  locality: string | null;
+  total_worth: number;
+  total_units: number;
+  created_at: string;
+}
+
+export interface ClientPolicy {
+  id: string;
+  client_id: string;
+  partner: string | null;
+  product: string | null;
+  product_label: string | null;
+  worth: number;
+  units: number;
+  created_at: string;
+}
+
+export interface TeamProductionRow {
+  person_id: string;
+  name: string;
+  rank: Rank;
+  depth: number;
+  active: boolean;
+  units_total: number;
+  units_this_month: number;
+}
+
+export interface Prospect {
+  id: string;
+  owner_id: string;
+  name: string;
+  phone: string | null;
+  source: string | null;
+  notes: string | null;
+  stage: ProspectStage;
+  priority: Priority;
+  next_follow_up: string | null;
+  product_id: string | null;
+  montant: number | null;
+  created_at: string;
+}
+
+export interface RemovalRequest {
+  id: string;
+  target_id: string;
+  requested_by: string;
+  status: RemovalStatus;
+  created_at: string;
+}
+
+export interface OnboardingProgress {
+  id: string;
+  person_id: string;
+  step_id: string;
+  done_by_self: boolean;
+  done_date: string | null;
+  validated_by_sponsor: boolean;
+  validated_date: string | null;
+}
+
+export interface FormationProgress {
+  id: string;
+  person_id: string;
+  module_id: string;
+  done: boolean;
+  done_date: string | null;
+}
+
+export interface UnitsByMonth {
+  id: string;
+  person_id: string;
+  month: string;
+  units: number;
+}
+
+export interface PayoutHistoryRow {
+  id: string;
+  person_id: string;
+  month: string;
+  a_pro: number;
+  sto_res: number;
+  autre: number;
+  payout: number;
+}
+
+export interface DailyActivity {
+  id: string;
+  person_id: string;
+  date: string;
+  prospection: boolean;
+  invitation: boolean;
+  formation: boolean;
+  vision_pillar: boolean;
+  etat_esprit: boolean;
+  minutes: number;
+}
+
+export interface GoalStep {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface Goal {
+  id: string;
+  person_id: string;
+  text: string;
+  done: boolean;
+  steps: GoalStep[];
+  created_at: string;
+}
+
+// Generic Supabase generic-client shape. We keep it loose (not a strict
+// generated Database type) since this project doesn't run `supabase gen
+// types` — swap in the generated type later if you wire up the Supabase CLI.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Database = any;
