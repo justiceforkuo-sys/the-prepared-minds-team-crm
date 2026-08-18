@@ -14,13 +14,44 @@ export default function ResetPasswordPage() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
+    // Les liens d'invitation/récupération générés côté admin utilisent le flux
+    // implicite (tokens dans le fragment d'URL), pas le flux PKCE que le client
+    // détecte automatiquement — on doit donc les lire et les appliquer nous-mêmes.
+    async function init() {
+      try {
+        const hash = window.location.hash;
+        if (hash.length > 1) {
+          const params = new URLSearchParams(hash.slice(1));
+          const errorDescription = params.get("error_description");
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+
+          window.history.replaceState(null, "", window.location.pathname);
+
+          if (errorDescription) {
+            setError(
+              `${decodeURIComponent(errorDescription.replace(/\+/g, " "))} — redemande un nouveau lien.`
+            );
+            return;
+          }
+          if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (error) setError(`${error.message} — redemande un nouveau lien.`);
+            else setReady(true);
+            return;
+          }
+        }
+        const { data } = await supabase.auth.getSession();
+        if (data.session) setReady(true);
+        else setError("Lien invalide ou expiré. Redemande un nouveau lien.");
+      } catch {
+        setError("Une erreur est survenue à l'ouverture du lien. Redemande un nouveau lien.");
+      }
+    }
+    init();
   }, [supabase]);
 
   const submit = async (e: React.FormEvent) => {
@@ -31,13 +62,23 @@ export default function ResetPasswordPage() {
     }
     setPending(true);
     setError(null);
-    const { error } = await supabase.auth.updateUser({ password });
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        setError("Session expirée. Redemande un nouveau lien.");
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      router.push("/");
+    } catch {
+      setError("Une erreur est survenue. Réessaie, ou redemande un nouveau lien.");
+    } finally {
+      setPending(false);
     }
-    router.push("/");
   };
 
   return (
@@ -75,7 +116,7 @@ export default function ResetPasswordPage() {
           {error && <div className="mb-3 text-xs text-red">{error}</div>}
           <button
             type="submit"
-            disabled={pending || !ready}
+            disabled={pending}
             className="w-full rounded-lg bg-gold px-4 py-2 text-sm font-bold text-night disabled:opacity-50"
           >
             {pending ? "..." : "Enregistrer"}
