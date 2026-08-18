@@ -12,6 +12,7 @@ import {
   BookOpen,
   Target,
   ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 
 export interface NavItem {
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/revenus", label: "Revenus", icon: Wallet },
   { href: "/clients", label: "Clients", icon: Contact },
   { href: "/equipe", label: "Équipe", icon: Network },
+  { href: "/recrutement", label: "Recrutement", icon: UserPlus },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
   { href: "/formation", label: "Formation", icon: GraduationCap },
   { href: "/scripts", label: "Scripts", icon: BookOpen },

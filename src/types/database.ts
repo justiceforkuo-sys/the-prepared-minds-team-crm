@@ -151,6 +151,27 @@ export interface Goal {
   created_at: string;
 }
 
+export type RecruitmentStatus = "Nouveau" | "Contacté" | "Entretien" | "Retenu" | "Rejeté";
+
+export interface RecruitmentApplication {
+  id: string;
+  recruiter_id: string | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  nationality: string | null;
+  current_situation: string | null;
+  birthdate: string | null;
+  has_cess: boolean | null;
+  availability_confirmed: boolean | null;
+  french_level: string | null;
+  english_level: string | null;
+  referral_source: string | null;
+  status: RecruitmentStatus;
+  jotform_submission_id: string | null;
+  created_at: string;
+}
+
 // Generic Supabase generic-client shape. We keep it loose (not a strict
 // generated Database type) since this project doesn't run `supabase gen
 // types` — swap in the generated type later if you wire up the Supabase CLI.
