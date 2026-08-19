@@ -172,6 +172,14 @@ export interface RecruitmentApplication {
   created_at: string;
 }
 
+export interface AdminImpersonationLog {
+  id: string;
+  admin_id: string;
+  target_id: string;
+  started_at: string;
+  ended_at: string | null;
+}
+
 // Generic Supabase generic-client shape. We keep it loose (not a strict
 // generated Database type) since this project doesn't run `supabase gen
 // types` — swap in the generated type later if you wire up the Supabase CLI.

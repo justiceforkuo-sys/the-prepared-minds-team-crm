@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, LogIn } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { RANKS_INFO } from "@/lib/ranks";
 import type { Person, Rank } from "@/types/database";
+import { startImpersonation } from "./impersonation-actions";
 
 function isDescendantOf(all: Person[], candidateId: string, ofId: string): boolean {
   const visited = new Set<string>();
@@ -54,7 +55,7 @@ function toForm(p: Person): EditForm {
   };
 }
 
-export function PeoplePanel({ people: initialPeople }: { people: Person[] }) {
+export function PeoplePanel({ people: initialPeople, meId }: { people: Person[]; meId: string }) {
   const supabase = createClient();
   const [people, setPeople] = useState(initialPeople);
   const [search, setSearch] = useState("");
@@ -121,16 +122,28 @@ export function PeoplePanel({ people: initialPeople }: { people: Person[] }) {
           );
           return (
             <div key={p.id} className="rounded-2xl border border-line bg-card p-3.5">
-              <button onClick={() => open(p)} className="flex w-full items-center justify-between text-left">
-                <div>
-                  <div className="text-sm font-bold text-ink">
-                    {p.name} {p.is_admin && <span className="text-[10px] text-gold-light">ADMIN</span>}
-                    {!p.active && <span className="text-[10px] text-red"> · inactif</span>}
+              <div className="flex w-full items-center justify-between gap-2">
+                <button onClick={() => open(p)} className="flex flex-1 items-center justify-between text-left">
+                  <div>
+                    <div className="text-sm font-bold text-ink">
+                      {p.name} {p.is_admin && <span className="text-[10px] text-gold-light">ADMIN</span>}
+                      {!p.active && <span className="text-[10px] text-red"> · inactif</span>}
+                    </div>
+                    <div className="text-xs text-muted">{p.rank}</div>
                   </div>
-                  <div className="text-xs text-muted">{p.rank}</div>
-                </div>
-                {isOpen ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
-              </button>
+                  {isOpen ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
+                </button>
+                {p.id !== meId && (
+                  <form action={startImpersonation.bind(null, p.id)}>
+                    <button
+                      title="Se connecter en tant que"
+                      className="flex flex-shrink-0 items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted"
+                    >
+                      <LogIn size={12} /> Devenir
+                    </button>
+                  </form>
+                )}
+              </div>
 
               {isOpen && form && (
                 <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">

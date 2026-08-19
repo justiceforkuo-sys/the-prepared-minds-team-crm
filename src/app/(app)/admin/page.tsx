@@ -19,7 +19,7 @@ export default async function AdminPage() {
         Édition complète des fiches et des décomptes — visible uniquement par toi.
       </p>
 
-      <PeoplePanel people={people ?? []} />
+      <PeoplePanel people={people ?? []} meId={person.id} />
 
       <div className="mt-4">
         <PayoutPanel people={people ?? []} />

@@ -2,9 +2,11 @@ import { Flame } from "lucide-react";
 import { getCurrentPerson } from "@/lib/current-person";
 import { SidebarNav, MobileNav } from "@/components/sidebar-nav";
 import { signOut } from "./actions";
+import { getImpersonationTargetName, stopImpersonation } from "./admin/impersonation-actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const person = await getCurrentPerson();
+  const impersonatedName = await getImpersonationTargetName();
 
   if (!person) {
     return (
@@ -28,8 +30,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1240px] flex-col md:flex-row">
-      <aside className="sticky top-0 hidden h-screen w-60 flex-shrink-0 flex-col border-r border-line p-4 md:flex">
+    <div
+      className={`mx-auto flex min-h-screen max-w-[1240px] flex-col md:flex-row ${impersonatedName ? "pt-9" : ""}`}
+    >
+      {impersonatedName && (
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-gold px-4 py-2 text-xs font-bold text-night">
+          <span>Tu agis en tant que {impersonatedName}</span>
+          <form action={stopImpersonation}>
+            <button className="rounded-full border border-night/30 px-2.5 py-0.5 text-[11px]">
+              Quitter
+            </button>
+          </form>
+        </div>
+      )}
+      <aside
+        className={`sticky hidden h-screen w-60 flex-shrink-0 flex-col border-r border-line p-4 md:flex ${impersonatedName ? "top-9" : "top-0"}`}
+      >
         <div className="mb-7 pl-1">
           <div className="text-[10px] font-semibold tracking-[2px] text-muted">
             PREPARED MINDS TEAM
