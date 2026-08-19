@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, UserCheck } from "lucide-react";
+import { ChevronDown, ChevronUp, UserCheck, Copy, Check } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
+import { generateUniqueSlugFor } from "@/lib/slug";
 import type { RecruitmentApplication, RecruitmentStatus } from "@/types/database";
 
 type CandidateRow = RecruitmentApplication & { recruiter: { name: string } | null };
@@ -26,15 +27,29 @@ function age(birthdate: string | null): number | null {
 export function RecrutementBoard({
   isAdmin,
   initialCandidates,
+  mySlug,
 }: {
   isAdmin: boolean;
   initialCandidates: CandidateRow[];
+  mySlug: string | null;
 }) {
   const supabase = createClient();
   const [candidates, setCandidates] = useState(initialCandidates);
   const [statusFilter, setStatusFilter] = useState<RecruitmentStatus | "Tous">("Tous");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [converted, setConverted] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  const applicationLink = mySlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/postuler/${mySlug}`
+    : null;
+
+  const copyLink = () => {
+    if (!applicationLink) return;
+    navigator.clipboard.writeText(applicationLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const filtered = useMemo(
     () => (statusFilter === "Tous" ? candidates : candidates.filter((c) => c.status === statusFilter)),
@@ -51,12 +66,14 @@ export function RecrutementBoard({
     if (!me.user) return;
     const { data: person } = await supabase.from("people").select("id").eq("auth_user_id", me.user.id).single();
     if (!person) return;
+    const slug = await generateUniqueSlugFor(supabase, c.name);
     await supabase.from("people").insert({
       name: c.name,
       email: c.email,
       phone: c.phone,
       rank: "JFAI",
       reports_to: person.id,
+      slug,
     });
     setConverted((prev) => [...prev, c.id]);
   };
@@ -65,8 +82,28 @@ export function RecrutementBoard({
     <div>
       <h2 className="font-serif text-xl font-semibold text-ink">Recrutement</h2>
       <p className="mb-4 mt-1 text-xs text-muted">
-        Candidatures reçues via les formulaires de pré-qualification de la campagne d&apos;affiches.
+        Candidatures reçues via ton lien de pré-qualification personnel.
       </p>
+
+      {applicationLink && (
+        <div className="mb-4 rounded-2xl border border-line bg-card p-3.5">
+          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted">
+            Ton lien de candidature
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 truncate rounded-lg border border-line bg-card-alt px-3 py-2 text-xs text-ink">
+              {applicationLink}
+            </div>
+            <button
+              onClick={copyLink}
+              className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-gold px-3 py-2 text-xs font-bold text-night"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copié" : "Copier"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-2">
         {(["Tous", ...STATUSES] as const).map((s) => (

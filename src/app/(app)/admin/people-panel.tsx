@@ -34,6 +34,7 @@ type EditForm = {
   email: string;
   notes: string;
   vision: string;
+  slug: string;
 };
 
 function toForm(p: Person): EditForm {
@@ -52,6 +53,7 @@ function toForm(p: Person): EditForm {
     email: p.email ?? "",
     notes: p.notes ?? "",
     vision: p.vision ?? "",
+    slug: p.slug ?? "",
   };
 }
 
@@ -94,6 +96,7 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
       email: form.email || null,
       notes: form.notes || null,
       vision: form.vision || null,
+      slug: form.slug.trim() || null,
     };
     const { data } = await supabase.from("people").update(payload).eq("id", id).select().single();
     if (data) {
@@ -272,6 +275,17 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
                         className="w-full rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[10px] text-muted">
+                      Slug (lien de candidature — /postuler/…)
+                    </label>
+                    <input
+                      value={form.slug}
+                      onChange={(e) => setForm((f) => f && { ...f, slug: e.target.value })}
+                      className="w-full rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                    />
                   </div>
 
                   <div>

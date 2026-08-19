@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Edit3, Plus, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { RANKS_INFO, nextRank } from "@/lib/ranks";
+import { generateUniqueSlugFor } from "@/lib/slug";
 import type { Person, Rank } from "@/types/database";
 
 interface PendingRequest {
@@ -41,9 +42,10 @@ export function EquipeBoard({
 
   const addCollaborator = async () => {
     if (!name.trim()) return;
+    const slug = await generateUniqueSlugFor(supabase, name.trim());
     const { data } = await supabase
       .from("people")
-      .insert({ name: name.trim(), rank, email: email.trim() || null, reports_to: me.id })
+      .insert({ name: name.trim(), rank, email: email.trim() || null, reports_to: me.id, slug })
       .select()
       .single();
     if (data) setDownline((prev) => [...prev, data as Person].sort((a, b) => a.name.localeCompare(b.name)));

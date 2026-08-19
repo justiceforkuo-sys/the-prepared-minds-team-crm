@@ -13,6 +13,7 @@ export type RemovalStatus = "pending" | "approved" | "rejected";
 export interface Person {
   id: string;
   auth_user_id: string | null;
+  slug: string | null;
   name: string;
   rank: Rank;
   active: boolean;

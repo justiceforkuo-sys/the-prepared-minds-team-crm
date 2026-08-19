@@ -16,6 +16,7 @@ export default async function RecrutementPage() {
     <RecrutementBoard
       isAdmin={person.is_admin}
       initialCandidates={candidates ?? []}
+      mySlug={person.slug}
     />
   );
 }
