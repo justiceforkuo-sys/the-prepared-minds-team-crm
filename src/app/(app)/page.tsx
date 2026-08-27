@@ -14,7 +14,7 @@ export default async function TodayPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   const supabase = await createClient();
-  const [{ data: activity }, { data: followUps }, { data: goals }] = await Promise.all([
+  const [{ data: activity }, { data: followUps }, { data: goals }, { data: tasks }] = await Promise.all([
     supabase.from("daily_activity").select("*").eq("person_id", person.id).eq("date", today).maybeSingle(),
     supabase
       .from("prospects")
@@ -25,6 +25,14 @@ export default async function TodayPage() {
       .not("stage", "in", "(Perdu,Partenaire)")
       .order("next_follow_up"),
     supabase.from("goals").select("*").eq("person_id", person.id).eq("done", false).order("created_at", { ascending: false }),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date, assigner:people!tasks_assigned_by_fkey(name)")
+      .eq("assigned_to", person.id)
+      .eq("done", false)
+      .not("due_date", "is", null)
+      .lte("due_date", today)
+      .order("due_date"),
   ]);
 
   return (
@@ -40,6 +48,7 @@ export default async function TodayPage() {
         initialVision={person.vision}
         followUps={followUps ?? []}
         goals={goals ?? []}
+        tasks={(tasks as unknown as { id: string; title: string; due_date: string | null; assigner: { name: string } | null }[]) ?? []}
       />
     </div>
   );

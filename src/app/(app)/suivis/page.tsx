@@ -2,20 +2,7 @@ import { CalendarPlus } from "lucide-react";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { fmtDate } from "@/lib/format";
-
-function googleCalendarUrl(name: string, stage: string, date: string) {
-  const start = date.replaceAll("-", "");
-  const endDate = new Date(`${date}T00:00:00`);
-  endDate.setDate(endDate.getDate() + 1);
-  const end = endDate.toISOString().slice(0, 10).replaceAll("-", "");
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `Suivi — ${name}`,
-    dates: `${start}/${end}`,
-    details: `Prospect Prepared Minds Team — étape : ${stage}`,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
+import { googleCalendarUrl } from "@/lib/calendar";
 
 export default async function SuivisPage() {
   const person = await getCurrentPerson();
@@ -75,7 +62,7 @@ function Row({ name, stage, date, late }: { name: string; stage: string; date: s
       <div className="flex items-center gap-2.5">
         <div className={`text-xs font-bold ${late ? "text-red" : "text-gold-light"}`}>{fmtDate(date)}</div>
         <a
-          href={googleCalendarUrl(name, stage, date)}
+          href={googleCalendarUrl(`Suivi — ${name}`, `Prospect Prepared Minds Team — étape : ${stage}`, date)}
           target="_blank"
           rel="noopener noreferrer"
           title="Ajouter à Google Calendar"

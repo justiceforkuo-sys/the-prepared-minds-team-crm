@@ -173,6 +173,17 @@ export interface RecruitmentApplication {
   created_at: string;
 }
 
+export interface Task {
+  id: string;
+  assigned_by: string;
+  assigned_to: string;
+  title: string;
+  notes: string | null;
+  due_date: string | null;
+  done: boolean;
+  created_at: string;
+}
+
 export interface AdminImpersonationLog {
   id: string;
   admin_id: string;

@@ -28,6 +28,7 @@ const emptyActivity = (personId: string, date: string): DailyActivity => ({
 });
 
 type FollowUp = Pick<Prospect, "id" | "name" | "stage" | "next_follow_up">;
+type TodayTask = { id: string; title: string; due_date: string | null; assigner: { name: string } | null };
 
 export function TodayBoard({
   personId,
@@ -36,6 +37,7 @@ export function TodayBoard({
   initialVision,
   followUps,
   goals,
+  tasks,
 }: {
   personId: string;
   today: string;
@@ -43,6 +45,7 @@ export function TodayBoard({
   initialVision: string | null;
   followUps: FollowUp[];
   goals: Goal[];
+  tasks: TodayTask[];
 }) {
   const supabase = createClient();
   const [activity, setActivity] = useState<DailyActivity>(initialActivity ?? emptyActivity(personId, today));
@@ -190,6 +193,28 @@ export function TodayBoard({
                 </div>
                 <div className={`text-xs font-bold ${p.next_follow_up! < today ? "text-red" : "text-gold-light"}`}>
                   {fmtDate(p.next_follow_up)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tasks.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">Tâches à faire</div>
+          <div className="flex flex-col gap-2">
+            {tasks.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded-2xl border border-line bg-card p-3.5"
+              >
+                <div>
+                  <div className="text-sm font-bold text-ink">{t.title}</div>
+                  <div className="text-xs text-muted">Donnée par {t.assigner?.name ?? "?"}</div>
+                </div>
+                <div className={`text-xs font-bold ${t.due_date! < today ? "text-red" : "text-gold-light"}`}>
+                  {fmtDate(t.due_date)}
                 </div>
               </div>
             ))}
