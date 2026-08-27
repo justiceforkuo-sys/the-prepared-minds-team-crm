@@ -67,3 +67,7 @@ export function nextRank(code: Rank): RankInfo | null {
 export function unitValue(code: Rank): number {
   return RANKS_INFO.find((r) => r.code === code)?.unitValue ?? 0;
 }
+
+export function overrideValue(myRank: Rank, theirRank: Rank, theirUnits: number): number {
+  return Math.max(0, unitValue(myRank) - unitValue(theirRank)) * theirUnits;
+}

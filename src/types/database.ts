@@ -85,6 +85,18 @@ export interface TeamProductionRow {
   units_this_month: number;
 }
 
+export interface CompanyRankingRow {
+  person_id: string;
+  name: string;
+  rank: Rank;
+  units_this_month: number;
+}
+
+export interface MonthlyProductionRow {
+  month: string;
+  units: number;
+}
+
 export interface Prospect {
   id: string;
   owner_id: string;
