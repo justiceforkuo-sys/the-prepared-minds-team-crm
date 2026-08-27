@@ -56,6 +56,8 @@ export type PaymentStatus =
   | "Rachat (clôture du contrat)"
   | "Payé";
 export type FeedbackReason = "Feedback direction/compagnie" | "Injoignable / coordonnées KO" | "Autre (voir note)";
+export type PolicyStatus = "Actif" | "Arrêté" | "Racheté" | "En pause";
+export type PolicySource = "manuel" | "ovb";
 
 export interface ClientPolicy {
   id: string;
@@ -72,6 +74,8 @@ export interface ClientPolicy {
   call_3_done: boolean;
   feedback_reason: FeedbackReason | null;
   precision_note: string | null;
+  policy_status: PolicyStatus;
+  source: PolicySource;
   created_at: string;
 }
 

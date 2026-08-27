@@ -3,6 +3,7 @@ import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { PeoplePanel } from "./people-panel";
 import { PayoutPanel } from "./payout-panel";
+import { OvbImportPanel } from "./ovb-import-panel";
 
 export default async function AdminPage() {
   const person = await getCurrentPerson();
@@ -23,6 +24,10 @@ export default async function AdminPage() {
 
       <div className="mt-4">
         <PayoutPanel people={people ?? []} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <OvbImportPanel />
       </div>
     </div>
   );

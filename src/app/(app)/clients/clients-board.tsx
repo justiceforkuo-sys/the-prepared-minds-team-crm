@@ -5,9 +5,17 @@ import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR } from "@/lib/format";
 import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
-import type { Client, ClientPolicy, Rank } from "@/types/database";
+import type { Client, ClientPolicy, PolicyStatus, Rank } from "@/types/database";
 
 type Category = "iard" | "vie";
+
+const POLICY_STATUSES: PolicyStatus[] = ["Actif", "Arrêté", "Racheté", "En pause"];
+const POLICY_STATUS_COLOR: Record<PolicyStatus, string> = {
+  Actif: "#3f7d5c",
+  "Arrêté": "#b3543a",
+  "Racheté": "#8a97ab",
+  "En pause": "#c99a3f",
+};
 
 const emptyPolicyForm = {
   category: "iard" as Category,
@@ -91,6 +99,17 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
     }
     setPolicyFormId(null);
     setPolicyForm(emptyPolicyForm);
+  };
+
+  const updatePolicyStatus = async (clientId: string, policyId: string, policy_status: PolicyStatus) => {
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id === clientId
+          ? { ...c, client_policies: c.client_policies.map((p) => (p.id === policyId ? { ...p, policy_status } : p)) }
+          : c
+      )
+    );
+    await supabase.from("client_policies").update({ policy_status }).eq("id", policyId);
   };
 
   const deletePolicy = async (clientId: string, policyId: string) => {
@@ -266,6 +285,19 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                       </div>
                       <div className="ml-2 flex flex-shrink-0 items-center gap-2">
                         {p.worth > 0 && <span className="text-muted">{fmtEUR(p.worth)}</span>}
+                        <select
+                          value={p.policy_status}
+                          disabled={!canEdit}
+                          onChange={(e) => updatePolicyStatus(c.id, p.id, e.target.value as PolicyStatus)}
+                          className="rounded-md border border-line bg-card-alt px-1.5 py-1 text-[10px] font-bold outline-none focus:border-gold disabled:opacity-70"
+                          style={{ color: POLICY_STATUS_COLOR[p.policy_status] }}
+                        >
+                          {POLICY_STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
                         {canEdit && (
                           <button onClick={() => deletePolicy(c.id, p.id)}>
                             <Trash2 size={12} className="text-red" />
