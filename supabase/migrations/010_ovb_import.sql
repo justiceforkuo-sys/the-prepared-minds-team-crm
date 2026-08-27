@@ -56,7 +56,11 @@ declare
   unmatched_collab text[] := '{}';
   month_date date;
 begin
-  if not public.is_admin() then
+  -- L'éditeur SQL Supabase et les migrations s'exécutent en tant que rôle
+  -- `postgres` (accès direct à la base, déjà pleinement privilégié) — seul
+  -- ce rôle contourne le contrôle admin. Tout appel venant de l'application
+  -- (rôle `authenticated` via PostgREST) doit toujours passer par is_admin().
+  if session_user <> 'postgres' and not public.is_admin() then
     raise exception 'admin only';
   end if;
 
