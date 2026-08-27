@@ -47,7 +47,7 @@ as $$
 declare
   row_data jsonb;
   owner uuid;
-  client_id uuid;
+  v_client_id uuid;
   matched_policy_id uuid;
   claimed_ids uuid[] := '{}';
   created_clients int := 0;
@@ -67,7 +67,7 @@ begin
   for row_data in select * from jsonb_array_elements(payload)
   loop
     owner := null;
-    client_id := null;
+    v_client_id := null;
     matched_policy_id := null;
 
     select p.id into owner
@@ -82,25 +82,25 @@ begin
 
     month_date := to_date(row_data->>'mois', 'YYYY-MM');
 
-    select c.id into client_id
+    select c.id into v_client_id
     from public.clients c
     where c.owner_id = owner
       and public.name_tokens(c.name) = public.name_tokens(row_data->>'client')
     limit 1;
 
-    if client_id is null then
+    if v_client_id is null then
       created_clients := created_clients + 1;
       if do_commit then
         insert into public.clients (owner_id, name, status)
         values (owner, row_data->>'client', 'Client')
-        returning id into client_id;
+        returning id into v_client_id;
       end if;
     end if;
 
-    if client_id is not null then
+    if v_client_id is not null then
       select cp.id into matched_policy_id
       from public.client_policies cp
-      where cp.client_id = client_id
+      where cp.client_id = v_client_id
         and abs(cp.worth - (row_data->>'montant')::numeric) < 0.01
         and abs(cp.units - (row_data->>'unites')::numeric) < 0.01
         and cp.id <> all(claimed_ids)
@@ -117,11 +117,11 @@ begin
       end if;
     else
       created_policies := created_policies + 1;
-      if do_commit and client_id is not null then
+      if do_commit and v_client_id is not null then
         insert into public.client_policies
           (client_id, partner, product_label, worth, units, created_at, source)
         values (
-          client_id,
+          v_client_id,
           row_data->>'partenaire',
           row_data->>'produit',
           (row_data->>'montant')::numeric,
