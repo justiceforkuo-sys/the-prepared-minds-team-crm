@@ -46,6 +46,17 @@ export interface Client {
   created_at: string;
 }
 
+export type PaymentStatus =
+  | "À contacter"
+  | "Appelé 1x"
+  | "Appelé 2x"
+  | "Appelé 3x + vocal"
+  | "Promesse (partiel)"
+  | "Mise en réduction (contrat gelé)"
+  | "Rachat (clôture du contrat)"
+  | "Payé";
+export type FeedbackReason = "Feedback direction/compagnie" | "Injoignable / coordonnées KO" | "Autre (voir note)";
+
 export interface ClientPolicy {
   id: string;
   client_id: string;
@@ -54,6 +65,13 @@ export interface ClientPolicy {
   product_label: string | null;
   worth: number;
   units: number;
+  unpaid_installments: number | null;
+  payment_status: PaymentStatus | null;
+  call_1_done: boolean;
+  call_2_done: boolean;
+  call_3_done: boolean;
+  feedback_reason: FeedbackReason | null;
+  precision_note: string | null;
   created_at: string;
 }
 

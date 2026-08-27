@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   UserPlus,
   CalendarClock,
+  AlertTriangle,
 } from "lucide-react";
 
 export interface NavItem {
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet },
   { href: "/clients", label: "Clients", icon: Contact },
+  { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle },
   { href: "/equipe", label: "Équipe", icon: Network },
   { href: "/recrutement", label: "Recrutement", icon: UserPlus },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
