@@ -160,17 +160,32 @@ export interface PayoutHistoryRow {
   payout: number;
 }
 
-export type BudgetCategory = "Fixe" | "Professionnelle" | "Extra" | "Annuelle" | "Imprévue";
+export type BudgetCategory = "Fixe" | "Professionnelle" | "Extra" | "Annuelle" | "Imprévue" | "Dons / Famille";
 
 export interface BudgetItem {
   id: string;
   person_id: string;
   label: string;
-  amount: number;
   category: BudgetCategory;
   is_annual: boolean;
-  month: string | null;
   created_at: string;
+}
+
+export interface BudgetEntry {
+  id: string;
+  item_id: string;
+  month: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface BudgetMonthLine {
+  item_id: string;
+  label: string;
+  category: BudgetCategory;
+  is_annual: boolean;
+  amount: number;
+  entry_month: string | null;
 }
 
 export interface DailyActivity {

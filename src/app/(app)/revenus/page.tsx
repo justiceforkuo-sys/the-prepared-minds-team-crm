@@ -5,28 +5,26 @@ import { fmtEUR } from "@/lib/format";
 import { RevenueBoard } from "./revenue-board";
 import { CommissionSimulator } from "./commission-simulator";
 import { BudgetPanel } from "./budget-panel";
-import type { TeamProductionRow, BudgetItem } from "@/types/database";
+import type { TeamProductionRow, BudgetItem, BudgetEntry } from "@/types/database";
 
 export default async function RevenusPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
 
   const monthLabel = new Date().toLocaleDateString("fr-BE", { month: "long", year: "numeric" });
-  const currentMonth = new Date().toISOString().slice(0, 7);
   const supabase = await createClient();
 
-  const [{ data: production }, { data: payouts }, { data: budgetItems }] = await Promise.all([
+  const [{ data: production }, { data: payouts }, { data: budgetItems }, { data: budgetEntries }] = await Promise.all([
     supabase.rpc("get_team_production"),
     supabase.from("payout_history").select("*").eq("person_id", person.id).order("month", { ascending: false }),
+    supabase.from("budget_items").select("*").eq("person_id", person.id).order("created_at"),
     supabase
-      .from("budget_items")
-      .select("*")
-      .eq("person_id", person.id)
-      .or(`month.is.null,month.eq.${currentMonth}`)
-      .order("created_at"),
+      .from("budget_entries")
+      .select("id, item_id, month, amount, created_at, budget_items!inner(person_id)")
+      .eq("budget_items.person_id", person.id),
   ]);
 
-  const currentMonthPayout = payouts?.find((p) => p.month === currentMonth)?.payout ?? null;
+  const payoutsByMonth = Object.fromEntries((payouts ?? []).map((p) => [p.month, p.payout]));
 
   const rows = (production as TeamProductionRow[] | null) ?? [];
   const me = rows.find((r) => r.depth === 0);
@@ -56,7 +54,8 @@ export default async function RevenusPage() {
       <BudgetPanel
         meId={person.id}
         initialItems={(budgetItems as BudgetItem[]) ?? []}
-        currentMonthPayout={currentMonthPayout}
+        initialEntries={(budgetEntries as unknown as BudgetEntry[]) ?? []}
+        payoutsByMonth={payoutsByMonth}
       />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

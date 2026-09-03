@@ -2,7 +2,7 @@ import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { EquipeBoard } from "./equipe-board";
 import { TeamProduction } from "./team-production";
-import type { TeamProductionRow } from "@/types/database";
+import type { TeamProductionRow, BudgetMonthLine } from "@/types/database";
 
 export default async function EquipePage() {
   const person = await getCurrentPerson();
@@ -29,22 +29,23 @@ export default async function EquipePage() {
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   if (downlineIds.length > 0) {
-    const [{ data: budgetRows }, { data: payoutRows }] = await Promise.all([
-      supabase
-        .from("budget_items")
-        .select("person_id, amount, is_annual")
-        .in("person_id", downlineIds)
-        .or(`month.is.null,month.eq.${currentMonth}`),
+    const [budgetResults, { data: payoutRows }] = await Promise.all([
+      Promise.all(
+        downlineIds.map((id) =>
+          supabase.rpc("get_budget_month", { p_person_id: id, p_month: currentMonth })
+        )
+      ),
       supabase
         .from("payout_history")
         .select("person_id, month, payout")
         .in("person_id", downlineIds)
         .order("month", { ascending: false }),
     ]);
-    for (const row of budgetRows ?? []) {
-      const monthly = row.is_annual ? row.amount / 12 : row.amount;
-      budgetTotals[row.person_id] = (budgetTotals[row.person_id] ?? 0) + monthly;
-    }
+    budgetResults.forEach(({ data }, i) => {
+      const lines = (data as BudgetMonthLine[] | null) ?? [];
+      const total = lines.reduce((s, l) => s + (l.is_annual ? l.amount / 12 : l.amount), 0);
+      budgetTotals[downlineIds[i]] = total;
+    });
     for (const row of payoutRows ?? []) {
       if (!(row.person_id in lastPayouts)) lastPayouts[row.person_id] = row.payout;
     }
