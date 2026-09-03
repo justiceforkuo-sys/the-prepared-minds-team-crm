@@ -18,7 +18,12 @@ export default async function RevenusPage() {
   const [{ data: production }, { data: payouts }, { data: budgetItems }] = await Promise.all([
     supabase.rpc("get_team_production"),
     supabase.from("payout_history").select("*").eq("person_id", person.id).order("month", { ascending: false }),
-    supabase.from("budget_items").select("*").eq("person_id", person.id).order("created_at"),
+    supabase
+      .from("budget_items")
+      .select("*")
+      .eq("person_id", person.id)
+      .or(`month.is.null,month.eq.${currentMonth}`)
+      .order("created_at"),
   ]);
 
   const currentMonthPayout = payouts?.find((p) => p.month === currentMonth)?.payout ?? null;

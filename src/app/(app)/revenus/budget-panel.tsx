@@ -6,7 +6,14 @@ import { createClient } from "@/utils/supabase/client";
 import { fmtEUR } from "@/lib/format";
 import type { BudgetCategory, BudgetItem } from "@/types/database";
 
-const CATEGORIES: BudgetCategory[] = ["Fixe", "Extra", "Annuelle / imprévue"];
+const CATEGORIES: BudgetCategory[] = ["Fixe", "Professionnelle", "Extra", "Annuelle", "Imprévue"];
+const CATEGORY_HINT: Record<BudgetCategory, string> = {
+  Fixe: "Loyer, crédit, abonnements — récurrent chaque mois.",
+  Professionnelle: "Frais liés à l'activité : déplacements, téléphone pro, matériel, cotisations.",
+  Extra: "Dépenses variables/discrétionnaires.",
+  Annuelle: "Assurances, etc. — entre le montant annuel, divisé par 12 automatiquement.",
+  Imprévue: "Une dépense ponctuelle ce mois-ci — comptée en entier, une seule fois.",
+};
 
 function monthlyEquivalent(item: BudgetItem): number {
   return item.is_annual ? item.amount / 12 : item.amount;
@@ -26,14 +33,14 @@ export function BudgetPanel({
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<BudgetCategory>("Fixe");
-  const [isAnnual, setIsAnnual] = useState(true);
 
-  const total = items.reduce((s, i) => s + monthlyEquivalent(i), 0);
-  const remaining = currentMonthPayout !== null ? currentMonthPayout - total : null;
+  const totalExpenses = items.reduce((s, i) => s + monthlyEquivalent(i), 0);
+  const remaining = currentMonthPayout !== null ? currentMonthPayout - totalExpenses : null;
 
   const addItem = async () => {
     const amountNum = parseFloat(amount.replace(",", ".")) || 0;
     if (!label.trim() || amountNum <= 0) return;
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const { data } = await supabase
       .from("budget_items")
       .insert({
@@ -41,7 +48,8 @@ export function BudgetPanel({
         label: label.trim(),
         amount: amountNum,
         category,
-        is_annual: category === "Annuelle / imprévue" ? isAnnual : false,
+        is_annual: category === "Annuelle",
+        month: category === "Imprévue" ? currentMonth : null,
       })
       .select()
       .single();
@@ -60,10 +68,13 @@ export function BudgetPanel({
       <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
         Mon budget mensuel
       </div>
-      <p className="mb-3 text-xs text-muted">
-        Dépenses fixes, extra, et annuelles/imprévues (lissées par 12) — pour savoir, à
-        l&apos;euro près, ce qu&apos;il te reste une fois ton décompte reçu.
-      </p>
+
+      <div className="mb-3 flex justify-between rounded-lg border border-line bg-card-alt px-3 py-2 text-sm">
+        <span className="font-bold text-ink">Revenus (décompte de ce mois-ci)</span>
+        <span className="font-bold text-gold-light">
+          {currentMonthPayout !== null ? fmtEUR(currentMonthPayout) : "—"}
+        </span>
+      </div>
 
       {CATEGORIES.map((cat) => {
         const catItems = items.filter((i) => i.category === cat);
@@ -104,6 +115,18 @@ export function BudgetPanel({
       )}
 
       <div className="mb-3 flex flex-col gap-2 rounded-lg border border-line bg-card-alt p-3">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as BudgetCategory)}
+          className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-gold"
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <p className="text-[10px] text-muted">{CATEGORY_HINT[category]}</p>
         <div className="flex gap-2">
           <input
             value={label}
@@ -116,22 +139,9 @@ export function BudgetPanel({
             min={0}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={category === "Annuelle / imprévue" && isAnnual ? "€/an" : "€/mois"}
+            placeholder={category === "Annuelle" ? "€/an" : "€"}
             className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-gold"
           />
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as BudgetCategory)}
-            className="flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-gold"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
           <button
             onClick={addItem}
             className="flex items-center gap-1 rounded-lg bg-gold px-3 py-2 text-sm font-bold text-night"
@@ -139,18 +149,12 @@ export function BudgetPanel({
             <Plus size={16} />
           </button>
         </div>
-        {category === "Annuelle / imprévue" && (
-          <label className="flex items-center gap-1.5 text-[11px] text-muted">
-            <input type="checkbox" checked={isAnnual} onChange={(e) => setIsAnnual(e.target.checked)} />
-            Montant annuel total (divisé par 12 automatiquement)
-          </label>
-        )}
       </div>
 
       <div className="border-t border-line pt-2.5 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted">Total mensuel (toutes catégories)</span>
-          <span className="font-bold text-ink">{fmtEUR(total)}</span>
+          <span className="text-muted">Total dépenses (toutes catégories, mensualisé)</span>
+          <span className="font-bold text-ink">{fmtEUR(totalExpenses)}</span>
         </div>
         {remaining !== null ? (
           <div className="mt-1 flex justify-between">

@@ -26,10 +26,15 @@ export default async function EquipePage() {
   const downlineIds = (downline ?? []).map((d) => d.id);
   const budgetTotals: Record<string, number> = {};
   const lastPayouts: Record<string, number> = {};
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
   if (downlineIds.length > 0) {
     const [{ data: budgetRows }, { data: payoutRows }] = await Promise.all([
-      supabase.from("budget_items").select("person_id, amount, is_annual").in("person_id", downlineIds),
+      supabase
+        .from("budget_items")
+        .select("person_id, amount, is_annual")
+        .in("person_id", downlineIds)
+        .or(`month.is.null,month.eq.${currentMonth}`),
       supabase
         .from("payout_history")
         .select("person_id, month, payout")
