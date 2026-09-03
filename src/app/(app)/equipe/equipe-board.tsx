@@ -5,6 +5,7 @@ import { Edit3, Plus, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { RANKS_INFO, nextRank } from "@/lib/ranks";
 import { generateUniqueSlugFor } from "@/lib/slug";
+import { fmtEUR } from "@/lib/format";
 import type { Person, Rank } from "@/types/database";
 
 interface PendingRequest {
@@ -20,10 +21,14 @@ export function EquipeBoard({
   me,
   downline: initialDownline,
   pendingRequests: initialPending,
+  budgetTotals = {},
+  lastPayouts = {},
 }: {
   me: Person;
   downline: Person[];
   pendingRequests: PendingRequest[];
+  budgetTotals?: Record<string, number>;
+  lastPayouts?: Record<string, number>;
 }) {
   const supabase = createClient();
   const [downline, setDownline] = useState(initialDownline);
@@ -229,6 +234,18 @@ export function EquipeBoard({
               {next && (
                 <div className="mt-2 border-t border-line pt-2 text-xs text-muted">
                   Vers {next.code} : {info?.next?.label}
+                </div>
+              )}
+              {(budgetTotals[m.id] > 0 || lastPayouts[m.id] !== undefined) && (
+                <div className="mt-2 border-t border-line pt-2 text-xs text-muted">
+                  Budget mensuel :{" "}
+                  <strong className="text-ink">{fmtEUR(budgetTotals[m.id] ?? 0)}</strong>
+                  {lastPayouts[m.id] !== undefined && (
+                    <>
+                      {" "}
+                      · Dernier décompte : <strong className="text-ink">{fmtEUR(lastPayouts[m.id])}</strong>
+                    </>
+                  )}
                 </div>
               )}
               {m.notes && <div className="mt-1.5 text-xs text-muted">{m.notes}</div>}

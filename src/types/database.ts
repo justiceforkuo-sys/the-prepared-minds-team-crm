@@ -76,6 +76,7 @@ export interface ClientPolicy {
   precision_note: string | null;
   policy_status: PolicyStatus;
   source: PolicySource;
+  followup_date: string | null;
   created_at: string;
 }
 
@@ -157,6 +158,14 @@ export interface PayoutHistoryRow {
   sto_res: number;
   autre: number;
   payout: number;
+}
+
+export interface BudgetItem {
+  id: string;
+  person_id: string;
+  label: string;
+  amount: number;
+  created_at: string;
 }
 
 export interface DailyActivity {

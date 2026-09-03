@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR } from "@/lib/format";
 import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
+import { KNOWN_PARTNERS } from "@/lib/decompte-deadline";
 import type { Client, ClientPolicy, PolicyStatus, Rank } from "@/types/database";
 
 type Category = "iard" | "vie";
@@ -17,6 +18,8 @@ const POLICY_STATUS_COLOR: Record<PolicyStatus, string> = {
   "En pause": "#c99a3f",
 };
 
+const PARTNER_OPTIONS = [...KNOWN_PARTNERS, "Autre"];
+
 const emptyPolicyForm = {
   category: "iard" as Category,
   productId: IARD_PRODUCTS[0].id,
@@ -24,8 +27,16 @@ const emptyPolicyForm = {
   amount: "",
   manual: false,
   manualUnits: "",
-  partner: "",
+  partner: KNOWN_PARTNERS[0],
+  partnerOther: "",
+  followupDate: "",
 };
+
+function nextReminderDueDate(): string {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth() + 1, 6);
+  return target.toISOString().slice(0, 10);
+}
 
 interface PersonLite {
   id: string;
@@ -79,16 +90,19 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const addPolicy = async (clientId: string) => {
     if (!policyForm.manual && amountNum <= 0) return;
     if (policyForm.manual && !policyForm.manualUnits) return;
+    if (!policyForm.followupDate) return;
     const client = clients.find((c) => c.id === clientId);
+    const partner = policyForm.partner === "Autre" ? policyForm.partnerOther.trim() || null : policyForm.partner;
     const { data } = await supabase
       .from("client_policies")
       .insert({
         client_id: clientId,
-        partner: policyForm.partner.trim() || null,
+        partner,
         product: policyForm.category === "iard" ? iardProduct.id : vieProduct.id,
         product_label: productLabel,
         worth: amountNum,
         units: Math.round(finalUnits * 100) / 100,
+        followup_date: policyForm.followupDate,
       })
       .select()
       .single();
@@ -96,6 +110,13 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       const policies = [...client.client_policies, data as ClientPolicy];
       setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, client_policies: policies } : c)));
       recomputeClientTotals(clientId, policies);
+      await supabase.from("tasks").insert({
+        assigned_by: me.id,
+        assigned_to: me.id,
+        title: `Vérifier le prélèvement — ${client.name} (${productLabel})`,
+        notes: partner ? `Contrat ${partner}, ajouté le ${new Date().toLocaleDateString("fr-BE")}` : null,
+        due_date: nextReminderDueDate(),
+      });
     }
     setPolicyFormId(null);
     setPolicyForm(emptyPolicyForm);
@@ -362,12 +383,25 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                         </select>
                       )}
 
-                      <input
+                      <select
                         value={policyForm.partner}
                         onChange={(e) => setPolicyForm((f) => ({ ...f, partner: e.target.value }))}
-                        placeholder="Partenaire (optionnel)"
                         className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
-                      />
+                      >
+                        {PARTNER_OPTIONS.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                      {policyForm.partner === "Autre" && (
+                        <input
+                          value={policyForm.partnerOther}
+                          onChange={(e) => setPolicyForm((f) => ({ ...f, partnerOther: e.target.value }))}
+                          placeholder="Nom du partenaire"
+                          className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                        />
+                      )}
 
                       <div className="flex items-center gap-2">
                         <input
@@ -409,10 +443,23 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                         />
                       )}
 
+                      <div>
+                        <label className="mb-1 block text-[10px] text-muted">
+                          Date de suivi / décompte avec le client (obligatoire)
+                        </label>
+                        <input
+                          type="date"
+                          value={policyForm.followupDate}
+                          onChange={(e) => setPolicyForm((f) => ({ ...f, followupDate: e.target.value }))}
+                          className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                        />
+                      </div>
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => addPolicy(c.id)}
-                          className="flex-1 rounded-md bg-gold py-1.5 text-xs font-bold text-night"
+                          disabled={!policyForm.followupDate}
+                          className="flex-1 rounded-md bg-gold py-1.5 text-xs font-bold text-night disabled:opacity-50"
                         >
                           Enregistrer ({finalUnits.toFixed(2)} u)
                         </button>

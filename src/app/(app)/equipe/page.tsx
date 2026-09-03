@@ -23,12 +23,35 @@ export default async function EquipePage() {
     supabase.rpc("get_team_production"),
   ]);
 
+  const downlineIds = (downline ?? []).map((d) => d.id);
+  const budgetTotals: Record<string, number> = {};
+  const lastPayouts: Record<string, number> = {};
+
+  if (downlineIds.length > 0) {
+    const [{ data: budgetRows }, { data: payoutRows }] = await Promise.all([
+      supabase.from("budget_items").select("person_id, amount").in("person_id", downlineIds),
+      supabase
+        .from("payout_history")
+        .select("person_id, month, payout")
+        .in("person_id", downlineIds)
+        .order("month", { ascending: false }),
+    ]);
+    for (const row of budgetRows ?? []) {
+      budgetTotals[row.person_id] = (budgetTotals[row.person_id] ?? 0) + row.amount;
+    }
+    for (const row of payoutRows ?? []) {
+      if (!(row.person_id in lastPayouts)) lastPayouts[row.person_id] = row.payout;
+    }
+  }
+
   return (
     <div>
       <EquipeBoard
         me={person}
         downline={downline ?? []}
         pendingRequests={pendingRequests ?? []}
+        budgetTotals={budgetTotals}
+        lastPayouts={lastPayouts}
       />
       <TeamProduction rows={(production as TeamProductionRow[] | null) ?? []} />
     </div>

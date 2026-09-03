@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR } from "@/lib/format";
+import { daysUntilCutoff } from "@/lib/decompte-deadline";
 import type { ClientPolicy, PaymentStatus, FeedbackReason } from "@/types/database";
 
 type PolicyRow = ClientPolicy & { client: { name: string; owner_id: string } | null };
@@ -179,7 +180,8 @@ export function RecouvrementBoard({
         {sorted.map((p) => {
           const isOpen = expanded === p.id;
           const canEdit = isAdmin || p.client?.owner_id === meId;
-          const status = p.payment_status as PaymentStatus;
+          const status = (p.payment_status ?? "À contacter") as PaymentStatus;
+          const daysLeft = p.partner && status !== "Payé" ? daysUntilCutoff(p.partner) : null;
           return (
             <div
               key={p.id}
@@ -202,6 +204,14 @@ export function RecouvrementBoard({
                       {p.product_label} · {fmtEUR(p.worth)}
                     </div>
                   </div>
+                  {daysLeft !== null && (
+                    <span
+                      className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold text-night"
+                      style={{ background: daysLeft <= 3 ? "#b3543a" : daysLeft <= 7 ? "#c99a3f" : "#8a97ab" }}
+                    >
+                      {daysLeft <= 0 ? "Échéance dépassée" : `J-${daysLeft}`}
+                    </span>
+                  )}
                 </div>
                 {isOpen ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
               </button>

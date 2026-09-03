@@ -7,10 +7,13 @@ export default async function RecouvrementPage() {
   if (!person) return null;
 
   const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
   const { data: policies } = await supabase
     .from("client_policies")
     .select("*, client:clients(name, owner_id)")
-    .not("payment_status", "is", null);
+    .or(
+      `payment_status.not.is.null,and(followup_date.lte.${today},policy_status.eq.Actif,payment_status.is.null)`
+    );
 
   return (
     <RecouvrementBoard

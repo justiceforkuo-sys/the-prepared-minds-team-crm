@@ -4,19 +4,24 @@ import { RANKS_INFO } from "@/lib/ranks";
 import { fmtEUR } from "@/lib/format";
 import { RevenueBoard } from "./revenue-board";
 import { CommissionSimulator } from "./commission-simulator";
-import type { TeamProductionRow } from "@/types/database";
+import { BudgetPanel } from "./budget-panel";
+import type { TeamProductionRow, BudgetItem } from "@/types/database";
 
 export default async function RevenusPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
 
   const monthLabel = new Date().toLocaleDateString("fr-BE", { month: "long", year: "numeric" });
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const supabase = await createClient();
 
-  const [{ data: production }, { data: payouts }] = await Promise.all([
+  const [{ data: production }, { data: payouts }, { data: budgetItems }] = await Promise.all([
     supabase.rpc("get_team_production"),
     supabase.from("payout_history").select("*").eq("person_id", person.id).order("month", { ascending: false }),
+    supabase.from("budget_items").select("*").eq("person_id", person.id).order("created_at"),
   ]);
+
+  const currentMonthPayout = payouts?.find((p) => p.month === currentMonth)?.payout ?? null;
 
   const rows = (production as TeamProductionRow[] | null) ?? [];
   const me = rows.find((r) => r.depth === 0);
@@ -42,6 +47,12 @@ export default async function RevenusPage() {
       <div className="mt-4">
         <CommissionSimulator rank={person.rank} />
       </div>
+
+      <BudgetPanel
+        meId={person.id}
+        initialItems={(budgetItems as BudgetItem[]) ?? []}
+        currentMonthPayout={currentMonthPayout}
+      />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
