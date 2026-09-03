@@ -63,6 +63,16 @@ export function BudgetPanel({
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
+  const updateAmountLocal = (id: string, value: string) => {
+    const num = parseFloat(value.replace(",", ".")) || 0;
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, amount: num } : i)));
+  };
+
+  const commitAmount = async (id: string, value: string) => {
+    const num = parseFloat(value.replace(",", ".")) || 0;
+    await supabase.from("budget_items").update({ amount: num }).eq("id", id);
+  };
+
   return (
     <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
       <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
@@ -88,21 +98,27 @@ export function BudgetPanel({
             </div>
             <div className="flex flex-col gap-1.5">
               {catItems.map((i) => (
-                <div key={i.id} className="flex items-center justify-between text-sm">
-                  <span className="text-ink">
-                    {i.label}
-                    {i.is_annual && (
-                      <span className="ml-1.5 text-[10px] text-muted">
-                        ({fmtEUR(i.amount)}/an → {fmtEUR(i.amount / 12)}/mois)
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {!i.is_annual && <span className="text-muted">{fmtEUR(i.amount)}</span>}
-                    <button onClick={() => deleteItem(i.id)}>
-                      <Trash2 size={12} className="text-red" />
-                    </button>
+                <div key={i.id}>
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex-1 truncate text-ink">{i.label}</span>
+                    <div className="flex flex-shrink-0 items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        value={i.amount}
+                        onChange={(e) => updateAmountLocal(i.id, e.target.value)}
+                        onBlur={(e) => commitAmount(i.id, e.target.value)}
+                        className="w-20 rounded-md border border-line bg-card px-2 py-1 text-right text-xs text-ink outline-none focus:border-gold"
+                      />
+                      <span className="text-[10px] text-muted">{i.is_annual ? "€/an" : "€"}</span>
+                      <button onClick={() => deleteItem(i.id)}>
+                        <Trash2 size={12} className="text-red" />
+                      </button>
+                    </div>
                   </div>
+                  {i.is_annual && (
+                    <div className="text-right text-[10px] text-muted">→ {fmtEUR(i.amount / 12)}/mois</div>
+                  )}
                 </div>
               ))}
             </div>
