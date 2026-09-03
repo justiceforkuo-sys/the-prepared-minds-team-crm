@@ -29,7 +29,7 @@ export default async function EquipePage() {
 
   if (downlineIds.length > 0) {
     const [{ data: budgetRows }, { data: payoutRows }] = await Promise.all([
-      supabase.from("budget_items").select("person_id, amount").in("person_id", downlineIds),
+      supabase.from("budget_items").select("person_id, amount, is_annual").in("person_id", downlineIds),
       supabase
         .from("payout_history")
         .select("person_id, month, payout")
@@ -37,7 +37,8 @@ export default async function EquipePage() {
         .order("month", { ascending: false }),
     ]);
     for (const row of budgetRows ?? []) {
-      budgetTotals[row.person_id] = (budgetTotals[row.person_id] ?? 0) + row.amount;
+      const monthly = row.is_annual ? row.amount / 12 : row.amount;
+      budgetTotals[row.person_id] = (budgetTotals[row.person_id] ?? 0) + monthly;
     }
     for (const row of payoutRows ?? []) {
       if (!(row.person_id in lastPayouts)) lastPayouts[row.person_id] = row.payout;

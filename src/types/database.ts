@@ -160,11 +160,15 @@ export interface PayoutHistoryRow {
   payout: number;
 }
 
+export type BudgetCategory = "Fixe" | "Extra" | "Annuelle / imprévue";
+
 export interface BudgetItem {
   id: string;
   person_id: string;
   label: string;
   amount: number;
+  category: BudgetCategory;
+  is_annual: boolean;
   created_at: string;
 }
 
