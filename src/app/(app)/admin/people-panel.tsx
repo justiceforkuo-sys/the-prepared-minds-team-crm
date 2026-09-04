@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, LogIn } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { RANKS_INFO } from "@/lib/ranks";
-import type { Person, Rank } from "@/types/database";
+import type { Person, Rank, ContractType } from "@/types/database";
 import { startImpersonation } from "./impersonation-actions";
 
 function isDescendantOf(all: Person[], candidateId: string, ofId: string): boolean {
@@ -21,6 +21,7 @@ function isDescendantOf(all: Person[], candidateId: string, ofId: string): boole
 
 type EditForm = {
   rank: Rank;
+  contract_type: ContractType;
   active: boolean;
   is_admin: boolean;
   reports_to: string;
@@ -40,6 +41,7 @@ type EditForm = {
 function toForm(p: Person): EditForm {
   return {
     rank: p.rank,
+    contract_type: p.contract_type,
     active: p.active,
     is_admin: p.is_admin,
     reports_to: p.reports_to ?? "",
@@ -83,6 +85,7 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
     if (!form) return;
     const payload = {
       rank: form.rank,
+      contract_type: form.contract_type,
       active: form.active,
       is_admin: form.is_admin,
       reports_to: form.reports_to || null,
@@ -180,6 +183,18 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[10px] text-muted">Type de contrat</label>
+                    <select
+                      value={form.contract_type}
+                      onChange={(e) => setForm((f) => f && { ...f, contract_type: e.target.value as ContractType })}
+                      className="w-full rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                    >
+                      <option value="intermediaire">Intermédiaire (unités/rang)</option>
+                      <option value="apporteur">Apporteur (forfait par client)</option>
+                    </select>
                   </div>
 
                   <div className="flex gap-4">

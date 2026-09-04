@@ -5,6 +5,7 @@ import { fmtEUR } from "@/lib/format";
 import { RevenueBoard } from "./revenue-board";
 import { CommissionSimulator } from "./commission-simulator";
 import { BudgetPanel } from "./budget-panel";
+import { ApporteurFeeCard } from "./apporteur-fee-card";
 import type { TeamProductionRow, BudgetItem, BudgetEntry } from "@/types/database";
 
 export default async function RevenusPage() {
@@ -14,15 +15,17 @@ export default async function RevenusPage() {
   const monthLabel = new Date().toLocaleDateString("fr-BE", { month: "long", year: "numeric" });
   const supabase = await createClient();
 
-  const [{ data: production }, { data: payouts }, { data: budgetItems }, { data: budgetEntries }] = await Promise.all([
-    supabase.rpc("get_team_production"),
-    supabase.from("payout_history").select("*").eq("person_id", person.id).order("month", { ascending: false }),
-    supabase.from("budget_items").select("*").eq("person_id", person.id).order("created_at"),
-    supabase
-      .from("budget_entries")
-      .select("id, item_id, month, amount, created_at, budget_items!inner(person_id)")
-      .eq("budget_items.person_id", person.id),
-  ]);
+  const [{ data: production }, { data: payouts }, { data: budgetItems }, { data: budgetEntries }, { count: clientCount }] =
+    await Promise.all([
+      supabase.rpc("get_team_production"),
+      supabase.from("payout_history").select("*").eq("person_id", person.id).order("month", { ascending: false }),
+      supabase.from("budget_items").select("*").eq("person_id", person.id).order("created_at"),
+      supabase
+        .from("budget_entries")
+        .select("id, item_id, month, amount, created_at, budget_items!inner(person_id)")
+        .eq("budget_items.person_id", person.id),
+      supabase.from("clients").select("*", { count: "exact", head: true }).eq("owner_id", person.id),
+    ]);
 
   const payoutsByMonth = Object.fromEntries((payouts ?? []).map((p) => [p.month, p.payout]));
 
@@ -50,6 +53,8 @@ export default async function RevenusPage() {
       <div className="mt-4">
         <CommissionSimulator rank={person.rank} />
       </div>
+
+      {person.contract_type === "apporteur" && <ApporteurFeeCard clientCount={clientCount ?? 0} />}
 
       <BudgetPanel
         meId={person.id}

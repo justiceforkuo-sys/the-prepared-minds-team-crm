@@ -9,6 +9,7 @@ export type ProspectStage =
   | "Perdu";
 export type Priority = "A" | "B" | "C";
 export type RemovalStatus = "pending" | "approved" | "rejected";
+export type ContractType = "apporteur" | "intermediaire";
 
 export interface Person {
   id: string;
@@ -29,6 +30,7 @@ export interface Person {
   ranking_position: number | null;
   ranking_points: number | null;
   ranking_days_to_promo: number | null;
+  contract_type: ContractType;
   created_at: string;
 }
 
