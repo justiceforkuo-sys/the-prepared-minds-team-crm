@@ -82,6 +82,13 @@ export interface ClientPolicy {
   created_at: string;
 }
 
+export interface OvbPeriod {
+  id: string;
+  period_month: string;
+  start_date: string;
+  created_at: string;
+}
+
 export interface TeamProductionRow {
   person_id: string;
   name: string;

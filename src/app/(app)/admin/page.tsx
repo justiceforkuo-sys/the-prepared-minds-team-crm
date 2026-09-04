@@ -4,6 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { PeoplePanel } from "./people-panel";
 import { PayoutPanel } from "./payout-panel";
 import { OvbImportPanel } from "./ovb-import-panel";
+import { OvbPeriodsPanel } from "./ovb-periods-panel";
+import type { OvbPeriod } from "@/types/database";
 
 export default async function AdminPage() {
   const person = await getCurrentPerson();
@@ -11,7 +13,10 @@ export default async function AdminPage() {
   if (!person.is_admin) notFound();
 
   const supabase = await createClient();
-  const { data: people } = await supabase.from("people").select("*").order("name");
+  const [{ data: people }, { data: ovbPeriods }] = await Promise.all([
+    supabase.from("people").select("*").order("name"),
+    supabase.from("ovb_periods").select("*"),
+  ]);
 
   return (
     <div>
@@ -28,6 +33,10 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <OvbImportPanel />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <OvbPeriodsPanel initialPeriods={(ovbPeriods as OvbPeriod[]) ?? []} />
       </div>
     </div>
   );
