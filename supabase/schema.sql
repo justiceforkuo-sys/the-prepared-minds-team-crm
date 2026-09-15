@@ -298,7 +298,9 @@ alter table public.goals enable row level security;
 -- people: tout le monde authentifié peut lire l'annuaire (nécessaire pour
 -- afficher la cascade et choisir un sponsor) ; chacun modifie sa propre
 -- fiche, un sponsor modifie celles de ses recrues directes, l'admin modifie
--- tout. La suppression n'existe pas côté client (passe par removal_requests).
+-- tout. La suppression passe uniquement par removal_requests, validée par
+-- l'admin (people_delete_admin ci-dessous) ; le cascade nettoie ensuite la
+-- demande elle-même ainsi que clients/prospects/onboarding/etc.
 create policy "people_select_all" on public.people
   for select using (auth.role() = 'authenticated');
 
@@ -313,6 +315,9 @@ create policy "people_update_self_sponsor_or_admin" on public.people
     or reports_to = current_person_id()
     or is_admin()
   );
+
+create policy "people_delete_admin" on public.people
+  for delete using (is_admin());
 
 -- clients: book personnel + lecture seule pour le sponsor direct
 create policy "clients_select_own_or_downline" on public.clients
