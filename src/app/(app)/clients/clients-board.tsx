@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { Bell, BellOff, ChevronDown, ChevronUp, Edit3, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
@@ -69,6 +69,9 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const [reminderFormId, setReminderFormId] = useState<string | null>(null);
   const [reminderDate, setReminderDate] = useState("");
   const [reminderNote, setReminderNote] = useState("");
+
+  const [contactFormId, setContactFormId] = useState<string | null>(null);
+  const [contactForm, setContactForm] = useState({ email: "", phone: "", address: "", locality: "" });
 
   const iardProduct = IARD_PRODUCTS.find((p) => p.id === policyForm.productId) ?? IARD_PRODUCTS[0];
   const vieProduct = VIE_PRODUCTS.find((p) => p.id === policyForm.vieProductId) ?? VIE_PRODUCTS[0];
@@ -208,6 +211,28 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       )
     );
     await supabase.from("payment_reminders").update({ status: "cancelled" }).eq("id", reminderId);
+  };
+
+  const toggleContactForm = (client: Client) => {
+    setContactFormId((prev) => (prev === client.id ? null : client.id));
+    setContactForm({
+      email: client.email ?? "",
+      phone: client.phone ?? "",
+      address: client.address ?? "",
+      locality: client.locality ?? "",
+    });
+  };
+
+  const saveContact = async (clientId: string) => {
+    const patch = {
+      email: contactForm.email.trim() || null,
+      phone: contactForm.phone.trim() || null,
+      address: contactForm.address.trim() || null,
+      locality: contactForm.locality.trim() || null,
+    };
+    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, ...patch } : c)));
+    setContactFormId(null);
+    await supabase.from("clients").update(patch).eq("id", clientId);
   };
 
   useEffect(() => {
@@ -355,10 +380,69 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
               </div>
               {isOpen && (
                 <div className="mt-2.5 flex flex-col gap-1.5 border-t border-line pt-2.5">
-                  {(c.email || c.address || c.locality) && (
+                  {canEdit && (
+                    <div className="mb-1 flex items-start justify-between gap-2">
+                      <div className="text-xs text-muted">
+                        {c.email && <div>{c.email}</div>}
+                        {(c.address || c.locality) && <div>{[c.address, c.locality].filter(Boolean).join(", ")}</div>}
+                        {!c.email && !c.address && !c.locality && <div>Aucune coordonnée renseignée.</div>}
+                      </div>
+                      <button
+                        onClick={() => toggleContactForm(c)}
+                        className="flex flex-shrink-0 items-center gap-1 text-[10px] font-bold text-gold-light"
+                      >
+                        <Edit3 size={11} /> Modifier
+                      </button>
+                    </div>
+                  )}
+                  {!canEdit && (c.email || c.address || c.locality) && (
                     <div className="mb-1 text-xs text-muted">
                       {c.email && <div>{c.email}</div>}
                       {(c.address || c.locality) && <div>{[c.address, c.locality].filter(Boolean).join(", ")}</div>}
+                    </div>
+                  )}
+
+                  {canEdit && contactFormId === c.id && (
+                    <div className="mb-2 flex flex-col gap-2 rounded-lg border border-line bg-card-alt p-2.5">
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                        placeholder="Email"
+                        className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                      />
+                      <input
+                        value={contactForm.phone}
+                        onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+                        placeholder="Téléphone"
+                        className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                      />
+                      <input
+                        value={contactForm.address}
+                        onChange={(e) => setContactForm((f) => ({ ...f, address: e.target.value }))}
+                        placeholder="Adresse"
+                        className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                      />
+                      <input
+                        value={contactForm.locality}
+                        onChange={(e) => setContactForm((f) => ({ ...f, locality: e.target.value }))}
+                        placeholder="Localité"
+                        className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveContact(c.id)}
+                          className="flex-1 rounded-md bg-gold py-1.5 text-xs font-bold text-night"
+                        >
+                          Enregistrer
+                        </button>
+                        <button
+                          onClick={() => setContactFormId(null)}
+                          className="rounded-md border border-line px-3 py-1.5 text-xs text-muted"
+                        >
+                          Annuler
+                        </button>
+                      </div>
                     </div>
                   )}
                   {c.client_policies.length === 0 && (
