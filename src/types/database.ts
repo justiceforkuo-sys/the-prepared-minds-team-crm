@@ -256,6 +256,19 @@ export interface Task {
   created_at: string;
 }
 
+export type ReminderStatus = "pending" | "sent" | "cancelled";
+
+export interface PaymentReminder {
+  id: string;
+  client_policy_id: string;
+  created_by: string;
+  remind_on: string;
+  note: string | null;
+  status: ReminderStatus;
+  sent_at: string | null;
+  created_at: string;
+}
+
 export interface AdminImpersonationLog {
   id: string;
   admin_id: string;

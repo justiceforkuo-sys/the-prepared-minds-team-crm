@@ -30,6 +30,11 @@ const emptyActivity = (personId: string, date: string): DailyActivity => ({
 
 type FollowUp = Pick<Prospect, "id" | "name" | "stage" | "next_follow_up">;
 type TodayTask = { id: string; title: string; due_date: string | null; assigner: { name: string } | null };
+type TodayReminder = {
+  id: string;
+  remind_on: string;
+  client_policy: { product_label: string | null; client: { name: string } | null } | null;
+};
 
 export function TodayBoard({
   personId,
@@ -40,6 +45,7 @@ export function TodayBoard({
   followUps,
   goals,
   tasks,
+  paymentReminders,
   unitsThisMonth,
   groupUnitsThisMonth,
   top3,
@@ -54,6 +60,7 @@ export function TodayBoard({
   followUps: FollowUp[];
   goals: Goal[];
   tasks: TodayTask[];
+  paymentReminders: TodayReminder[];
   unitsThisMonth: number;
   groupUnitsThisMonth: number;
   top3: CompanyRankingRow[];
@@ -246,6 +253,30 @@ export function TodayBoard({
           </div>
         )}
       </div>
+
+      {paymentReminders.length > 0 && (
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-muted">
+              Rappels clients — premier versement
+            </div>
+            <span className="text-xs font-bold text-gold-light">{paymentReminders.length}</span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {paymentReminders.slice(0, 4).map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-xs">
+                <span className="truncate text-ink">{r.client_policy?.client?.name ?? "?"}</span>
+                <span className={`ml-2 flex-shrink-0 font-bold ${r.remind_on < today ? "text-red" : "text-gold-light"}`}>
+                  {fmtDate(r.remind_on)}
+                </span>
+              </div>
+            ))}
+            {paymentReminders.length > 4 && (
+              <div className="text-[11px] text-muted">+{paymentReminders.length - 4} autres</div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-line bg-card p-4">
         <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">

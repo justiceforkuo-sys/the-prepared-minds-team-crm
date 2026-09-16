@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Circle, Plus, Trash2, CalendarPlus } from "lucide-react";
+import { Bell, BellOff, CheckCircle2, Circle, Plus, Trash2, CalendarPlus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
 import { googleCalendarUrl } from "@/lib/calendar";
-import type { Task } from "@/types/database";
+import type { PaymentReminder, Task } from "@/types/database";
 
 type TaskRow = Task & { assignee: { name: string } | null; assigner: { name: string } | null };
+export type PaymentReminderRow = PaymentReminder & {
+  client_policy: { product_label: string | null; client: { name: string } | null } | null;
+};
 
 const emptyForm = { title: "", assignedTo: "", dueDate: "", notes: "" };
 
@@ -15,18 +18,26 @@ export function AgendaBoard({
   me,
   initialTasks,
   people,
+  initialReminders,
 }: {
   me: { id: string; name: string };
   initialTasks: TaskRow[];
   people: { id: string; name: string }[];
+  initialReminders: PaymentReminderRow[];
 }) {
   const supabase = createClient();
   const [tasks, setTasks] = useState(initialTasks);
+  const [reminders, setReminders] = useState(initialReminders);
   const [tab, setTab] = useState<"a-moi" | "donnees">("a-moi");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm, assignedTo: me.id });
 
   const today = new Date().toISOString().slice(0, 10);
+
+  const cancelReminder = async (id: string) => {
+    setReminders((prev) => prev.filter((r) => r.id !== id));
+    await supabase.from("payment_reminders").update({ status: "cancelled" }).eq("id", id);
+  };
 
   const filtered = useMemo(
     () => tasks.filter((t) => (tab === "a-moi" ? t.assigned_to === me.id : t.assigned_by === me.id && t.assigned_to !== me.id)),
@@ -125,6 +136,51 @@ export function AgendaBoard({
           >
             Assigner
           </button>
+        </div>
+      )}
+
+      {reminders.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">
+            Rappels clients — premier versement
+          </div>
+          <div className="flex flex-col gap-2">
+            {reminders.map((r) => {
+              const late = r.remind_on < today;
+              const clientName = r.client_policy?.client?.name ?? "?";
+              const produit = r.client_policy?.product_label ?? "contrat";
+              return (
+                <div key={r.id} className="rounded-2xl border border-line bg-card p-3.5">
+                  <div className="flex items-start gap-2.5">
+                    <Bell size={18} className={`mt-0.5 flex-shrink-0 ${late ? "text-red" : "text-gold-light"}`} />
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-ink">
+                        {clientName} <span className="font-normal text-muted">— {produit}</span>
+                      </div>
+                      {r.note && <div className="mt-1 text-xs text-ink">{r.note}</div>}
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <div className={`text-xs font-bold ${late ? "text-red" : "text-gold-light"}`}>
+                        {fmtDate(r.remind_on)}
+                      </div>
+                      <a
+                        href={googleCalendarUrl(`Rappel — ${clientName} (${produit})`, r.note ?? "", r.remind_on)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Ajouter à Google Calendar"
+                        className="text-muted"
+                      >
+                        <CalendarPlus size={16} />
+                      </a>
+                      <button onClick={() => cancelReminder(r.id)} title="Annuler le rappel">
+                        <BellOff size={14} className="text-red" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

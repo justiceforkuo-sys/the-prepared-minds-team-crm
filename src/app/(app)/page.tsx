@@ -15,29 +15,42 @@ export default async function TodayPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   const supabase = await createClient();
-  const [{ data: activity }, { data: followUps }, { data: goals }, { data: tasks }, { data: production }, { data: companyRanking }] =
-    await Promise.all([
-      supabase.from("daily_activity").select("*").eq("person_id", person.id).eq("date", today).maybeSingle(),
-      supabase
-        .from("prospects")
-        .select("id, name, stage, next_follow_up")
-        .eq("owner_id", person.id)
-        .not("next_follow_up", "is", null)
-        .lte("next_follow_up", today)
-        .not("stage", "in", "(Perdu,Partenaire)")
-        .order("next_follow_up"),
-      supabase.from("goals").select("*").eq("person_id", person.id).eq("done", false).order("created_at", { ascending: false }),
-      supabase
-        .from("tasks")
-        .select("id, title, due_date, assigner:people!tasks_assigned_by_fkey(name)")
-        .eq("assigned_to", person.id)
-        .eq("done", false)
-        .not("due_date", "is", null)
-        .lte("due_date", today)
-        .order("due_date"),
-      supabase.rpc("get_team_production"),
-      supabase.rpc("get_company_ranking"),
-    ]);
+  const [
+    { data: activity },
+    { data: followUps },
+    { data: goals },
+    { data: tasks },
+    { data: reminders },
+    { data: production },
+    { data: companyRanking },
+  ] = await Promise.all([
+    supabase.from("daily_activity").select("*").eq("person_id", person.id).eq("date", today).maybeSingle(),
+    supabase
+      .from("prospects")
+      .select("id, name, stage, next_follow_up")
+      .eq("owner_id", person.id)
+      .not("next_follow_up", "is", null)
+      .lte("next_follow_up", today)
+      .not("stage", "in", "(Perdu,Partenaire)")
+      .order("next_follow_up"),
+    supabase.from("goals").select("*").eq("person_id", person.id).eq("done", false).order("created_at", { ascending: false }),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date, assigner:people!tasks_assigned_by_fkey(name)")
+      .eq("assigned_to", person.id)
+      .eq("done", false)
+      .not("due_date", "is", null)
+      .lte("due_date", today)
+      .order("due_date"),
+    supabase
+      .from("payment_reminders")
+      .select("id, remind_on, client_policy:client_policies(product_label, client:clients(name))")
+      .eq("status", "pending")
+      .lte("remind_on", today)
+      .order("remind_on"),
+    supabase.rpc("get_team_production"),
+    supabase.rpc("get_company_ranking"),
+  ]);
 
   const productionRows = (production as TeamProductionRow[] | null) ?? [];
   const myProduction = productionRows.find((r) => r.depth === 0);
@@ -63,6 +76,13 @@ export default async function TodayPage() {
         followUps={followUps ?? []}
         goals={goals ?? []}
         tasks={(tasks as unknown as { id: string; title: string; due_date: string | null; assigner: { name: string } | null }[]) ?? []}
+        paymentReminders={
+          (reminders as unknown as {
+            id: string;
+            remind_on: string;
+            client_policy: { product_label: string | null; client: { name: string } | null } | null;
+          }[]) ?? []
+        }
         unitsThisMonth={myProduction?.units_this_month ?? 0}
         groupUnitsThisMonth={groupUnitsThisMonth}
         top3={ranking.slice(0, 3)}

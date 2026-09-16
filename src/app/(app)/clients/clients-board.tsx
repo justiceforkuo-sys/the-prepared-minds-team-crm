@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { Bell, BellOff, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { fmtEUR } from "@/lib/format";
+import { fmtEUR, fmtDate } from "@/lib/format";
 import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
 import { KNOWN_PARTNERS } from "@/lib/decompte-deadline";
-import type { Client, ClientPolicy, PolicyStatus, Rank } from "@/types/database";
+import type { Client, ClientPolicy, PaymentReminder, PolicyStatus, Rank } from "@/types/database";
 
 type Category = "iard" | "vie";
 
@@ -45,7 +45,8 @@ interface PersonLite {
   active: boolean;
 }
 
-type ClientWithPolicies = Client & { client_policies: ClientPolicy[] };
+type PolicyWithReminders = ClientPolicy & { payment_reminders: PaymentReminder[] };
+type ClientWithPolicies = Client & { client_policies: PolicyWithReminders[] };
 
 export function ClientsBoard({ me, downline }: { me: PersonLite; downline: PersonLite[] }) {
   const supabase = createClient();
@@ -64,6 +65,10 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
 
   const [policyFormId, setPolicyFormId] = useState<string | null>(null);
   const [policyForm, setPolicyForm] = useState(emptyPolicyForm);
+
+  const [reminderFormId, setReminderFormId] = useState<string | null>(null);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderNote, setReminderNote] = useState("");
 
   const iardProduct = IARD_PRODUCTS.find((p) => p.id === policyForm.productId) ?? IARD_PRODUCTS[0];
   const vieProduct = VIE_PRODUCTS.find((p) => p.id === policyForm.vieProductId) ?? VIE_PRODUCTS[0];
@@ -107,7 +112,7 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       .select()
       .single();
     if (data && client) {
-      const policies = [...client.client_policies, data as ClientPolicy];
+      const policies = [...client.client_policies, { ...(data as ClientPolicy), payment_reminders: [] }];
       setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, client_policies: policies } : c)));
       recomputeClientTotals(clientId, policies);
       await supabase.from("tasks").insert({
@@ -143,12 +148,74 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
     }
   };
 
+  const toggleReminderForm = (policyId: string) => {
+    setReminderFormId((prev) => (prev === policyId ? null : policyId));
+    setReminderDate("");
+    setReminderNote("");
+  };
+
+  const scheduleReminder = async (clientId: string, policyId: string) => {
+    if (!reminderDate) return;
+    const { data } = await supabase
+      .from("payment_reminders")
+      .insert({
+        client_policy_id: policyId,
+        created_by: me.id,
+        remind_on: reminderDate,
+        note: reminderNote.trim() || null,
+      })
+      .select()
+      .single();
+    if (data) {
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === clientId
+            ? {
+                ...c,
+                client_policies: c.client_policies.map((p) =>
+                  p.id === policyId
+                    ? { ...p, payment_reminders: [...p.payment_reminders, data as PaymentReminder] }
+                    : p
+                ),
+              }
+            : c
+        )
+      );
+    }
+    setReminderFormId(null);
+    setReminderDate("");
+    setReminderNote("");
+  };
+
+  const cancelReminder = async (clientId: string, policyId: string, reminderId: string) => {
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id === clientId
+          ? {
+              ...c,
+              client_policies: c.client_policies.map((p) =>
+                p.id === policyId
+                  ? {
+                      ...p,
+                      payment_reminders: p.payment_reminders.map((r) =>
+                        r.id === reminderId ? { ...r, status: "cancelled" } : r
+                      ),
+                    }
+                  : p
+              ),
+            }
+          : c
+      )
+    );
+    await supabase.from("payment_reminders").update({ status: "cancelled" }).eq("id", reminderId);
+  };
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     supabase
       .from("clients")
-      .select("*, client_policies(*)")
+      .select("*, client_policies(*, payment_reminders(*))")
       .eq("owner_id", activeId)
       .order("name")
       .then(({ data }) => {
@@ -297,36 +364,103 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                   {c.client_policies.length === 0 && (
                     <div className="text-xs text-muted">Aucune police enregistrée.</div>
                   )}
-                  {c.client_policies.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between text-xs">
-                      <div className="text-ink">
-                        {p.product_label}
-                        {p.partner ? <span className="text-muted"> · {p.partner}</span> : null}
-                        <span className="text-muted"> · {p.units} u</span>
-                      </div>
-                      <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-                        {p.worth > 0 && <span className="text-muted">{fmtEUR(p.worth)}</span>}
-                        <select
-                          value={p.policy_status}
-                          disabled={!canEdit}
-                          onChange={(e) => updatePolicyStatus(c.id, p.id, e.target.value as PolicyStatus)}
-                          className="rounded-md border border-line bg-card-alt px-1.5 py-1 text-[10px] font-bold outline-none focus:border-gold disabled:opacity-70"
-                          style={{ color: POLICY_STATUS_COLOR[p.policy_status] }}
-                        >
-                          {POLICY_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                  {c.client_policies.map((p) => {
+                    const pendingReminder = p.payment_reminders.find((r) => r.status === "pending");
+                    return (
+                      <div key={p.id} className="text-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="text-ink">
+                            {p.product_label}
+                            {p.partner ? <span className="text-muted"> · {p.partner}</span> : null}
+                            <span className="text-muted"> · {p.units} u</span>
+                          </div>
+                          <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+                            {p.worth > 0 && <span className="text-muted">{fmtEUR(p.worth)}</span>}
+                            <select
+                              value={p.policy_status}
+                              disabled={!canEdit}
+                              onChange={(e) => updatePolicyStatus(c.id, p.id, e.target.value as PolicyStatus)}
+                              className="rounded-md border border-line bg-card-alt px-1.5 py-1 text-[10px] font-bold outline-none focus:border-gold disabled:opacity-70"
+                              style={{ color: POLICY_STATUS_COLOR[p.policy_status] }}
+                            >
+                              {POLICY_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {s}
+                                </option>
+                              ))}
+                            </select>
+                            {canEdit && (
+                              <button onClick={() => deletePolicy(c.id, p.id)}>
+                                <Trash2 size={12} className="text-red" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
                         {canEdit && (
-                          <button onClick={() => deletePolicy(c.id, p.id)}>
-                            <Trash2 size={12} className="text-red" />
-                          </button>
+                          <div className="mt-1 flex items-center gap-2">
+                            {pendingReminder ? (
+                              <>
+                                <span className="flex items-center gap-1 text-[10px] text-gold-light">
+                                  <Bell size={11} /> Rappel prévu le {fmtDate(pendingReminder.remind_on)}
+                                  {pendingReminder.remind_on <= new Date().toISOString().slice(0, 10)
+                                    ? " (aujourd'hui/passé — envoi au prochain cron)"
+                                    : ""}
+                                </span>
+                                <button
+                                  onClick={() => cancelReminder(c.id, p.id, pendingReminder.id)}
+                                  className="flex items-center gap-1 text-[10px] text-red"
+                                >
+                                  <BellOff size={11} /> Annuler
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => toggleReminderForm(p.id)}
+                                disabled={!c.email}
+                                title={!c.email ? "Ajoute d'abord l'email du client" : undefined}
+                                className="flex items-center gap-1 text-[10px] font-bold text-gold-light disabled:cursor-not-allowed disabled:text-muted disabled:opacity-60"
+                              >
+                                <Bell size={11} /> Programmer un rappel de premier versement
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {canEdit && reminderFormId === p.id && (
+                          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-line bg-card-alt p-2.5">
+                            <input
+                              type="date"
+                              value={reminderDate}
+                              onChange={(e) => setReminderDate(e.target.value)}
+                              className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                            />
+                            <input
+                              value={reminderNote}
+                              onChange={(e) => setReminderNote(e.target.value)}
+                              placeholder="Note à inclure dans l'email (optionnel)"
+                              className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => scheduleReminder(c.id, p.id)}
+                                disabled={!reminderDate}
+                                className="flex-1 rounded-md bg-gold py-1.5 text-xs font-bold text-night disabled:opacity-50"
+                              >
+                                Programmer
+                              </button>
+                              <button
+                                onClick={() => setReminderFormId(null)}
+                                className="rounded-md border border-line px-3 py-1.5 text-xs text-muted"
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {canEdit && (
                     <div className="mt-1.5">
