@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 
 export type AuthState = { error?: string } | undefined;
+export type ForgotPasswordState = { error?: string; sent?: boolean } | undefined;
 
 export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const supabase = await createClient();
@@ -29,4 +31,22 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
   if (error) return { error: error.message };
 
   redirect("/");
+}
+
+export async function forgotPassword(
+  _prevState: ForgotPasswordState,
+  formData: FormData
+): Promise<ForgotPasswordState> {
+  const supabase = await createClient();
+  const email = String(formData.get("email") || "").trim();
+  if (!email) return { error: "Renseigne ton adresse email." };
+
+  const origin = (await headers()).get("origin") ?? "";
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+  // On répond toujours "envoyé" même si l'email n'existe pas, pour ne pas
+  // révéler quels emails sont enregistrés dans le CRM.
+  if (error) console.error("resetPasswordForEmail error", error);
+  return { sent: true };
 }
