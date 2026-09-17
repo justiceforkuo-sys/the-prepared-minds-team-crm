@@ -56,6 +56,7 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const [clients, setClients] = useState<ClientWithPolicies[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [emailFilter, setEmailFilter] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
@@ -272,7 +273,10 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
     setClients((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+  const missingEmailCount = clients.filter((c) => !c.email).length;
+  const filtered = clients
+    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => !emailFilter || !c.email);
 
   return (
     <div>
@@ -307,6 +311,18 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
         </div>
         <div className="text-xs text-muted">{clients.length} clients</div>
       </div>
+
+      {missingEmailCount > 0 && (
+        <button
+          onClick={() => setEmailFilter((f) => !f)}
+          className={`mb-3 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-bold ${
+            emailFilter ? "border-gold bg-line text-gold-light" : "border-line bg-card-alt text-muted"
+          }`}
+        >
+          <span>Sans email uniquement</span>
+          <span>{missingEmailCount}</span>
+        </button>
+      )}
 
       <div className="mb-3 flex gap-2">
         <input
