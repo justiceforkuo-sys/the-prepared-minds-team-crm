@@ -269,6 +269,13 @@ export interface PaymentReminder {
   created_at: string;
 }
 
+export interface ExistingContactMatch {
+  source: "prospect" | "client";
+  matched_name: string;
+  collaborateur: string;
+  since: string;
+}
+
 export interface AdminImpersonationLog {
   id: string;
   admin_id: string;

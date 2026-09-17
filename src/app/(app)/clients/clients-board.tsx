@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, ChevronDown, ChevronUp, Edit3, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, ChevronDown, ChevronUp, Edit3, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
 import { KNOWN_PARTNERS } from "@/lib/decompte-deadline";
-import type { Client, ClientPolicy, PaymentReminder, PolicyStatus, Rank } from "@/types/database";
+import type { Client, ClientPolicy, ExistingContactMatch, PaymentReminder, PolicyStatus, Rank } from "@/types/database";
 
 type Category = "iard" | "vie";
 
@@ -60,6 +60,7 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
+  const [addCrossMatch, setAddCrossMatch] = useState<ExistingContactMatch[] | null>(null);
 
   const activePerson = visiblePeople.find((p) => p.id === activeId) ?? me;
   const canEdit = activeId === me.id;
@@ -256,6 +257,18 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
+  const isDuplicateClient = (name: string) =>
+    name.trim() && clients.some((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  const checkCross = async (name: string) => {
+    if (!name.trim()) {
+      setAddCrossMatch(null);
+      return;
+    }
+    const { data } = await supabase.rpc("check_existing_contact", { p_name: name.trim() });
+    setAddCrossMatch((data as ExistingContactMatch[]) ?? []);
+  };
+
   const addClient = async () => {
     if (!newName.trim()) return;
     const { data } = await supabase
@@ -265,6 +278,7 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       .single();
     if (data) setClients((prev) => [...prev, data as ClientWithPolicies].sort((a, b) => a.name.localeCompare(b.name)));
     setNewName("");
+    setAddCrossMatch(null);
     setShowAdd(false);
   };
 
@@ -342,16 +356,34 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       </div>
 
       {showAdd && canEdit && (
-        <div className="mb-3 flex gap-2 rounded-2xl border border-line bg-card p-3">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nom du nouveau client"
-            className="flex-1 rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
-          />
-          <button onClick={addClient} className="rounded-lg bg-gold px-3 py-2 text-sm font-bold text-night">
-            Ajouter
-          </button>
+        <div className="mb-3 rounded-2xl border border-line bg-card p-3">
+          <div className="flex gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onBlur={(e) => checkCross(e.target.value)}
+              placeholder="Nom du nouveau client"
+              className="flex-1 rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
+            />
+            <button onClick={addClient} className="rounded-lg bg-gold px-3 py-2 text-sm font-bold text-night">
+              {isDuplicateClient(newName) ? "Ajouter quand même" : "Ajouter"}
+            </button>
+          </div>
+          {isDuplicateClient(newName) && (
+            <div className="mt-2 flex gap-1.5 text-xs text-gold">
+              <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+              <span>Un client nommé « {newName.trim()} » existe déjà dans ta liste.</span>
+            </div>
+          )}
+          {addCrossMatch?.map((m, i) => (
+            <div key={i} className="mt-2 flex gap-1.5 text-xs text-gold">
+              <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+              <span>
+                Déjà {m.source === "client" ? "client" : "prospecté(e)"} chez <b>{m.collaborateur}</b> depuis
+                le {fmtDate(m.since)}.
+              </span>
+            </div>
+          ))}
         </div>
       )}
 

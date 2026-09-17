@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
-import type { Priority, Prospect, ProspectStage } from "@/types/database";
+import type { ExistingContactMatch, Priority, Prospect, ProspectStage } from "@/types/database";
 
 const STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire", "Perdu"];
 const STAGE_COLOR: Record<ProspectStage, string> = {
@@ -40,10 +40,12 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
   const [showQuick, setShowQuick] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
+  const [quickCrossMatch, setQuickCrossMatch] = useState<ExistingContactMatch[] | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [form, setForm] = useState<FormValues>(emptyForm);
+  const [formCrossMatch, setFormCrossMatch] = useState<ExistingContactMatch[] | null>(null);
 
   useEffect(() => {
     supabase
@@ -61,6 +63,15 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
     name.trim() &&
     prospects.some((p) => p.id !== excludeId && p.name.trim().toLowerCase() === name.trim().toLowerCase());
 
+  const checkCross = async (name: string, setResult: (m: ExistingContactMatch[] | null) => void) => {
+    if (!name.trim()) {
+      setResult(null);
+      return;
+    }
+    const { data } = await supabase.rpc("check_existing_contact", { p_name: name.trim() });
+    setResult((data as ExistingContactMatch[]) ?? []);
+  };
+
   const quickAdd = async () => {
     if (!quickName.trim()) return;
     const { data } = await supabase
@@ -71,12 +82,14 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
     if (data) setProspects((prev) => [data as Prospect, ...prev]);
     setQuickName("");
     setQuickPhone("");
+    setQuickCrossMatch(null);
     setShowQuick(false);
   };
 
   const openNew = () => {
     setEditing(null);
     setForm(emptyForm);
+    setFormCrossMatch(null);
     setShowForm(true);
   };
   const openEdit = (p: Prospect) => {
@@ -89,6 +102,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       next_follow_up: p.next_follow_up ?? "",
       priority: p.priority,
     });
+    setFormCrossMatch(null);
     setShowForm(true);
   };
 
@@ -164,6 +178,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
             <input
               value={quickName}
               onChange={(e) => setQuickName(e.target.value)}
+              onBlur={(e) => checkCross(e.target.value, setQuickCrossMatch)}
               placeholder="Nom"
               className="flex-1 rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
             />
@@ -180,6 +195,15 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
               <span>Un prospect nommé « {quickName.trim()} » existe déjà.</span>
             </div>
           )}
+          {quickCrossMatch?.map((m, i) => (
+            <div key={i} className="mt-2 flex gap-1.5 text-xs text-gold">
+              <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+              <span>
+                Déjà {m.source === "client" ? "client" : "prospecté(e)"} chez{" "}
+                <b>{m.collaborateur}</b> depuis le {fmtDate(m.since)}.
+              </span>
+            </div>
+          ))}
           <button
             disabled={!quickName.trim()}
             onClick={quickAdd}
@@ -307,6 +331,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              onBlur={(e) => checkCross(e.target.value, setFormCrossMatch)}
               placeholder="Prénom Nom"
               className="mb-1 w-full rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
             />
@@ -316,6 +341,15 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
                 <span>Un prospect nommé « {form.name.trim()} » existe déjà dans ta liste.</span>
               </div>
             )}
+            {formCrossMatch?.map((m, i) => (
+              <div key={i} className="mb-2 flex gap-1.5 text-xs text-gold">
+                <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+                <span>
+                  Déjà {m.source === "client" ? "client" : "prospecté(e)"} chez{" "}
+                  <b>{m.collaborateur}</b> depuis le {fmtDate(m.since)}.
+                </span>
+              </div>
+            ))}
 
             <label className="mb-1 mt-2 block text-xs text-muted">Téléphone</label>
             <input
