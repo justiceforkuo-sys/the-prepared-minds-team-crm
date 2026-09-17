@@ -8,6 +8,7 @@ export type ProspectStage =
   | "Partenaire"
   | "Perdu";
 export type Priority = "A" | "B" | "C";
+export type ProspectCategory = "recrutement" | "client";
 export type RemovalStatus = "pending" | "approved" | "rejected";
 export type ContractType = "apporteur" | "intermediaire";
 
@@ -120,6 +121,7 @@ export interface Prospect {
   notes: string | null;
   stage: ProspectStage;
   priority: Priority;
+  category: ProspectCategory;
   next_follow_up: string | null;
   product_id: string | null;
   montant: number | null;

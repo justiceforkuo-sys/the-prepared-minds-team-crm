@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
-import type { ExistingContactMatch, Priority, Prospect, ProspectStage } from "@/types/database";
+import type { ExistingContactMatch, Priority, Prospect, ProspectCategory, ProspectStage } from "@/types/database";
 
 const STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire", "Perdu"];
 const STAGE_COLOR: Record<ProspectStage, string> = {
@@ -18,6 +18,9 @@ const STAGE_COLOR: Record<ProspectStage, string> = {
 const PRIORITIES: Priority[] = ["A", "B", "C"];
 const PRIORITY_COLOR: Record<Priority, string> = { A: "#1e3a6d", B: "#5a6b85", C: "#8a97ab" };
 const PRIORITY_LABEL: Record<Priority, string> = { A: "A — Prioritaire", B: "B — Normal", C: "C — À nourrir" };
+const CATEGORIES: ProspectCategory[] = ["client", "recrutement"];
+const CATEGORY_LABEL: Record<ProspectCategory, string> = { client: "Client", recrutement: "Recrutement" };
+const CATEGORY_COLOR: Record<ProspectCategory, string> = { client: "#2f5fa8", recrutement: "#8a5fa8" };
 
 type FormValues = {
   name: string;
@@ -26,9 +29,18 @@ type FormValues = {
   notes: string;
   next_follow_up: string;
   priority: Priority;
+  category: ProspectCategory;
 };
 
-const emptyForm: FormValues = { name: "", phone: "", source: "", notes: "", next_follow_up: "", priority: "B" };
+const emptyForm: FormValues = {
+  name: "",
+  phone: "",
+  source: "",
+  notes: "",
+  next_follow_up: "",
+  priority: "B",
+  category: "client",
+};
 
 export function ProspectsBoard({ ownerId }: { ownerId: string }) {
   const supabase = createClient();
@@ -36,10 +48,12 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
   const [loading, setLoading] = useState(true);
   const [stageFilter, setStageFilter] = useState<ProspectStage | "Tous">("Tous");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "Tous">("Tous");
+  const [categoryFilter, setCategoryFilter] = useState<ProspectCategory | "Tous">("Tous");
 
   const [showQuick, setShowQuick] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
+  const [quickCategory, setQuickCategory] = useState<ProspectCategory>("client");
   const [quickCrossMatch, setQuickCrossMatch] = useState<ExistingContactMatch[] | null>(null);
 
   const [showForm, setShowForm] = useState(false);
@@ -76,12 +90,18 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
     if (!quickName.trim()) return;
     const { data } = await supabase
       .from("prospects")
-      .insert({ owner_id: ownerId, name: quickName.trim(), phone: quickPhone.trim() || null })
+      .insert({
+        owner_id: ownerId,
+        name: quickName.trim(),
+        phone: quickPhone.trim() || null,
+        category: quickCategory,
+      })
       .select()
       .single();
     if (data) setProspects((prev) => [data as Prospect, ...prev]);
     setQuickName("");
     setQuickPhone("");
+    setQuickCategory("client");
     setQuickCrossMatch(null);
     setShowQuick(false);
   };
@@ -101,6 +121,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       notes: p.notes ?? "",
       next_follow_up: p.next_follow_up ?? "",
       priority: p.priority,
+      category: p.category,
     });
     setFormCrossMatch(null);
     setShowForm(true);
@@ -115,6 +136,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       notes: form.notes || null,
       next_follow_up: form.next_follow_up || null,
       priority: form.priority,
+      category: form.category,
     };
     if (editing) {
       const { data } = await supabase.from("prospects").update(payload).eq("id", editing.id).select().single();
@@ -145,9 +167,10 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
     let list = prospects;
     if (stageFilter !== "Tous") list = list.filter((p) => p.stage === stageFilter);
     if (priorityFilter !== "Tous") list = list.filter((p) => p.priority === priorityFilter);
+    if (categoryFilter !== "Tous") list = list.filter((p) => p.category === categoryFilter);
     const rank: Record<Priority, number> = { A: 0, B: 1, C: 2 };
     return [...list].sort((a, b) => rank[a.priority] - rank[b.priority]);
-  }, [prospects, stageFilter, priorityFilter]);
+  }, [prospects, stageFilter, priorityFilter, categoryFilter]);
 
   return (
     <div>
@@ -189,6 +212,22 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
               className="flex-1 rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
             />
           </div>
+          <div className="mt-2 flex gap-2">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setQuickCategory(c)}
+                className="flex-1 rounded-full border px-2 py-1.5 text-center text-xs"
+                style={
+                  quickCategory === c
+                    ? { borderColor: CATEGORY_COLOR[c], color: CATEGORY_COLOR[c], background: "#eaf0fa" }
+                    : { borderColor: "#d7e0ec", color: "#5a6b85" }
+                }
+              >
+                {CATEGORY_LABEL[c]}
+              </button>
+            ))}
+          </div>
           {isDuplicate(quickName) && (
             <div className="mt-2 flex gap-1.5 text-xs text-gold">
               <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
@@ -227,7 +266,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
           </button>
         ))}
       </div>
-      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-2">
+      <div className="mb-2 flex gap-1.5 overflow-x-auto pb-2">
         {(["Tous", ...PRIORITIES] as const).map((p) => (
           <button
             key={p}
@@ -237,6 +276,19 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
             }`}
           >
             {p === "Tous" ? "Toutes priorités" : p}
+          </button>
+        ))}
+      </div>
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-2">
+        {(["Tous", ...CATEGORIES] as const).map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategoryFilter(c)}
+            className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs ${
+              categoryFilter === c ? "border-gold bg-line text-gold-light" : "border-line bg-card text-muted"
+            }`}
+          >
+            {c === "Tous" ? "Toutes catégories" : CATEGORY_LABEL[c]}
           </button>
         ))}
       </div>
@@ -264,7 +316,15 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
                   {p.priority}
                 </span>
                 <div>
-                  <div className="text-sm font-bold text-ink">{p.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-ink">{p.name}</span>
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-night"
+                      style={{ background: CATEGORY_COLOR[p.category] }}
+                    >
+                      {CATEGORY_LABEL[p.category]}
+                    </span>
+                  </div>
                   {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
                 </div>
               </div>
@@ -323,6 +383,24 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
                   }
                 >
                   {PRIORITY_LABEL[p]}
+                </button>
+              ))}
+            </div>
+
+            <label className="mb-1 block text-xs text-muted">Catégorie</label>
+            <div className="mb-2.5 flex gap-2">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setForm((f) => ({ ...f, category: c }))}
+                  className="flex-1 rounded-full border px-2 py-1.5 text-center text-xs"
+                  style={
+                    form.category === c
+                      ? { borderColor: CATEGORY_COLOR[c], color: CATEGORY_COLOR[c], background: "#eaf0fa" }
+                      : { borderColor: "#d7e0ec", color: "#5a6b85" }
+                  }
+                >
+                  {CATEGORY_LABEL[c]}
                 </button>
               ))}
             </div>
