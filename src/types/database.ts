@@ -6,9 +6,16 @@ export type ProspectStage =
   | "Présentation faite"
   | "Suivi"
   | "Partenaire"
-  | "Perdu";
+  | "Perdu"
+  | "Contacté"
+  | "Répondu"
+  | "Échange qualifié"
+  | "Mise en relation obtenue"
+  | "Nouveau lead client généré"
+  | "Sans suite";
 export type Priority = "A" | "B" | "C";
-export type ProspectCategory = "recrutement" | "client";
+export type ProspectCategory = "recrutement" | "client" | "prescripteur";
+export type ConnectionStatus = "Oui" | "Non" | "En attente";
 export type RemovalStatus = "pending" | "approved" | "rejected";
 export type ContractType = "apporteur" | "intermediaire";
 
@@ -122,6 +129,9 @@ export interface Prospect {
   stage: ProspectStage;
   priority: Priority;
   category: ProspectCategory;
+  network_contact_name: string | null;
+  connection_status: ConnectionStatus | null;
+  redirected_client_id: string | null;
   next_follow_up: string | null;
   product_id: string | null;
   montant: number | null;

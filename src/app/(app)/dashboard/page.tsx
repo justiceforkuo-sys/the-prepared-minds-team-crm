@@ -5,7 +5,7 @@ import { unitValue, overrideValue } from "@/lib/ranks";
 import type { ProspectStage, TeamProductionRow, CompanyRankingRow, MonthlyProductionRow } from "@/types/database";
 
 const PIPELINE_STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire"];
-const STAGE_COLOR: Record<ProspectStage, string> = {
+const STAGE_COLOR: Partial<Record<ProspectStage, string>> = {
   Contact: "#5a6b85",
   Invité: "#1e3a6d",
   "Présentation faite": "#2f5fa8",

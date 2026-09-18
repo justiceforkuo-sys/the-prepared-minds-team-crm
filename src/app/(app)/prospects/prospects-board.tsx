@@ -4,9 +4,24 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
-import type { ExistingContactMatch, Priority, Prospect, ProspectCategory, ProspectStage } from "@/types/database";
+import type {
+  ConnectionStatus,
+  ExistingContactMatch,
+  Priority,
+  Prospect,
+  ProspectCategory,
+  ProspectStage,
+} from "@/types/database";
 
 const STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire", "Perdu"];
+const PRESCRIPTEUR_STAGES: ProspectStage[] = [
+  "Contacté",
+  "Répondu",
+  "Échange qualifié",
+  "Mise en relation obtenue",
+  "Nouveau lead client généré",
+  "Sans suite",
+];
 const STAGE_COLOR: Record<ProspectStage, string> = {
   Contact: "#5a6b85",
   Invité: "#1e3a6d",
@@ -14,13 +29,30 @@ const STAGE_COLOR: Record<ProspectStage, string> = {
   Suivi: "#3f7d5c",
   Partenaire: "#3f7d5c",
   Perdu: "#b3543a",
+  Contacté: "#5a6b85",
+  Répondu: "#1e3a6d",
+  "Échange qualifié": "#2f5fa8",
+  "Mise en relation obtenue": "#3f7d5c",
+  "Nouveau lead client généré": "#3f7d5c",
+  "Sans suite": "#b3543a",
 };
+const stagesFor = (category: ProspectCategory) => (category === "prescripteur" ? PRESCRIPTEUR_STAGES : STAGES);
+
 const PRIORITIES: Priority[] = ["A", "B", "C"];
 const PRIORITY_COLOR: Record<Priority, string> = { A: "#1e3a6d", B: "#5a6b85", C: "#8a97ab" };
 const PRIORITY_LABEL: Record<Priority, string> = { A: "A — Prioritaire", B: "B — Normal", C: "C — À nourrir" };
-const CATEGORIES: ProspectCategory[] = ["client", "recrutement"];
-const CATEGORY_LABEL: Record<ProspectCategory, string> = { client: "Client", recrutement: "Recrutement" };
-const CATEGORY_COLOR: Record<ProspectCategory, string> = { client: "#2f5fa8", recrutement: "#8a5fa8" };
+const CATEGORIES: ProspectCategory[] = ["client", "recrutement", "prescripteur"];
+const CATEGORY_LABEL: Record<ProspectCategory, string> = {
+  client: "Client",
+  recrutement: "Recrutement",
+  prescripteur: "Prescripteur",
+};
+const CATEGORY_COLOR: Record<ProspectCategory, string> = {
+  client: "#2f5fa8",
+  recrutement: "#8a5fa8",
+  prescripteur: "#b8923f",
+};
+const CONNECTION_STATUSES: ConnectionStatus[] = ["En attente", "Oui", "Non"];
 
 type FormValues = {
   name: string;
@@ -30,6 +62,8 @@ type FormValues = {
   next_follow_up: string;
   priority: Priority;
   category: ProspectCategory;
+  network_contact_name: string;
+  connection_status: ConnectionStatus | "";
 };
 
 const emptyForm: FormValues = {
@@ -40,6 +74,8 @@ const emptyForm: FormValues = {
   next_follow_up: "",
   priority: "B",
   category: "client",
+  network_contact_name: "",
+  connection_status: "",
 };
 
 export function ProspectsBoard({ ownerId }: { ownerId: string }) {
@@ -122,6 +158,8 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       next_follow_up: p.next_follow_up ?? "",
       priority: p.priority,
       category: p.category,
+      network_contact_name: p.network_contact_name ?? "",
+      connection_status: p.connection_status ?? "",
     });
     setFormCrossMatch(null);
     setShowForm(true);
@@ -137,6 +175,8 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       next_follow_up: form.next_follow_up || null,
       priority: form.priority,
       category: form.category,
+      network_contact_name: form.category === "prescripteur" ? form.network_contact_name.trim() || null : null,
+      connection_status: form.category === "prescripteur" ? form.connection_status || null : null,
     };
     if (editing) {
       const { data } = await supabase.from("prospects").update(payload).eq("id", editing.id).select().single();
@@ -161,6 +201,18 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
   const setStage = async (id: string, stage: ProspectStage) => {
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, stage } : p)));
     await supabase.from("prospects").update({ stage }).eq("id", id);
+  };
+
+  const convertToClient = async (p: Prospect) => {
+    const clientName = p.network_contact_name?.trim() || p.name;
+    const { data: client } = await supabase
+      .from("clients")
+      .insert({ owner_id: ownerId, name: clientName })
+      .select("id")
+      .single();
+    if (!client) return;
+    setProspects((prev) => prev.map((x) => (x.id === p.id ? { ...x, redirected_client_id: client.id } : x)));
+    await supabase.from("prospects").update({ redirected_client_id: client.id }).eq("id", p.id);
   };
 
   const filtered = useMemo(() => {
@@ -254,7 +306,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
       )}
 
       <div className="mb-2 flex gap-1.5 overflow-x-auto pb-2">
-        {(["Tous", ...STAGES] as const).map((s) => (
+        {(["Tous", ...(categoryFilter === "prescripteur" ? PRESCRIPTEUR_STAGES : STAGES)] as const).map((s) => (
           <button
             key={s}
             onClick={() => setStageFilter(s)}
@@ -338,6 +390,16 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
               </div>
             </div>
             {p.notes && <div className="mt-1.5 text-xs text-muted">{p.notes}</div>}
+            {p.category === "prescripteur" && (p.network_contact_name || p.connection_status) && (
+              <div className="mt-1.5 text-xs text-muted">
+                {p.network_contact_name && (
+                  <div>
+                    Réseau identifié : <span className="text-ink">{p.network_contact_name}</span>
+                  </div>
+                )}
+                {p.connection_status && <div>Mise en relation : {p.connection_status}</div>}
+              </div>
+            )}
             <div className="mt-2.5 flex items-center justify-between">
               <select
                 value={p.stage}
@@ -345,7 +407,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
                 className="rounded-md border border-line bg-card-alt px-2 py-1 text-xs font-bold"
                 style={{ color: STAGE_COLOR[p.stage] }}
               >
-                {STAGES.map((s) => (
+                {stagesFor(p.category).map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -353,6 +415,22 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
               </select>
               {p.next_follow_up && <div className="text-xs text-muted">Suivi : {fmtDate(p.next_follow_up)}</div>}
             </div>
+            {p.category === "prescripteur" && p.stage === "Nouveau lead client généré" && (
+              <div className="mt-2 border-t border-line pt-2">
+                {p.redirected_client_id ? (
+                  <div className="text-xs font-bold text-gold-light">
+                    → Fiche client créée : {p.network_contact_name || p.name}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => convertToClient(p)}
+                    className="w-full rounded-md bg-gold py-1.5 text-xs font-bold text-night"
+                  >
+                    Créer la fiche client
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -404,6 +482,36 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
                 </button>
               ))}
             </div>
+
+            {form.category === "prescripteur" && (
+              <>
+                <label className="mb-1 block text-xs text-muted">Membre du réseau identifié</label>
+                <input
+                  value={form.network_contact_name}
+                  onChange={(e) => setForm((f) => ({ ...f, network_contact_name: e.target.value }))}
+                  placeholder="Nom / poste de la personne mentionnée"
+                  className="mb-2.5 w-full rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
+                />
+
+                <label className="mb-1 block text-xs text-muted">Mise en relation faite ?</label>
+                <div className="mb-2.5 flex gap-2">
+                  {CONNECTION_STATUSES.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setForm((f) => ({ ...f, connection_status: s }))}
+                      className="flex-1 rounded-full border px-2 py-1.5 text-center text-xs"
+                      style={
+                        form.connection_status === s
+                          ? { borderColor: CATEGORY_COLOR.prescripteur, color: CATEGORY_COLOR.prescripteur, background: "#eaf0fa" }
+                          : { borderColor: "#d7e0ec", color: "#5a6b85" }
+                      }
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <label className="mb-1 block text-xs text-muted">Nom</label>
             <input
