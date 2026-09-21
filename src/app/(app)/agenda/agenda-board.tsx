@@ -57,7 +57,16 @@ export function AgendaBoard({
       })
       .select("*, assignee:people!tasks_assigned_to_fkey(name), assigner:people!tasks_assigned_by_fkey(name)")
       .single();
-    if (data) setTasks((prev) => [data as TaskRow, ...prev]);
+    if (data) {
+      setTasks((prev) => [data as TaskRow, ...prev]);
+      fetch("/api/tasks/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: data.id }),
+      }).catch(() => {
+        // best-effort : l'email de notification n'empêche pas la création de la tâche
+      });
+    }
     setForm({ ...emptyForm, assignedTo: me.id });
     setShowForm(false);
   };
