@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { EquipeBoard } from "./equipe-board";
@@ -7,6 +8,7 @@ import type { TeamProductionRow, BudgetMonthLine } from "@/types/database";
 export default async function EquipePage() {
   const person = await getCurrentPerson();
   if (!person) return null;
+  if (person.status === "essai") notFound();
 
   const supabase = await createClient();
   const [{ data: downline }, { data: pendingRequests }, { data: production }] = await Promise.all([

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
-export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
+export function SidebarNav({ isAdmin, isTrial }: { isAdmin: boolean; isTrial: boolean }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const items = NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.trialHidden || !isTrial));
 
   return (
     <nav className="flex flex-col gap-1">
@@ -30,9 +30,9 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
+export function MobileNav({ isAdmin, isTrial }: { isAdmin: boolean; isTrial: boolean }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const items = NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.trialHidden || !isTrial));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-around overflow-x-auto border-t border-line bg-card-alt px-1 pb-3 pt-2 md:hidden">

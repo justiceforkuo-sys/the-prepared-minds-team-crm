@@ -5,6 +5,7 @@ import { PeoplePanel } from "./people-panel";
 import { PayoutPanel } from "./payout-panel";
 import { OvbImportPanel } from "./ovb-import-panel";
 import { OvbPeriodsPanel } from "./ovb-periods-panel";
+import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
 import type { OvbPeriod } from "@/types/database";
 
 export default async function AdminPage() {
@@ -13,9 +14,14 @@ export default async function AdminPage() {
   if (!person.is_admin) notFound();
 
   const supabase = await createClient();
-  const [{ data: people }, { data: ovbPeriods }] = await Promise.all([
+  const [{ data: people }, { data: ovbPeriods }, { count: ungeocodedCount }] = await Promise.all([
     supabase.from("people").select("*").order("name"),
     supabase.from("ovb_periods").select("*"),
+    supabase
+      .from("clients")
+      .select("id", { count: "exact", head: true })
+      .is("lat", null)
+      .not("address", "is", null),
   ]);
 
   return (
@@ -37,6 +43,10 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <OvbPeriodsPanel initialPeriods={(ovbPeriods as OvbPeriod[]) ?? []} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <GeocodeBackfillPanel initialCount={ungeocodedCount ?? 0} />
       </div>
     </div>
   );

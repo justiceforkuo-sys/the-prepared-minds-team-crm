@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <h1 className="mt-0.5 font-serif text-2xl font-semibold text-ink">CRM</h1>
         </div>
         <div className="flex-1">
-          <SidebarNav isAdmin={person.is_admin} />
+          <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
         </div>
         <div className="mt-auto border-t border-line pt-4">
           <div className="mb-2 text-xs text-muted">
@@ -91,7 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
 
-        <MobileNav isAdmin={person.is_admin} />
+        <MobileNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
       </div>
     </div>
   );

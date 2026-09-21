@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { RecouvrementBoard } from "./recouvrement-board";
@@ -5,6 +6,7 @@ import { RecouvrementBoard } from "./recouvrement-board";
 export default async function RecouvrementPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
+  if (person.status === "essai") notFound();
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);

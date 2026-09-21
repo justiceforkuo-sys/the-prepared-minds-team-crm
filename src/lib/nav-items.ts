@@ -15,6 +15,7 @@ import {
   UserPlus,
   CalendarClock,
   AlertTriangle,
+  Map,
 } from "lucide-react";
 
 export interface NavItem {
@@ -22,6 +23,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  trialHidden?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -30,11 +32,12 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/prospects", label: "Prospects", icon: Users },
   { href: "/suivis", label: "Suivis", icon: Clock },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
-  { href: "/revenus", label: "Revenus", icon: Wallet },
+  { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
   { href: "/clients", label: "Clients", icon: Contact },
-  { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle },
-  { href: "/equipe", label: "Équipe", icon: Network },
-  { href: "/recrutement", label: "Recrutement", icon: UserPlus },
+  { href: "/cartographie", label: "Carte", icon: Map },
+  { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle, trialHidden: true },
+  { href: "/equipe", label: "Équipe", icon: Network, trialHidden: true },
+  { href: "/recrutement", label: "Recrutement", icon: UserPlus, trialHidden: true },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
   { href: "/formation", label: "Formation", icon: GraduationCap },
   { href: "/scripts", label: "Scripts", icon: BookOpen },

@@ -1,6 +1,7 @@
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { ObjectifsList } from "./objectifs-list";
+import { EngagementCalculator } from "./engagement-calculator";
 
 export default async function ObjectifsPage() {
   const person = await getCurrentPerson();
@@ -13,5 +14,10 @@ export default async function ObjectifsPage() {
     .eq("person_id", person.id)
     .order("created_at", { ascending: false });
 
-  return <ObjectifsList personId={person.id} initialGoals={goals ?? []} />;
+  return (
+    <div>
+      <EngagementCalculator />
+      <ObjectifsList personId={person.id} initialGoals={goals ?? []} />
+    </div>
+  );
 }

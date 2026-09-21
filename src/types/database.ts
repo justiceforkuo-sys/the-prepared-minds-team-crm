@@ -18,6 +18,7 @@ export type ProspectCategory = "recrutement" | "client" | "prescripteur";
 export type ConnectionStatus = "Oui" | "Non" | "En attente";
 export type RemovalStatus = "pending" | "approved" | "rejected";
 export type ContractType = "apporteur" | "intermediaire";
+export type PersonStatus = "essai" | "actif";
 
 export interface Person {
   id: string;
@@ -39,6 +40,7 @@ export interface Person {
   ranking_points: number | null;
   ranking_days_to_promo: number | null;
   contract_type: ContractType;
+  status: PersonStatus;
   created_at: string;
 }
 
@@ -51,6 +53,9 @@ export interface Client {
   phone: string | null;
   address: string | null;
   locality: string | null;
+  lat: number | null;
+  lng: number | null;
+  referred_by_client_id: string | null;
   total_worth: number;
   total_units: number;
   created_at: string;

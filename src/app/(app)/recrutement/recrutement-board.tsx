@@ -24,6 +24,22 @@ function age(birthdate: string | null): number | null {
   return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
 }
 
+type Score = "fort" | "moyen" | "faible";
+const SCORE_COLOR: Record<Score, string> = { fort: "#3f7d5c", moyen: "#c99a3f", faible: "#b3543a" };
+const SCORE_LABEL: Record<Score, string> = { fort: "Profil fort", moyen: "Profil moyen", faible: "Profil faible" };
+
+function riskFlags(c: RecruitmentApplication): boolean[] {
+  const candidateAge = age(c.birthdate);
+  return [candidateAge !== null && candidateAge < 21, c.has_cess === false, !c.availability_confirmed];
+}
+
+function candidateScore(c: RecruitmentApplication): Score {
+  const risky = riskFlags(c).filter(Boolean).length;
+  if (risky === 0) return "fort";
+  if (risky === 1) return "moyen";
+  return "faible";
+}
+
 export function RecrutementBoard({
   isAdmin,
   initialCandidates,
@@ -129,6 +145,8 @@ export function RecrutementBoard({
         {filtered.map((c) => {
           const isOpen = expanded === c.id;
           const candidateAge = age(c.birthdate);
+          const [ageRisky, cessRisky, availabilityRisky] = riskFlags(c);
+          const score = candidateScore(c);
           return (
             <div
               key={c.id}
@@ -140,7 +158,14 @@ export function RecrutementBoard({
                 className="flex w-full items-center justify-between text-left"
               >
                 <div>
-                  <div className="text-sm font-bold text-ink">{c.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: SCORE_COLOR[score] }}
+                      title={SCORE_LABEL[score]}
+                    />
+                    <span className="text-sm font-bold text-ink">{c.name}</span>
+                  </div>
                   <div className="text-xs text-muted">
                     {c.status}
                     {isAdmin && c.recruiter && ` · recruté par ${c.recruiter.name}`}
@@ -158,15 +183,15 @@ export function RecrutementBoard({
                     {c.email && <div>✉️ {c.email}</div>}
                     {c.nationality && <div>Nationalité : {c.nationality}</div>}
                     {candidateAge !== null && (
-                      <div className={candidateAge < 21 ? "font-bold text-red" : ""}>
-                        Âge : {candidateAge} ans{candidateAge < 21 ? " (< 21 ans)" : ""}
+                      <div className={ageRisky ? "font-bold text-red" : ""}>
+                        Âge : {candidateAge} ans{ageRisky ? " (< 21 ans)" : ""}
                       </div>
                     )}
                     {c.current_situation && <div>Situation : {c.current_situation}</div>}
-                    <div className={c.has_cess === false ? "font-bold text-red" : ""}>
+                    <div className={cessRisky ? "font-bold text-red" : ""}>
                       CESS : {c.has_cess === null ? "—" : c.has_cess ? "Oui" : "Non"}
                     </div>
-                    <div className={!c.availability_confirmed ? "font-bold text-red" : ""}>
+                    <div className={availabilityRisky ? "font-bold text-red" : ""}>
                       Disponibilité confirmée : {c.availability_confirmed ? "Oui" : "Non"}
                     </div>
                     {c.french_level && <div>Français : {c.french_level}</div>}

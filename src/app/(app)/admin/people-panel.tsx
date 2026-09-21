@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, LogIn } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { RANKS_INFO } from "@/lib/ranks";
-import type { Person, Rank, ContractType } from "@/types/database";
+import type { Person, Rank, ContractType, PersonStatus } from "@/types/database";
 import { startImpersonation } from "./impersonation-actions";
 
 function isDescendantOf(all: Person[], candidateId: string, ofId: string): boolean {
@@ -22,6 +22,7 @@ function isDescendantOf(all: Person[], candidateId: string, ofId: string): boole
 type EditForm = {
   rank: Rank;
   contract_type: ContractType;
+  status: PersonStatus;
   active: boolean;
   is_admin: boolean;
   reports_to: string;
@@ -42,6 +43,7 @@ function toForm(p: Person): EditForm {
   return {
     rank: p.rank,
     contract_type: p.contract_type,
+    status: p.status,
     active: p.active,
     is_admin: p.is_admin,
     reports_to: p.reports_to ?? "",
@@ -86,6 +88,7 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
     const payload = {
       rank: form.rank,
       contract_type: form.contract_type,
+      status: form.status,
       active: form.active,
       is_admin: form.is_admin,
       reports_to: form.reports_to || null,
@@ -194,6 +197,18 @@ export function PeoplePanel({ people: initialPeople, meId }: { people: Person[];
                     >
                       <option value="intermediaire">Intermédiaire (unités/rang)</option>
                       <option value="apporteur">Apporteur (forfait par client)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[10px] text-muted">Statut</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm((f) => f && { ...f, status: e.target.value as PersonStatus })}
+                      className="w-full rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                    >
+                      <option value="essai">Période d&apos;essai (accès restreint)</option>
+                      <option value="actif">Actif</option>
                     </select>
                   </div>
 

@@ -73,7 +73,13 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const [reminderNote, setReminderNote] = useState("");
 
   const [contactFormId, setContactFormId] = useState<string | null>(null);
-  const [contactForm, setContactForm] = useState({ email: "", phone: "", address: "", locality: "" });
+  const [contactForm, setContactForm] = useState({
+    email: "",
+    phone: "",
+    address: "",
+    locality: "",
+    referredBy: "",
+  });
 
   const iardProduct = IARD_PRODUCTS.find((p) => p.id === policyForm.productId) ?? IARD_PRODUCTS[0];
   const vieProduct = VIE_PRODUCTS.find((p) => p.id === policyForm.vieProductId) ?? VIE_PRODUCTS[0];
@@ -222,16 +228,40 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
       phone: client.phone ?? "",
       address: client.address ?? "",
       locality: client.locality ?? "",
+      referredBy: client.referred_by_client_id ?? "",
     });
   };
 
   const saveContact = async (clientId: string) => {
-    const patch = {
+    const addressChanged =
+      contactForm.address.trim() !== (clients.find((c) => c.id === clientId)?.address ?? "") ||
+      contactForm.locality.trim() !== (clients.find((c) => c.id === clientId)?.locality ?? "");
+
+    const patch: Record<string, string | number | null> = {
       email: contactForm.email.trim() || null,
       phone: contactForm.phone.trim() || null,
       address: contactForm.address.trim() || null,
       locality: contactForm.locality.trim() || null,
+      referred_by_client_id: contactForm.referredBy || null,
     };
+
+    if (addressChanged && (contactForm.address.trim() || contactForm.locality.trim())) {
+      try {
+        const res = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: contactForm.address.trim(), locality: contactForm.locality.trim() }),
+        });
+        const geo = await res.json();
+        if (geo?.lat != null && geo?.lng != null) {
+          patch.lat = geo.lat;
+          patch.lng = geo.lng;
+        }
+      } catch {
+        // géocodage best-effort : on n'empêche pas l'enregistrement du contact si ça échoue
+      }
+    }
+
     setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, ...patch } : c)));
     setContactFormId(null);
     await supabase.from("clients").update(patch).eq("id", clientId);
@@ -433,6 +463,12 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                       <div className="text-xs text-muted">
                         {c.email && <div>{c.email}</div>}
                         {(c.address || c.locality) && <div>{[c.address, c.locality].filter(Boolean).join(", ")}</div>}
+                        {c.referred_by_client_id && (
+                          <div>
+                            Recommandé par{" "}
+                            {clients.find((other) => other.id === c.referred_by_client_id)?.name ?? "—"}
+                          </div>
+                        )}
                         {!c.email && !c.address && !c.locality && <div>Aucune coordonnée renseignée.</div>}
                       </div>
                       <button
@@ -447,6 +483,11 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                     <div className="mb-1 text-xs text-muted">
                       {c.email && <div>{c.email}</div>}
                       {(c.address || c.locality) && <div>{[c.address, c.locality].filter(Boolean).join(", ")}</div>}
+                      {c.referred_by_client_id && (
+                        <div>
+                          Recommandé par {clients.find((other) => other.id === c.referred_by_client_id)?.name ?? "—"}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -477,6 +518,21 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                         placeholder="Localité"
                         className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
                       />
+                      <select
+                        value={contactForm.referredBy}
+                        onChange={(e) => setContactForm((f) => ({ ...f, referredBy: e.target.value }))}
+                        className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                      >
+                        <option value="">Recommandé par (aucun)</option>
+                        {clients
+                          .filter((other) => other.id !== c.id)
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((other) => (
+                            <option key={other.id} value={other.id}>
+                              {other.name}
+                            </option>
+                          ))}
+                      </select>
                       <div className="flex gap-2">
                         <button
                           onClick={() => saveContact(c.id)}

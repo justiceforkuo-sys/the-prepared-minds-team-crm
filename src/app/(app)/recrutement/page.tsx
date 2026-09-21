@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { RecrutementBoard } from "./recrutement-board";
@@ -5,6 +6,7 @@ import { RecrutementBoard } from "./recrutement-board";
 export default async function RecrutementPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
+  if (person.status === "essai") notFound();
 
   const supabase = await createClient();
   const { data: candidates } = await supabase
