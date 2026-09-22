@@ -1,6 +1,7 @@
 import { Flame } from "lucide-react";
 import { getCurrentPerson } from "@/lib/current-person";
 import { SidebarNav, MobileNav } from "@/components/sidebar-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut } from "./actions";
 import { getImpersonationTargetName, stopImpersonation } from "./admin/impersonation-actions";
 
@@ -56,8 +57,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
         </div>
         <div className="mt-auto border-t border-line pt-4">
-          <div className="mb-2 text-xs text-muted">
-            {person.name} <span className="text-[#5a6b85]">· {person.rank}</span>
+          <div className="mb-2 flex items-center justify-between text-xs text-muted">
+            <span>
+              {person.name} <span className="text-[#5a6b85]">· {person.rank}</span>
+            </span>
+            <ThemeToggle />
           </div>
           <form action={signOut}>
             <button className="w-full rounded-lg border border-line px-3 py-1.5 text-xs text-muted">
@@ -79,6 +83,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1.5">
               <Flame size={16} className="text-gold-light" />
             </div>
+            <ThemeToggle className="flex items-center justify-center rounded-lg border border-line bg-card px-2.5 py-1.5 text-muted" />
             <form action={signOut}>
               <button className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-muted">
                 Déconnexion

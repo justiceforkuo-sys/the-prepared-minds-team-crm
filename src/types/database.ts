@@ -302,6 +302,10 @@ export interface LinkedinSprint {
   cible_echanges_client: number;
   cible_rdv_client: number;
   cible_dossiers_client: number;
+  cible_contacts_prescripteur: number;
+  cible_echanges_prescripteur: number;
+  cible_mises_en_relation_prescripteur: number;
+  cible_leads_prescripteur: number;
   created_at: string;
 }
 

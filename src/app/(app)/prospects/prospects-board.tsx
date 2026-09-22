@@ -25,18 +25,21 @@ const PRESCRIPTEUR_STAGES: ProspectStage[] = [
 ];
 // Dégradé navy → or à mesure qu'un prospect avance dans le cycle, vert pour
 // l'état positif terminal, rouge pour Perdu — palette de marque (logo PMT).
+// "var(--color-gold-light)" plutôt qu'un navy figé : cette couleur sert de
+// texte (select de statut) sur un fond de carte qui devient sombre en mode
+// nuit — un navy fixe y serait illisible, le token s'adapte automatiquement.
 const STAGE_COLOR: Record<ProspectStage, string> = {
   Contact: "#5a6b85",
-  Invité: "#172047",
-  "Présentation faite": "#172047",
+  Invité: "var(--color-gold-light)",
+  "Présentation faite": "var(--color-gold-light)",
   Suivi: "#1f8158",
   Partenaire: "#1f8158",
   Perdu: "#b3543a",
   Contacté: "#5a6b85",
-  Répondu: "#172047",
+  Répondu: "var(--color-gold-light)",
   "RDV pris": "#f5cd54",
   "Entretien / Dossier": "#1f8158",
-  "Échange qualifié": "#172047",
+  "Échange qualifié": "var(--color-gold-light)",
   "Mise en relation obtenue": "#f5cd54",
   "Nouveau lead client généré": "#1f8158",
   "Sans suite": "#b3543a",

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  --color-bg: #ffffff;
   --color-night: #ffffff;
   --color-card: #f6f8fb;
   --color-card-alt: #eaeff6;
@@ -18,7 +19,38 @@
   --color-brand-green: #1f8158;
 }
 
+/* Mode sombre : suit l'OS par défaut (data-theme absent), avec override
+   manuel possible via le bouton jour/nuit (data-theme="dark"/"light").
+   --color-night, --color-gold, --color-green, --color-red et les
+   --color-brand-* restent IDENTIQUES dans les deux thèmes : ce sont des
+   couleurs d'accent (texte-sur-fond-coloré, badges, boutons) déjà
+   autonomes, pas des couleurs de "chrome de page" — les faire varier
+   casserait le contraste des badges de statut dans l'autre sens. Seuls le
+   fond de page, les cartes, les bordures, le texte principal/secondaire et
+   le doré clair (très utilisé pour les titres/KPIs) basculent. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0b1020;
+    --color-card: #131a2e;
+    --color-card-alt: #1c2540;
+    --color-line: #2a3556;
+    --color-ink: #eef1f7;
+    --color-muted: #97a3bf;
+    --color-gold-light: #7fa8e8;
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0b1020;
+  --color-card: #131a2e;
+  --color-card-alt: #1c2540;
+  --color-line: #2a3556;
+  --color-ink: #eef1f7;
+  --color-muted: #97a3bf;
+  --color-gold-light: #7fa8e8;
+}
+
 @theme inline {
+  --color-bg: var(--color-bg);
   --color-night: var(--color-night);
   --color-card: var(--color-card);
   --color-card-alt: var(--color-card-alt);
@@ -37,7 +69,7 @@
 }
 
 body {
-  background: var(--color-night);
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
 }

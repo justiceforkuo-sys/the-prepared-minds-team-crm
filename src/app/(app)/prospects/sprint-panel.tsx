@@ -31,6 +31,10 @@ const emptySprintForm = {
   cible_echanges_client: "40",
   cible_rdv_client: "15",
   cible_dossiers_client: "7",
+  cible_contacts_prescripteur: "50",
+  cible_echanges_prescripteur: "15",
+  cible_mises_en_relation_prescripteur: "5",
+  cible_leads_prescripteur: "3",
 };
 
 function Bar({ label, current, target }: { label: string; current: number; target: number }) {
@@ -38,12 +42,12 @@ function Bar({ label, current, target }: { label: string; current: number; targe
   return (
     <div>
       <div className="mb-0.5 flex items-center justify-between text-[11px]">
-        <span className="text-muted">{label}</span>
-        <span className="font-bold text-ink">
+        <span className="text-white/80">{label}</span>
+        <span className="font-bold text-white">
           {current} / {target}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-card-alt">
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
         <div
           className="h-full rounded-full"
           style={{ width: `${pct}%`, background: "linear-gradient(90deg, #172047, #f5cd54)" }}
@@ -95,7 +99,8 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
   const counts = useMemo(() => {
     if (!sprint) return null;
     const inWindow = (p: Prospect) => p.created_at.slice(0, 10) >= sprint.date_debut && p.created_at.slice(0, 10) <= sprint.date_fin;
-    const forCategory = (cat: "client" | "recrutement") => prospects.filter((p) => p.category === cat && inWindow(p));
+    const forCategory = (cat: "client" | "recrutement" | "prescripteur") =>
+      prospects.filter((p) => p.category === cat && inWindow(p));
 
     const build = (cat: "client" | "recrutement") => {
       const list = forCategory(cat);
@@ -105,7 +110,19 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
       return { contacts: list.length, echanges, rdv, dossiers };
     };
 
-    return { recrutement: build("recrutement"), client: build("client") };
+    const buildPrescripteur = () => {
+      const list = forCategory("prescripteur");
+      const echanges = list.filter((p) =>
+        ["Répondu", "Échange qualifié", "Mise en relation obtenue", "Nouveau lead client généré"].includes(p.stage)
+      ).length;
+      const misesEnRelation = list.filter((p) =>
+        ["Mise en relation obtenue", "Nouveau lead client généré"].includes(p.stage)
+      ).length;
+      const leads = list.filter((p) => p.stage === "Nouveau lead client généré").length;
+      return { contacts: list.length, echanges, misesEnRelation, leads };
+    };
+
+    return { recrutement: build("recrutement"), client: build("client"), prescripteur: buildPrescripteur() };
   }, [sprint, prospects]);
 
   const daysRemaining = sprint
@@ -126,6 +143,10 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
       cible_echanges_client: parseInt(sprintForm.cible_echanges_client, 10) || 0,
       cible_rdv_client: parseInt(sprintForm.cible_rdv_client, 10) || 0,
       cible_dossiers_client: parseInt(sprintForm.cible_dossiers_client, 10) || 0,
+      cible_contacts_prescripteur: parseInt(sprintForm.cible_contacts_prescripteur, 10) || 0,
+      cible_echanges_prescripteur: parseInt(sprintForm.cible_echanges_prescripteur, 10) || 0,
+      cible_mises_en_relation_prescripteur: parseInt(sprintForm.cible_mises_en_relation_prescripteur, 10) || 0,
+      cible_leads_prescripteur: parseInt(sprintForm.cible_leads_prescripteur, 10) || 0,
     };
     const { data } = await supabase.from("linkedin_sprints").insert(payload).select().single();
     if (data) setSprint(data as LinkedinSprint);
@@ -240,6 +261,27 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
                     </div>
                   ))}
                 </div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-white/70">Prescripteur</div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(
+                    [
+                      ["cible_contacts_prescripteur", "Contacts"],
+                      ["cible_echanges_prescripteur", "Échanges"],
+                      ["cible_mises_en_relation_prescripteur", "Mises en relation"],
+                      ["cible_leads_prescripteur", "Leads"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <label className="mb-0.5 block text-[9px] text-white/60">{label}</label>
+                      <input
+                        type="number"
+                        value={sprintForm[key]}
+                        onChange={(e) => setSprintForm((f) => ({ ...f, [key]: e.target.value }))}
+                        className="w-full rounded-md border border-white/20 bg-white/10 px-1.5 py-1 text-xs text-white outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={createSprint}
@@ -271,7 +313,7 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
             </div>
 
             {counts && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="flex flex-col gap-2 rounded-lg bg-white/10 p-2.5">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-white/70">Recrutement</div>
                   <Bar label="Contacts" current={counts.recrutement.contacts} target={sprint.cible_contacts_recrutement} />
@@ -285,6 +327,17 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
                   <Bar label="Échanges qualifiés" current={counts.client.echanges} target={sprint.cible_echanges_client} />
                   <Bar label="RDV pris" current={counts.client.rdv} target={sprint.cible_rdv_client} />
                   <Bar label="Dossiers ouverts" current={counts.client.dossiers} target={sprint.cible_dossiers_client} />
+                </div>
+                <div className="flex flex-col gap-2 rounded-lg bg-white/10 p-2.5">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/70">Prescripteur</div>
+                  <Bar label="Contacts" current={counts.prescripteur.contacts} target={sprint.cible_contacts_prescripteur} />
+                  <Bar label="Échanges qualifiés" current={counts.prescripteur.echanges} target={sprint.cible_echanges_prescripteur} />
+                  <Bar
+                    label="Mises en relation"
+                    current={counts.prescripteur.misesEnRelation}
+                    target={sprint.cible_mises_en_relation_prescripteur}
+                  />
+                  <Bar label="Leads générés" current={counts.prescripteur.leads} target={sprint.cible_leads_prescripteur} />
                 </div>
               </div>
             )}
