@@ -301,6 +301,57 @@ export interface AdminImpersonationLog {
   ended_at: string | null;
 }
 
+export type ExpenseType = "professionnelle" | "personnelle";
+export type DeductibleSavingType =
+  | "epargne_pension"
+  | "epargne_long_terme"
+  | "plci_cpti"
+  | "revenu_garanti"
+  | "autre";
+
+export interface FinancialSettings {
+  person_id: string;
+  taux_cotisations_sociales: number;
+  taux_imposition: number;
+  taxe_communale: number;
+  objectif_fonds_urgence_mois: number;
+  fonds_urgence_actuel: number;
+  rendement_epargne_pension: number;
+  annees_avant_pension: number;
+  updated_at: string;
+}
+
+export interface Expense {
+  id: string;
+  person_id: string;
+  categorie: string;
+  montant: number;
+  type: ExpenseType;
+  date: string;
+  recurrente: boolean;
+  created_at: string;
+}
+
+export interface DeductibleSaving {
+  id: string;
+  person_id: string;
+  type: DeductibleSavingType;
+  nom: string | null;
+  cotisation_mensuelle: number;
+  avantage_fiscal_taux: number;
+  created_at: string;
+}
+
+export interface SavingsGoal {
+  id: string;
+  person_id: string;
+  nom: string;
+  montant_cible: number;
+  montant_actuel: number;
+  date_cible: string | null;
+  created_at: string;
+}
+
 export interface TrainingModule {
   id: string;
   order_index: number;

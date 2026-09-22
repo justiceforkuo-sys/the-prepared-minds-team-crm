@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Map,
   Award,
+  PiggyBank,
 } from "lucide-react";
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/suivis", label: "Suivis", icon: Clock },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
+  { href: "/finances", label: "Finances", icon: PiggyBank },
   { href: "/clients", label: "Clients", icon: Contact },
   { href: "/cartographie", label: "Carte", icon: Map },
   { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle, trialHidden: true },
