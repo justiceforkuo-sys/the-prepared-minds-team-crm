@@ -11,6 +11,11 @@
   --color-muted: #5a6b85;
   --color-green: #3f7d5c;
   --color-red: #b3543a;
+
+  /* Palette de marque PMT, extraite du logo (hexagone navy/or/vert). */
+  --color-brand-navy: #172047;
+  --color-brand-gold: #f5cd54;
+  --color-brand-green: #1f8158;
 }
 
 @theme inline {
@@ -24,6 +29,9 @@
   --color-muted: var(--color-muted);
   --color-green: var(--color-green);
   --color-red: var(--color-red);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-gold: var(--color-brand-gold);
+  --color-brand-green: var(--color-brand-green);
   --font-serif: var(--font-fraunces), serif;
   --font-sans: var(--font-inter), sans-serif;
 }

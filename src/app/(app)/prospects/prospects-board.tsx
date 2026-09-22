@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
+import { SprintPanel } from "./sprint-panel";
 import type {
   ConnectionStatus,
   ExistingContactMatch,
@@ -13,7 +14,7 @@ import type {
   ProspectStage,
 } from "@/types/database";
 
-const STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire", "Perdu"];
+const STAGES: ProspectStage[] = ["Contacté", "Répondu", "RDV pris", "Entretien / Dossier", "Perdu"];
 const PRESCRIPTEUR_STAGES: ProspectStage[] = [
   "Contacté",
   "Répondu",
@@ -22,18 +23,22 @@ const PRESCRIPTEUR_STAGES: ProspectStage[] = [
   "Nouveau lead client généré",
   "Sans suite",
 ];
+// Dégradé navy → or à mesure qu'un prospect avance dans le cycle, vert pour
+// l'état positif terminal, rouge pour Perdu — palette de marque (logo PMT).
 const STAGE_COLOR: Record<ProspectStage, string> = {
   Contact: "#5a6b85",
-  Invité: "#1e3a6d",
-  "Présentation faite": "#2f5fa8",
-  Suivi: "#3f7d5c",
-  Partenaire: "#3f7d5c",
+  Invité: "#172047",
+  "Présentation faite": "#172047",
+  Suivi: "#1f8158",
+  Partenaire: "#1f8158",
   Perdu: "#b3543a",
   Contacté: "#5a6b85",
-  Répondu: "#1e3a6d",
-  "Échange qualifié": "#2f5fa8",
-  "Mise en relation obtenue": "#3f7d5c",
-  "Nouveau lead client généré": "#3f7d5c",
+  Répondu: "#172047",
+  "RDV pris": "#f5cd54",
+  "Entretien / Dossier": "#1f8158",
+  "Échange qualifié": "#172047",
+  "Mise en relation obtenue": "#f5cd54",
+  "Nouveau lead client généré": "#1f8158",
   "Sans suite": "#b3543a",
 };
 const stagesFor = (category: ProspectCategory) => (category === "prescripteur" ? PRESCRIPTEUR_STAGES : STAGES);
@@ -48,8 +53,8 @@ const CATEGORY_LABEL: Record<ProspectCategory, string> = {
   prescripteur: "Prescripteur",
 };
 const CATEGORY_COLOR: Record<ProspectCategory, string> = {
-  client: "#2f5fa8",
-  recrutement: "#8a5fa8",
+  client: "#172047",
+  recrutement: "#1f8158",
   prescripteur: "#b8923f",
 };
 const CONNECTION_STATUSES: ConnectionStatus[] = ["En attente", "Oui", "Non"];
@@ -244,6 +249,8 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
         </div>
       </div>
 
+      <SprintPanel ownerId={ownerId} prospects={prospects} />
+
       {showQuick && (
         <div className="mb-3 rounded-2xl border border-line bg-card p-3.5">
           <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">
@@ -357,7 +364,7 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
           <div
             key={p.id}
             className="rounded-2xl border border-line bg-card p-3.5"
-            style={{ borderLeft: `3px solid ${PRIORITY_COLOR[p.priority]}` }}
+            style={{ borderLeft: `4px solid ${STAGE_COLOR[p.stage]}` }}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-2">

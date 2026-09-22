@@ -4,13 +4,12 @@ import { fmtEUR } from "@/lib/format";
 import { unitValue, overrideValue } from "@/lib/ranks";
 import type { ProspectStage, TeamProductionRow, CompanyRankingRow, MonthlyProductionRow } from "@/types/database";
 
-const PIPELINE_STAGES: ProspectStage[] = ["Contact", "Invité", "Présentation faite", "Suivi", "Partenaire"];
+const PIPELINE_STAGES: ProspectStage[] = ["Contacté", "Répondu", "RDV pris", "Entretien / Dossier"];
 const STAGE_COLOR: Partial<Record<ProspectStage, string>> = {
-  Contact: "#5a6b85",
-  Invité: "#1e3a6d",
-  "Présentation faite": "#2f5fa8",
-  Suivi: "#3f7d5c",
-  Partenaire: "#3f7d5c",
+  Contacté: "#5a6b85",
+  Répondu: "#172047",
+  "RDV pris": "#f5cd54",
+  "Entretien / Dossier": "#1f8158",
   Perdu: "#b3543a",
 };
 

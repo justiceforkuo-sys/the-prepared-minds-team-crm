@@ -12,7 +12,9 @@ export type ProspectStage =
   | "Échange qualifié"
   | "Mise en relation obtenue"
   | "Nouveau lead client généré"
-  | "Sans suite";
+  | "Sans suite"
+  | "RDV pris"
+  | "Entretien / Dossier";
 export type Priority = "A" | "B" | "C";
 export type ProspectCategory = "recrutement" | "client" | "prescripteur";
 export type ConnectionStatus = "Oui" | "Non" | "En attente";
@@ -283,6 +285,34 @@ export interface PaymentReminder {
   note: string | null;
   status: ReminderStatus;
   sent_at: string | null;
+  created_at: string;
+}
+
+export interface LinkedinSprint {
+  id: string;
+  person_id: string;
+  titre: string;
+  date_debut: string;
+  date_fin: string;
+  cible_contacts_recrutement: number;
+  cible_echanges_recrutement: number;
+  cible_entretiens_recrutement: number;
+  cible_jfa_recrutement: number;
+  cible_contacts_client: number;
+  cible_echanges_client: number;
+  cible_rdv_client: number;
+  cible_dossiers_client: number;
+  created_at: string;
+}
+
+export interface LinkedinWeeklyLog {
+  id: string;
+  person_id: string;
+  semaine_debut: string;
+  connexions_envoyees: number;
+  connexions_acceptees: number;
+  posts_publies: number;
+  commentaires_postes: number;
   created_at: string;
 }
 
