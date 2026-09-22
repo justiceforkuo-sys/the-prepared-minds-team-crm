@@ -6,7 +6,9 @@ import { PayoutPanel } from "./payout-panel";
 import { OvbImportPanel } from "./ovb-import-panel";
 import { OvbPeriodsPanel } from "./ovb-periods-panel";
 import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
-import type { OvbPeriod } from "@/types/database";
+import { TrainingModulesPanel } from "./training-modules-panel";
+import { TrainingDashboardPanel } from "./training-dashboard-panel";
+import type { OvbPeriod, TrainingModule, TrainingQuestion, TrainingProgress } from "@/types/database";
 
 export default async function AdminPage() {
   const person = await getCurrentPerson();
@@ -14,7 +16,14 @@ export default async function AdminPage() {
   if (!person.is_admin) notFound();
 
   const supabase = await createClient();
-  const [{ data: people }, { data: ovbPeriods }, { count: ungeocodedCount }] = await Promise.all([
+  const [
+    { data: people },
+    { data: ovbPeriods },
+    { count: ungeocodedCount },
+    { data: trainingModules },
+    { data: trainingQuestions },
+    { data: trainingProgress },
+  ] = await Promise.all([
     supabase.from("people").select("*").order("name"),
     supabase.from("ovb_periods").select("*"),
     supabase
@@ -22,7 +31,15 @@ export default async function AdminPage() {
       .select("id", { count: "exact", head: true })
       .is("lat", null)
       .not("address", "is", null),
+    supabase.from("training_modules").select("*").order("order_index"),
+    supabase.from("training_questions").select("*").order("order_index"),
+    supabase.from("training_progress").select("*"),
   ]);
+
+  const modulesWithQuestions = ((trainingModules as TrainingModule[]) ?? []).map((m) => ({
+    ...m,
+    training_questions: ((trainingQuestions as TrainingQuestion[]) ?? []).filter((q) => q.module_id === m.id),
+  }));
 
   return (
     <div>
@@ -47,6 +64,18 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <GeocodeBackfillPanel initialCount={ungeocodedCount ?? 0} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <TrainingModulesPanel initialModules={modulesWithQuestions} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <TrainingDashboardPanel
+          people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}
+          modules={(trainingModules as TrainingModule[]) ?? []}
+          progress={(trainingProgress as TrainingProgress[]) ?? []}
+        />
       </div>
     </div>
   );

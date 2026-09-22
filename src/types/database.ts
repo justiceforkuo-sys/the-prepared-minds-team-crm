@@ -301,6 +301,40 @@ export interface AdminImpersonationLog {
   ended_at: string | null;
 }
 
+export interface TrainingModule {
+  id: string;
+  order_index: number;
+  title: string;
+  content: string;
+  created_at: string;
+}
+
+export interface TrainingQuestion {
+  id: string;
+  module_id: string;
+  order_index: number;
+  question: string;
+  options: string[];
+  correct_option: number;
+  created_at: string;
+}
+
+// Vue `training_questions_quiz` — mêmes champs que TrainingQuestion sans
+// `correct_option`, utilisée côté collaborateur pour ne jamais exposer la
+// clé de correction.
+export type TrainingQuizQuestion = Omit<TrainingQuestion, "correct_option">;
+
+export interface TrainingProgress {
+  id: string;
+  person_id: string;
+  module_id: string;
+  best_score: number | null;
+  passed: boolean;
+  passed_at: string | null;
+  attempts_count: number;
+  updated_at: string;
+}
+
 // Generic Supabase generic-client shape. We keep it loose (not a strict
 // generated Database type) since this project doesn't run `supabase gen
 // types` — swap in the generated type later if you wire up the Supabase CLI.

@@ -19,7 +19,7 @@ export default async function FormationPage() {
 
   return (
     <div>
-      <h2 className="font-serif text-xl font-semibold text-ink">Formation</h2>
+      <h2 className="font-serif text-xl font-semibold text-ink">Le Starter Pack</h2>
       <div className="mt-1 mb-4 text-xs text-muted">
         {doneCount}/{FORMATION_MODULES.length} modules terminés
       </div>

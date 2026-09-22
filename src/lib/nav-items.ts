@@ -16,6 +16,7 @@ import {
   CalendarClock,
   AlertTriangle,
   Map,
+  Award,
 } from "lucide-react";
 
 export interface NavItem {
@@ -39,7 +40,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/equipe", label: "Équipe", icon: Network, trialHidden: true },
   { href: "/recrutement", label: "Recrutement", icon: UserPlus, trialHidden: true },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
-  { href: "/formation", label: "Formation", icon: GraduationCap },
+  { href: "/formation", label: "Starter Pack", icon: GraduationCap },
+  { href: "/formation-continue", label: "Formation continue", icon: Award },
   { href: "/scripts", label: "Scripts", icon: BookOpen },
   { href: "/objectifs", label: "Objectifs", icon: Target },
   { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
