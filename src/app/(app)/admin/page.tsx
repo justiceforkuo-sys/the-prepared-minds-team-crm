@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { PeoplePanel } from "./people-panel";
 import { PayoutPanel } from "./payout-panel";
 import { OvbImportPanel } from "./ovb-import-panel";
@@ -8,7 +9,8 @@ import { OvbPeriodsPanel } from "./ovb-periods-panel";
 import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
 import { TrainingModulesPanel } from "./training-modules-panel";
 import { TrainingDashboardPanel } from "./training-dashboard-panel";
-import type { OvbPeriod, TrainingModule, TrainingQuestion, TrainingProgress } from "@/types/database";
+import { TeamTrackingPanel } from "./team-tracking-panel";
+import type { Goal, LinkedinSprint, OvbPeriod, Prospect, TrainingModule, TrainingQuestion, TrainingProgress } from "@/types/database";
 
 export default async function AdminPage() {
   const person = await getCurrentPerson();
@@ -34,6 +36,16 @@ export default async function AdminPage() {
     supabase.from("training_modules").select("*").order("order_index"),
     supabase.from("training_questions").select("*").order("order_index"),
     supabase.from("training_progress").select("*"),
+  ]);
+
+  // Sprint LinkedIn / Objectifs sont des tables RLS "person_id = soi-même
+  // uniquement" (pas de bypass admin) — client service role pour agréger
+  // tous les collaborateurs sur cette page déjà verrouillée is_admin.
+  const serviceSupabase = createServiceClient();
+  const [{ data: allSprints }, { data: allProspects }, { data: allGoals }] = await Promise.all([
+    serviceSupabase.from("linkedin_sprints").select("*"),
+    serviceSupabase.from("prospects").select("*"),
+    serviceSupabase.from("goals").select("*"),
   ]);
 
   const modulesWithQuestions = ((trainingModules as TrainingModule[]) ?? []).map((m) => ({
@@ -75,6 +87,15 @@ export default async function AdminPage() {
           people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}
           modules={(trainingModules as TrainingModule[]) ?? []}
           progress={(trainingProgress as TrainingProgress[]) ?? []}
+        />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <TeamTrackingPanel
+          people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}
+          sprints={(allSprints as LinkedinSprint[]) ?? []}
+          prospects={(allProspects as Prospect[]) ?? []}
+          goals={(allGoals as Goal[]) ?? []}
         />
       </div>
     </div>

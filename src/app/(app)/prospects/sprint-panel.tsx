@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Flame } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
+import { computeSprintCounts } from "@/lib/linkedin-sprint";
 import type { LinkedinSprint, LinkedinWeeklyLog, Prospect } from "@/types/database";
 
 function mondayOf(d: Date): string {
@@ -98,31 +99,7 @@ export function SprintPanel({ ownerId, prospects }: { ownerId: string; prospects
 
   const counts = useMemo(() => {
     if (!sprint) return null;
-    const inWindow = (p: Prospect) => p.created_at.slice(0, 10) >= sprint.date_debut && p.created_at.slice(0, 10) <= sprint.date_fin;
-    const forCategory = (cat: "client" | "recrutement" | "prescripteur") =>
-      prospects.filter((p) => p.category === cat && inWindow(p));
-
-    const build = (cat: "client" | "recrutement") => {
-      const list = forCategory(cat);
-      const echanges = list.filter((p) => ["Répondu", "RDV pris", "Entretien / Dossier"].includes(p.stage)).length;
-      const rdv = list.filter((p) => ["RDV pris", "Entretien / Dossier"].includes(p.stage)).length;
-      const dossiers = list.filter((p) => p.stage === "Entretien / Dossier").length;
-      return { contacts: list.length, echanges, rdv, dossiers };
-    };
-
-    const buildPrescripteur = () => {
-      const list = forCategory("prescripteur");
-      const echanges = list.filter((p) =>
-        ["Répondu", "Échange qualifié", "Mise en relation obtenue", "Nouveau lead client généré"].includes(p.stage)
-      ).length;
-      const misesEnRelation = list.filter((p) =>
-        ["Mise en relation obtenue", "Nouveau lead client généré"].includes(p.stage)
-      ).length;
-      const leads = list.filter((p) => p.stage === "Nouveau lead client généré").length;
-      return { contacts: list.length, echanges, misesEnRelation, leads };
-    };
-
-    return { recrutement: build("recrutement"), client: build("client"), prescripteur: buildPrescripteur() };
+    return computeSprintCounts(sprint, prospects);
   }, [sprint, prospects]);
 
   const daysRemaining = sprint
