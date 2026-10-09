@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate, fmtEUR } from "@/lib/format";
 import { RANKS_INFO, nextRank, unitValue } from "@/lib/ranks";
-import type { DailyActivity, Goal, Prospect, Rank, CompanyRankingRow } from "@/types/database";
+import type { DailyActivity, Goal, Rank, CompanyRankingRow } from "@/types/database";
 
 type PillarKey = "prospection" | "invitation" | "formation" | "vision_pillar" | "etat_esprit";
 
@@ -26,10 +26,15 @@ const emptyActivity = (personId: string, date: string): DailyActivity => ({
   vision_pillar: false,
   etat_esprit: false,
   minutes: 0,
+  dv_planifies: 0,
+  dv_realises: 0,
+  dr_planifies: 0,
+  dr_realises: 0,
+  recomm_dv: 0,
+  recomm_dr: 0,
+  dossiers: 0,
 });
 
-type FollowUp = Pick<Prospect, "id" | "name" | "stage" | "next_follow_up">;
-type TodayTask = { id: string; title: string; due_date: string | null; assigner: { name: string } | null };
 type TodayReminder = {
   id: string;
   remind_on: string;
@@ -42,9 +47,7 @@ export function TodayBoard({
   today,
   initialActivity,
   initialVision,
-  followUps,
   goals,
-  tasks,
   paymentReminders,
   unitsThisMonth,
   groupUnitsThisMonth,
@@ -57,9 +60,7 @@ export function TodayBoard({
   today: string;
   initialActivity: DailyActivity | null;
   initialVision: string | null;
-  followUps: FollowUp[];
   goals: Goal[];
-  tasks: TodayTask[];
   paymentReminders: TodayReminder[];
   unitsThisMonth: number;
   groupUnitsThisMonth: number;
@@ -204,52 +205,6 @@ export function TodayBoard({
         {groupUnitsThisMonth > 0 && (
           <div className="mt-2 border-t border-line pt-2 text-xs text-muted">
             Groupe direct : <strong className="text-ink">{groupUnitsThisMonth.toFixed(2)} u</strong>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-line bg-card p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Tâches du jour</div>
-          <span className="text-xs font-bold text-gold-light">{tasks.length}</span>
-        </div>
-        {tasks.length === 0 ? (
-          <div className="text-xs text-muted">Aucune tâche pour aujourd&apos;hui.</div>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {tasks.slice(0, 4).map((t) => (
-              <div key={t.id} className="flex items-center justify-between text-xs">
-                <span className="truncate text-ink">{t.title}</span>
-                <span className={`ml-2 flex-shrink-0 font-bold ${t.due_date! < today ? "text-red" : "text-gold-light"}`}>
-                  {fmtDate(t.due_date)}
-                </span>
-              </div>
-            ))}
-            {tasks.length > 4 && <div className="text-[11px] text-muted">+{tasks.length - 4} autres</div>}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-line bg-card p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Suivis du jour</div>
-          <span className="text-xs font-bold text-gold-light">{followUps.length}</span>
-        </div>
-        {followUps.length === 0 ? (
-          <div className="text-xs text-muted">Aucun suivi programmé aujourd&apos;hui.</div>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {followUps.slice(0, 4).map((p) => (
-              <div key={p.id} className="flex items-center justify-between text-xs">
-                <span className="truncate text-ink">{p.name}</span>
-                <span
-                  className={`ml-2 flex-shrink-0 font-bold ${p.next_follow_up! < today ? "text-red" : "text-gold-light"}`}
-                >
-                  {fmtDate(p.next_follow_up)}
-                </span>
-              </div>
-            ))}
-            {followUps.length > 4 && <div className="text-[11px] text-muted">+{followUps.length - 4} autres</div>}
           </div>
         )}
       </div>

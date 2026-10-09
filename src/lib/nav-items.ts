@@ -18,6 +18,7 @@ import {
   Map,
   Award,
   PiggyBank,
+  Table2,
 } from "lucide-react";
 
 export interface NavItem {
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/cartographie", label: "Carte", icon: Map },
   { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle, trialHidden: true },
   { href: "/equipe", label: "Équipe", icon: Network, trialHidden: true },
+  { href: "/structure", label: "Structure", icon: Table2, trialHidden: true },
   { href: "/recrutement", label: "Recrutement", icon: UserPlus, trialHidden: true },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
   { href: "/formation", label: "Starter Pack", icon: GraduationCap },

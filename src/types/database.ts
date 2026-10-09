@@ -58,6 +58,7 @@ export interface Client {
   lat: number | null;
   lng: number | null;
   referred_by_client_id: string | null;
+  last_contact_at: string | null;
   total_worth: number;
   total_units: number;
   created_at: string;
@@ -143,6 +144,7 @@ export interface Prospect {
   product_id: string | null;
   montant: number | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface RemovalRequest {
@@ -226,6 +228,13 @@ export interface DailyActivity {
   vision_pillar: boolean;
   etat_esprit: boolean;
   minutes: number;
+  dv_planifies: number;
+  dv_realises: number;
+  dr_planifies: number;
+  dr_realises: number;
+  recomm_dv: number;
+  recomm_dr: number;
+  dossiers: number;
 }
 
 export interface GoalStep {
@@ -318,6 +327,38 @@ export interface LinkedinWeeklyLog {
   posts_publies: number;
   commentaires_postes: number;
   created_at: string;
+}
+
+export interface MonthlyEngagement {
+  id: string;
+  person_id: string;
+  month: string;
+  objectif_unites: number;
+  objectif_recrues: number;
+}
+
+export interface TeamNumbersRow {
+  person_id: string;
+  name: string;
+  rank: Rank;
+  depth: number;
+  coach_name: string | null;
+  dv_planifies: number;
+  dv_realises: number;
+  dr_planifies: number;
+  dr_realises: number;
+  recomm_dv: number;
+  recomm_dr: number;
+  dossiers: number;
+  units: number;
+}
+
+export interface TeamEngagementRow {
+  person_id: string;
+  name: string;
+  depth: number;
+  objectif_unites: number;
+  objectif_recrues: number;
 }
 
 export interface ExistingContactMatch {
