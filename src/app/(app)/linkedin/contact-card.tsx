@@ -85,7 +85,7 @@ function MessageBox({
       </div>
       {overLimit && !readOnly && effect && (
         <div className="mt-1.5 text-[11px] text-red">
-          {DAILY_LIMIT} messages aujourd&apos;hui : garde le reste pour demain.
+          {DAILY_LIMIT}{" "}messages aujourd&apos;hui : garde le reste pour demain.
           {forcing ? " Clique encore une fois pour forcer." : ""}
         </div>
       )}
