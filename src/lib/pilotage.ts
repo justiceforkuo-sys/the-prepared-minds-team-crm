@@ -57,18 +57,99 @@ export function shiftAnchor(kind: PeriodKind, anchor: Date, delta: number): Date
   return d;
 }
 
+// --- "Mois" de production = période OVB (même règle que ovb_period_for_date en
+// SQL) : la dernière période dont la date de début est passée ; sans période
+// configurée, retombe sur le mois calendaire. Une période sans successeur reste
+// ouverte tant que l'admin n'a pas configuré la suivante.
+export interface OvbPeriodLite {
+  period_month: string;
+  start_date: string;
+}
+
+export interface ProductionPeriod {
+  key: string;
+  start: string;
+  end: string;
+  label: string;
+  openEnded: boolean;
+  estimatedEnd: string;
+}
+
+const FAR_FUTURE = "2099-12-31";
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function parseISO(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function buildPeriod(sorted: OvbPeriodLite[], idx: number): ProductionPeriod {
+  const p = sorted[idx];
+  const next = sorted[idx + 1];
+  const start = parseISO(p.start_date);
+  const estimatedEnd = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate() - 1);
+  let end = FAR_FUTURE;
+  if (next) {
+    const e = parseISO(next.start_date);
+    e.setDate(e.getDate() - 1);
+    end = toISO(e);
+  }
+  const fmt = (d: Date) => d.toLocaleDateString("fr-BE", { day: "numeric", month: "short" });
+  const monthName = cap(new Date(`${p.period_month}-01`).toLocaleDateString("fr-BE", { month: "long", year: "numeric" }));
+  return {
+    key: p.period_month,
+    start: p.start_date,
+    end,
+    label: `${monthName} (du ${fmt(start)}${next ? ` au ${fmt(parseISO(end))}` : ""})`,
+    openEnded: !next,
+    estimatedEnd: toISO(estimatedEnd),
+  };
+}
+
+function calendarPeriod(date: Date): ProductionPeriod {
+  const r = rangeFor("mois", date);
+  return { key: r.start.slice(0, 7), start: r.start, end: r.end, label: cap(r.label), openEnded: false, estimatedEnd: r.end };
+}
+
+export function productionPeriodFor(periods: OvbPeriodLite[], date: Date): ProductionPeriod {
+  const sorted = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const iso = toISO(date);
+  let idx = -1;
+  sorted.forEach((p, i) => {
+    if (p.start_date <= iso) idx = i;
+  });
+  return idx >= 0 ? buildPeriod(sorted, idx) : calendarPeriod(date);
+}
+
+export function adjacentPeriod(periods: OvbPeriodLite[], key: string, delta: number): ProductionPeriod | null {
+  const sorted = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const idx = sorted.findIndex((p) => p.period_month === key);
+  const target = idx + delta;
+  if (idx < 0 || target < 0 || target >= sorted.length) return null;
+  return buildPeriod(sorted, target);
+}
+
 export interface MonthProgress {
   daysElapsed: number;
   daysInMonth: number;
   daysLeft: number;
   weeksLeft: number;
+  // vrai si la période est ouverte et déjà dépassée : l'admin doit configurer la suivante
+  stale: boolean;
 }
 
-export function monthProgress(today: Date): MonthProgress {
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const daysElapsed = today.getDate();
+export function periodProgress(period: ProductionPeriod, today: Date): MonthProgress {
+  const DAY = 86400000;
+  const start = parseISO(period.start);
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysElapsed = Math.max(1, Math.round((t.getTime() - start.getTime()) / DAY) + 1);
+  const endDate = parseISO(period.openEnded ? period.estimatedEnd : period.end);
+  const plannedDays = Math.round((endDate.getTime() - start.getTime()) / DAY) + 1;
+  const stale = period.openEnded && daysElapsed > plannedDays;
+  const daysInMonth = Math.max(plannedDays, daysElapsed);
   const daysLeft = daysInMonth - daysElapsed;
-  return { daysElapsed, daysInMonth, daysLeft, weeksLeft: Math.max(1, Math.ceil(daysLeft / 7)) };
+  return { daysElapsed, daysInMonth, daysLeft, weeksLeft: Math.max(1, Math.ceil(daysLeft / 7)), stale };
 }
 
 export function projectEndOfMonth(realised: number, progress: MonthProgress): number {

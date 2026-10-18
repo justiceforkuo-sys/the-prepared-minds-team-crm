@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { rangeFor, shiftAnchor, type PeriodKind } from "@/lib/pilotage";
+import {
+  adjacentPeriod,
+  productionPeriodFor,
+  rangeFor,
+  shiftAnchor,
+  type DateRange,
+  type OvbPeriodLite,
+  type PeriodKind,
+  type ProductionPeriod,
+} from "@/lib/pilotage";
 import type { Rank, TeamNumbersRow } from "@/types/database";
 
 const KINDS: { key: PeriodKind; label: string }[] = [
@@ -36,33 +45,63 @@ const COLUMNS: { key: keyof TeamNumbersRow; label: string; decimals?: number }[]
 
 const isActive = (r: TeamNumbersRow) => COLUMNS.some((c) => (r[c.key] as number) > 0);
 
+interface View {
+  kind: PeriodKind;
+  anchor: Date;
+  period: ProductionPeriod;
+}
+
 export function StructureBoard({
   initialKind,
   initialAnchorIso,
+  periods,
   initialRows,
 }: {
   initialKind: PeriodKind;
   initialAnchorIso: string;
+  periods: OvbPeriodLite[];
   initialRows: TeamNumbersRow[];
 }) {
   const supabase = createClient();
-  const [kind, setKind] = useState<PeriodKind>(initialKind);
-  const [anchor, setAnchor] = useState(() => new Date(initialAnchorIso));
+  const [view, setView] = useState<View>(() => {
+    const anchor = new Date(initialAnchorIso);
+    return { kind: initialKind, anchor, period: productionPeriodFor(periods, anchor) };
+  });
   const [rows, setRows] = useState(initialRows);
   const [loading, setLoading] = useState(false);
   const [onlyActive, setOnlyActive] = useState(false);
 
-  const load = async (nextKind: PeriodKind, nextAnchor: Date) => {
-    setKind(nextKind);
-    setAnchor(nextAnchor);
+  // "Mois" = période de production OVB (comme l'accueil), pas le mois calendaire.
+  const rangeOf = (v: View): DateRange =>
+    v.kind === "mois" ? { start: v.period.start, end: v.period.end, label: v.period.label } : rangeFor(v.kind, v.anchor);
+
+  const load = async (next: View) => {
+    setView(next);
     setLoading(true);
-    const range = rangeFor(nextKind, nextAnchor);
-    const { data } = await supabase.rpc("get_team_numbers", { p_start: range.start, p_end: range.end });
+    const r = rangeOf(next);
+    const { data } = await supabase.rpc("get_team_numbers", { p_start: r.start, p_end: r.end });
     setRows((data as TeamNumbersRow[] | null) ?? []);
     setLoading(false);
   };
 
-  const range = rangeFor(kind, anchor);
+  const pickKind = (kind: PeriodKind) => {
+    const now = new Date();
+    load({ kind, anchor: now, period: productionPeriodFor(periods, now) });
+  };
+
+  const step = (delta: number) => {
+    if (view.kind === "mois") {
+      const p = adjacentPeriod(periods, view.period.key, delta);
+      if (p) load({ ...view, period: p });
+    } else {
+      load({ ...view, anchor: shiftAnchor(view.kind, view.anchor, delta) });
+    }
+  };
+
+  const canStep = (delta: number) => view.kind !== "mois" || adjacentPeriod(periods, view.period.key, delta) !== null;
+
+  const kind = view.kind;
+  const range = rangeOf(view);
   const visible = onlyActive ? rows.filter(isActive) : rows;
   const totals = COLUMNS.map((c) => visible.reduce((s, r) => s + (r[c.key] as number), 0));
 
@@ -73,7 +112,7 @@ export function StructureBoard({
           {KINDS.map((k) => (
             <button
               key={k.key}
-              onClick={() => load(k.key, new Date())}
+              onClick={() => pickKind(k.key)}
               className={`rounded-lg px-3 py-1 text-xs font-bold ${
                 kind === k.key ? "bg-gold text-night" : "border border-line text-muted"
               }`}
@@ -84,16 +123,18 @@ export function StructureBoard({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => load(kind, shiftAnchor(kind, anchor, -1))}
-            className="rounded-lg border border-line p-1 text-muted"
+            onClick={() => step(-1)}
+            disabled={!canStep(-1)}
+            className="rounded-lg border border-line p-1 text-muted disabled:opacity-30"
             aria-label="Période précédente"
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="min-w-36 text-center text-xs capitalize text-ink">{range.label}</span>
+          <span className="min-w-36 text-center text-xs text-ink">{range.label}</span>
           <button
-            onClick={() => load(kind, shiftAnchor(kind, anchor, 1))}
-            className="rounded-lg border border-line p-1 text-muted"
+            onClick={() => step(1)}
+            disabled={!canStep(1)}
+            className="rounded-lg border border-line p-1 text-muted disabled:opacity-30"
             aria-label="Période suivante"
           >
             <ChevronRight size={14} />

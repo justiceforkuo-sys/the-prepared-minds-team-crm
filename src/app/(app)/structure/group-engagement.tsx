@@ -1,13 +1,15 @@
-import { brusselsNow, monthProgress, projectEndOfMonth, statProjection } from "@/lib/pilotage";
+import { projectEndOfMonth, statProjection, type MonthProgress } from "@/lib/pilotage";
 import { ProgressBar, StatBox } from "@/components/stat-bits";
 import type { TeamEngagementRow, TeamNumbersRow } from "@/types/database";
 
 export function GroupEngagement({
-  monthLabel,
+  periodLabel,
+  progress,
   engagements,
   monthNumbers,
 }: {
-  monthLabel: string;
+  periodLabel: string;
+  progress: MonthProgress;
   engagements: TeamEngagementRow[];
   monthNumbers: TeamNumbersRow[];
 }) {
@@ -19,7 +21,6 @@ export function GroupEngagement({
   const dvRealises = monthNumbers.reduce((s, r) => s + r.dv_realises, 0);
   const drRealises = monthNumbers.reduce((s, r) => s + r.dr_realises, 0);
 
-  const progress = monthProgress(brusselsNow());
   const pct = goalUnits > 0 ? (units / goalUnits) * 100 : 0;
   const projUnits = projectEndOfMonth(units, progress);
   const proj = statProjection(goalUnits - units, goalRecrues - dossiers, progress.weeksLeft);
@@ -29,10 +30,15 @@ export function GroupEngagement({
     <div className="mb-4 rounded-2xl border border-line bg-card p-3.5">
       <div className="mb-2">
         <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Engagement de l&apos;équipe</div>
-        <div className="text-[11px] capitalize text-muted">
-          {monthLabel} — {withGoal.length} collaborateur{withGoal.length > 1 ? "s" : ""} sur {engagements.length} ont
+        <div className="text-[11px] text-muted">
+          {periodLabel} — {withGoal.length} collaborateur{withGoal.length > 1 ? "s" : ""} sur {engagements.length} ont
           fixé un objectif
         </div>
+        {progress.stale && (
+          <div className="mt-0.5 text-[11px] text-red">
+            Aucune période OVB plus récente n&apos;est configurée : ajoute-la dans Admin → Périodes OVB.
+          </div>
+        )}
       </div>
 
       {goalUnits === 0 && goalRecrues === 0 ? (

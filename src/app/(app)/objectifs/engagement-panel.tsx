@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { monthProgress, projectEndOfMonth, statProjection } from "@/lib/pilotage";
+import { projectEndOfMonth, statProjection, type MonthProgress } from "@/lib/pilotage";
 import { ProgressBar as Progress, StatBox as Stat } from "@/components/stat-bits";
 
 interface MonthTotals {
@@ -15,12 +15,16 @@ interface MonthTotals {
 export function EngagementPanel({
   personId,
   month,
+  periodLabel,
+  progress,
   initialUnites,
   initialRecrues,
   totals,
 }: {
   personId: string;
   month: string;
+  periodLabel: string;
+  progress: MonthProgress;
   initialUnites: number;
   initialRecrues: number;
   totals: MonthTotals;
@@ -32,8 +36,6 @@ export function EngagementPanel({
   const [savedRecrues, setSavedRecrues] = useState(initialRecrues);
   const [editing, setEditing] = useState(initialUnites === 0 && initialRecrues === 0);
 
-  const progress = monthProgress(new Date());
-  const monthLabel = new Date(`${month}-01`).toLocaleDateString("fr-BE", { month: "long", year: "numeric" });
 
   const save = async () => {
     const u = Math.max(0, parseFloat(unites.replace(",", ".")) || 0);
@@ -60,7 +62,12 @@ export function EngagementPanel({
       <div className="mb-2 flex items-center justify-between">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Mon engagement</div>
-          <div className="text-[11px] capitalize text-muted">{monthLabel}</div>
+          <div className="text-[11px] text-muted">{periodLabel}</div>
+          {progress.stale && (
+            <div className="mt-0.5 text-[11px] text-red">
+              Aucune période OVB plus récente n&apos;est configurée : ajoute-la dans Admin → Périodes OVB.
+            </div>
+          )}
         </div>
         <button onClick={() => setEditing((e) => !e)} className="text-xs text-gold-light">
           {editing ? "Annuler" : "Modifier"}

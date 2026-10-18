@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
-import { brusselsNow, rangeFor } from "@/lib/pilotage";
+import { brusselsNow, periodProgress, productionPeriodFor, rangeFor, type OvbPeriodLite } from "@/lib/pilotage";
 import { StructureBoard } from "./structure-board";
 import { GroupEngagement } from "./group-engagement";
 import type { TeamEngagementRow, TeamNumbersRow } from "@/types/database";
@@ -13,14 +13,17 @@ export default async function StructurePage() {
 
   const now = brusselsNow();
   const week = rangeFor("semaine", now);
-  const month = rangeFor("mois", now);
-  const monthKey = month.start.slice(0, 7);
 
   const supabase = await createClient();
+  const { data: periodRows } = await supabase.from("ovb_periods").select("period_month, start_date");
+  const periods = (periodRows as OvbPeriodLite[] | null) ?? [];
+  // Le "mois" de production est la période OVB, comme sur l'accueil et le Tableau.
+  const period = productionPeriodFor(periods, now);
+
   const [{ data: weekNumbers }, { data: monthNumbers }, { data: engagements }] = await Promise.all([
     supabase.rpc("get_team_numbers", { p_start: week.start, p_end: week.end }),
-    supabase.rpc("get_team_numbers", { p_start: month.start, p_end: month.end }),
-    supabase.rpc("get_team_engagements", { p_month: monthKey }),
+    supabase.rpc("get_team_numbers", { p_start: period.start, p_end: period.end }),
+    supabase.rpc("get_team_engagements", { p_month: period.key }),
   ]);
 
   return (
@@ -31,7 +34,8 @@ export default async function StructurePage() {
       </p>
 
       <GroupEngagement
-        monthLabel={month.label}
+        periodLabel={period.label}
+        progress={periodProgress(period, now)}
         engagements={(engagements as TeamEngagementRow[] | null) ?? []}
         monthNumbers={(monthNumbers as TeamNumbersRow[] | null) ?? []}
       />
@@ -39,6 +43,7 @@ export default async function StructurePage() {
       <StructureBoard
         initialKind="semaine"
         initialAnchorIso={now.toISOString()}
+        periods={periods}
         initialRows={(weekNumbers as TeamNumbersRow[] | null) ?? []}
       />
     </div>
