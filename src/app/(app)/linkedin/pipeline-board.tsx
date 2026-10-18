@@ -1,18 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { GROUPS, CLOSED_STATUSES, afterSend } from "@/lib/linkedin/status";
 import { brusselsDate, fetchAllContacts } from "@/lib/linkedin/fetch";
 import { normalize } from "@/lib/linkedin/classify";
+import { resolveTemplate } from "@/lib/linkedin/templates";
+import { stepFor } from "@/lib/linkedin/status";
 import {
   DAILY_LIMIT,
   LINKEDIN_STATUSES,
   type LinkedinContact,
   type LinkedinGroup,
   type LinkedinStatus,
+  type LinkedinTemplate,
 } from "@/lib/linkedin/types";
 import { ContactCard, type Outcome } from "./contact-card";
 import { ImportPanel } from "./import-panel";
@@ -43,6 +47,7 @@ export function PipelineBoard({
   initialContacts,
   initialSentToday,
   calendlyUrl,
+  templates,
   teamNames,
   viewOptions,
 }: {
@@ -53,6 +58,7 @@ export function PipelineBoard({
   initialContacts: LinkedinContact[];
   initialSentToday: number;
   calendlyUrl: string | null;
+  templates: LinkedinTemplate[];
   teamNames: string[];
   viewOptions: { id: string; name: string }[];
 }) {
@@ -126,11 +132,17 @@ export function PipelineBoard({
     setContacts(await fetchAllContacts(supabase, ownerId));
   };
 
-  const logEvent = async (contactId: string, action: string) => {
-    await supabase.from("linkedin_contact_events").insert({ contact_id: contactId, owner_id: ownerId, action });
+  type EventSpec = string | { action: string; templateId: string | null };
+
+  const logEvent = async (contactId: string, spec: EventSpec) => {
+    const action = typeof spec === "string" ? spec : spec.action;
+    const templateId = typeof spec === "string" ? null : spec.templateId;
+    await supabase
+      .from("linkedin_contact_events")
+      .insert({ contact_id: contactId, owner_id: ownerId, action, ...(templateId ? { template_id: templateId } : {}) });
   };
 
-  const patchContact = async (id: string, patch: Partial<LinkedinContact>, events: string[] = []) => {
+  const patchContact = async (id: string, patch: Partial<LinkedinContact>, events: EventSpec[] = []) => {
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
     const { error } = await supabase.from("linkedin_contacts").update(patch).eq("id", id);
     if (error) {
@@ -138,7 +150,7 @@ export function PipelineBoard({
       await reload();
       return;
     }
-    for (const action of events) await logEvent(id, action);
+    for (const spec of events) await logEvent(id, spec);
   };
 
   const send = async (c: LinkedinContact) => {
@@ -150,7 +162,9 @@ export function PipelineBoard({
     }
     setForceId(null);
     setSentToday((n) => n + 1);
-    const events = ["Message envoyé"];
+    const step = stepFor(c.status, c.grp);
+    const templateId = step ? (resolveTemplate(templates, ownerId, c.grp, step, c.tags)?.templateId ?? null) : null;
+    const events: EventSpec[] = [{ action: "Message envoyé", templateId }];
     if (effect.status !== c.status) events.push(`Statut : ${effect.status}`);
     await patchContact(
       c.id,
@@ -166,13 +180,23 @@ export function PipelineBoard({
 
   const outcome = async (c: LinkedinContact, o: Outcome) => {
     switch (o) {
-      case "reply":
+      case "reply": {
+        // La réponse est rattachée au dernier message envoyé à ce contact (taux de réponse par version)
+        const { data: last } = await supabase
+          .from("linkedin_contact_events")
+          .select("template_id")
+          .eq("contact_id", c.id)
+          .eq("action", "Message envoyé")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const templateId = (last?.[0] as { template_id: string | null } | undefined)?.template_id ?? null;
         await patchContact(
           c.id,
           { status: "À toi de répondre", next_action: today, last_contact: today, msgs_received: c.msgs_received + 1, priority: 1 },
-          ["A répondu", "Statut : À toi de répondre"]
+          [{ action: "A répondu", templateId }, "Statut : À toi de répondre"]
         );
         break;
+      }
       case "rdv":
         await patchContact(c.id, { status: "RDV fixé", next_action: null }, ["Statut : RDV fixé"]);
         break;
@@ -243,6 +267,12 @@ export function PipelineBoard({
               : `${contacts.length} relation${contacts.length > 1 ? "s" : ""}${readOnly ? ` — pipeline de ${ownerName}` : ""}`}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          {!readOnly && (
+            <Link href="/linkedin/messages" className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink">
+              Mes messages
+            </Link>
+          )}
         {viewOptions.length > 1 && (
           <select
             value={ownerId}
@@ -256,6 +286,7 @@ export function PipelineBoard({
             ))}
           </select>
         )}
+        </div>
       </div>
 
       <div
@@ -392,6 +423,8 @@ export function PipelineBoard({
               forcing={forceId === c.id}
               collaboratorName={ownerId === meId ? meName : ownerName}
               calendlyUrl={ownerId === meId ? savedCalendly || null : null}
+              templates={templates}
+              ownerId={ownerId}
               onToggle={() => {
                 setOpenId((cur) => (cur === c.id ? null : c.id));
                 setForceId(null);

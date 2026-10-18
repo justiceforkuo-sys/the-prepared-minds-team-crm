@@ -131,6 +131,7 @@ export function displayName(name: string): string {
 export interface MessageContext {
   firstName: string;
   company: string | null;
+  position?: string | null;
   grp: LinkedinGroup;
   collaboratorName: string;
   calendlyUrl: string | null;
@@ -152,6 +153,8 @@ export function renderMessage(template: string, ctx: MessageContext): string {
     entreprise: company || companyFallback,
     calendly: ctx.calendlyUrl?.trim() || CALENDLY_PLACEHOLDER,
     prenom_collab: myFirst,
+    mon_prenom: myFirst,
+    poste: ctx.position?.trim() || "votre métier",
     signature: `${me}\nPrepared Minds Team, sous-agent OVB Willemot`,
   };
   return template.replace(/\{(\w+)\}/g, (m, key: string) => (key in vars ? vars[key] : m));

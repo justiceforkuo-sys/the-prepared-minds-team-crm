@@ -51,3 +51,21 @@ export interface LinkedinEvent {
 export type MessageStep = "1" | "2" | "3" | "reply";
 
 export const DAILY_LIMIT = 20;
+
+export type TemplateGroup = "A" | "B" | "C" | "D" | "ALL";
+
+export interface LinkedinTemplate {
+  id: string;
+  owner_id: string | null; // null = modèle d'équipe
+  grp: TemplateGroup;
+  step: MessageStep;
+  variant: string;
+  body: string;
+  updated_at: string;
+}
+
+export interface TemplateStat {
+  template_id: string;
+  sent: number;
+  replies: number;
+}

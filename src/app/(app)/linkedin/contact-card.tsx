@@ -4,15 +4,30 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Copy, ExternalLink, Send } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { GROUPS, GROUP_LABEL, STATUS_COLOR, STEP_LABEL, afterSend, stepFor } from "@/lib/linkedin/status";
-import { CALENDLY_PLACEHOLDER, renderMessage, templateFor } from "@/lib/linkedin/messages";
-import { DAILY_LIMIT, LINKEDIN_STATUSES, type LinkedinContact, type LinkedinGroup, type LinkedinStatus } from "@/lib/linkedin/types";
+import { CALENDLY_PLACEHOLDER, renderMessage } from "@/lib/linkedin/messages";
+import { resolveTemplate, type TemplateSource } from "@/lib/linkedin/templates";
+import {
+  DAILY_LIMIT,
+  LINKEDIN_STATUSES,
+  type LinkedinContact,
+  type LinkedinGroup,
+  type LinkedinStatus,
+  type LinkedinTemplate,
+} from "@/lib/linkedin/types";
 
 export type Outcome = "reply" | "rdv" | "client" | "later" | "notInterested";
 
 const PRIORITY_COLOR: Record<number, string> = { 1: "#d9534f", 2: "#e0b93a", 3: "#8a97b0" };
 
+const SOURCE_LABEL: Record<TemplateSource, string> = {
+  perso: "Ma version",
+  equipe: "Modèle d'équipe",
+  code: "Modèle d'équipe",
+};
+
 function MessageBox({
   initial,
+  source,
   step,
   contact,
   readOnly,
@@ -21,6 +36,7 @@ function MessageBox({
   onSend,
 }: {
   initial: string;
+  source: TemplateSource;
   step: keyof typeof STEP_LABEL;
   contact: LinkedinContact;
   readOnly: boolean;
@@ -45,7 +61,10 @@ function MessageBox({
 
   return (
     <div className="mt-3">
-      <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted">{STEP_LABEL[step]}</div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-muted">{STEP_LABEL[step]}</span>
+        <span className="rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">{SOURCE_LABEL[source]}</span>
+      </div>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -102,6 +121,8 @@ export function ContactCard({
   forcing,
   collaboratorName,
   calendlyUrl,
+  templates,
+  ownerId,
   onToggle,
   onSend,
   onOutcome,
@@ -116,6 +137,8 @@ export function ContactCard({
   forcing: boolean;
   collaboratorName: string;
   calendlyUrl: string | null;
+  templates: LinkedinTemplate[];
+  ownerId: string;
   onToggle: () => void;
   onSend: (text: string) => void;
   onOutcome: (o: Outcome) => void;
@@ -127,12 +150,13 @@ export function ContactCard({
   const subtitle = [contact.position, contact.company].filter(Boolean).join(" · ");
   const late = contact.next_action !== null && contact.next_action < today;
   const step = stepFor(contact.status, contact.grp);
-  const template = step ? templateFor(contact.grp, step) : null;
+  const resolved = step ? resolveTemplate(templates, ownerId, contact.grp, step, contact.tags) : null;
   const rendered =
-    step && template
-      ? renderMessage(template, {
+    step && resolved
+      ? renderMessage(resolved.body, {
           firstName: contact.first_name,
           company: contact.company,
+          position: contact.position,
           grp: contact.grp,
           collaboratorName,
           calendlyUrl,
@@ -197,10 +221,11 @@ export function ContactCard({
             </div>
           )}
 
-          {rendered && step && (
+          {rendered && step && resolved && (
             <MessageBox
-              key={`${contact.id}-${step}-${contact.grp}`}
+              key={`${contact.id}-${step}-${contact.grp}-${resolved.templateId ?? "code"}`}
               initial={rendered}
+              source={resolved.source}
               step={step}
               contact={contact}
               readOnly={readOnly}
