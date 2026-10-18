@@ -16,10 +16,13 @@ export function GroupEngagement({
   const withGoal = engagements.filter((e) => e.objectif_unites > 0 || e.objectif_recrues > 0);
   const goalUnits = engagements.reduce((s, e) => s + e.objectif_unites, 0);
   const goalRecrues = engagements.reduce((s, e) => s + e.objectif_recrues, 0);
-  const units = monthNumbers.reduce((s, r) => s + r.units, 0);
-  const dossiers = monthNumbers.reduce((s, r) => s + r.dossiers, 0);
-  const dvRealises = monthNumbers.reduce((s, r) => s + r.dv_realises, 0);
-  const drRealises = monthNumbers.reduce((s, r) => s + r.dr_realises, 0);
+  // On compare comme avec comme : seuls les collaborateurs qui ont fixé un objectif comptent dans le réalisé.
+  const goalIds = new Set(withGoal.map((e) => e.person_id));
+  const counted = monthNumbers.filter((r) => goalIds.has(r.person_id));
+  const units = counted.reduce((s, r) => s + r.units, 0);
+  const dossiers = counted.reduce((s, r) => s + r.dossiers, 0);
+  const dvRealises = counted.reduce((s, r) => s + r.dv_realises, 0);
+  const drRealises = counted.reduce((s, r) => s + r.dr_realises, 0);
 
   const pct = goalUnits > 0 ? (units / goalUnits) * 100 : 0;
   const projUnits = projectEndOfMonth(units, progress);
