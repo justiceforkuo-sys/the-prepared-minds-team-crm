@@ -1,0 +1,62 @@
+import { getCurrentPerson } from "@/lib/current-person";
+import { createClient } from "@/utils/supabase/server";
+import { countSentToday, fetchAllContacts } from "@/lib/linkedin/fetch";
+import { PipelineBoard } from "./pipeline-board";
+
+interface PersonRow {
+  id: string;
+  name: string;
+  reports_to: string | null;
+  calendly_url: string | null;
+}
+
+export default async function LinkedinPage({ searchParams }: { searchParams: Promise<{ de?: string }> }) {
+  const person = await getCurrentPerson();
+  if (!person) return null;
+  const { de } = await searchParams;
+
+  const supabase = await createClient();
+  const { data: peopleData } = await supabase.from("people").select("id, name, reports_to, calendly_url").order("name");
+  const people = (peopleData as PersonRow[] | null) ?? [];
+
+  // Qui peut-on consulter ? Soi-même + sa cascade ; l'admin voit tout le monde.
+  const viewable = new Set<string>([person.id]);
+  if (person.is_admin) {
+    people.forEach((p) => viewable.add(p.id));
+  } else {
+    let frontier = [person.id];
+    while (frontier.length > 0) {
+      const next = people.filter((p) => p.reports_to && frontier.includes(p.reports_to) && !viewable.has(p.id));
+      next.forEach((p) => viewable.add(p.id));
+      frontier = next.map((p) => p.id);
+    }
+  }
+  const ownerId = de && viewable.has(de) ? de : person.id;
+  const owner = people.find((p) => p.id === ownerId);
+  const me = people.find((p) => p.id === person.id);
+
+  // La RLS reste la vraie barrière : même si l'URL est trafiquée, la base ne renvoie rien d'interdit.
+  const [contacts, sentToday] = await Promise.all([
+    fetchAllContacts(supabase, ownerId),
+    countSentToday(supabase, ownerId),
+  ]);
+
+  const viewOptions = [
+    { id: person.id, name: person.name },
+    ...people.filter((p) => p.id !== person.id && viewable.has(p.id)).map((p) => ({ id: p.id, name: p.name })),
+  ];
+
+  return (
+    <PipelineBoard
+      meId={person.id}
+      meName={person.name}
+      ownerId={ownerId}
+      ownerName={owner?.name ?? person.name}
+      initialContacts={contacts}
+      initialSentToday={sentToday}
+      calendlyUrl={me?.calendly_url ?? null}
+      teamNames={people.map((p) => p.name)}
+      viewOptions={viewOptions}
+    />
+  );
+}

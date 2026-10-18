@@ -19,6 +19,7 @@ import {
   Award,
   PiggyBank,
   Table2,
+  Send,
 } from "lucide-react";
 
 export interface NavItem {
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Aujourd'hui", icon: Sunrise },
   { href: "/dashboard", label: "Tableau", icon: LayoutDashboard },
   { href: "/prospects", label: "Prospects", icon: Users },
+  { href: "/linkedin", label: "LinkedIn", icon: Send },
   { href: "/suivis", label: "Suivis", icon: Clock },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
