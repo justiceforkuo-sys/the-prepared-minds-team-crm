@@ -35,7 +35,7 @@ export function MobileNav({ isAdmin, isTrial }: { isAdmin: boolean; isTrial: boo
   const items = NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.trialHidden || !isTrial));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-around overflow-x-auto border-t border-line bg-card-alt px-1 pb-3 pt-2 md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-start gap-1 overflow-x-auto border-t border-line bg-card-alt px-1 pb-3 pt-2 md:hidden">
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;

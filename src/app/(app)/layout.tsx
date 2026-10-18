@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
           <h1 className="mt-0.5 font-serif text-2xl font-semibold text-ink">CRM</h1>
         </div>
-        <div className="flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
         </div>
         <div className="mt-auto border-t border-line pt-4">

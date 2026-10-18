@@ -1,4 +1,4 @@
-import { monthProgress, projectEndOfMonth, statProjection } from "@/lib/pilotage";
+import { brusselsNow, monthProgress, projectEndOfMonth, statProjection } from "@/lib/pilotage";
 import { ProgressBar, StatBox } from "@/components/stat-bits";
 import type { TeamEngagementRow, TeamNumbersRow } from "@/types/database";
 
@@ -19,7 +19,7 @@ export function GroupEngagement({
   const dvRealises = monthNumbers.reduce((s, r) => s + r.dv_realises, 0);
   const drRealises = monthNumbers.reduce((s, r) => s + r.dr_realises, 0);
 
-  const progress = monthProgress(new Date());
+  const progress = monthProgress(brusselsNow());
   const pct = goalUnits > 0 ? (units / goalUnits) * 100 : 0;
   const projUnits = projectEndOfMonth(units, progress);
   const proj = statProjection(goalUnits - units, goalRecrues - dossiers, progress.weeksLeft);

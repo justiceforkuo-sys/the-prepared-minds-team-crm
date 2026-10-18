@@ -1,6 +1,6 @@
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
-import { rangeFor } from "@/lib/pilotage";
+import { brusselsNow, rangeFor } from "@/lib/pilotage";
 import { ObjectifsList } from "./objectifs-list";
 import { EngagementCalculator } from "./engagement-calculator";
 import { EngagementPanel } from "./engagement-panel";
@@ -10,7 +10,7 @@ export default async function ObjectifsPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
 
-  const now = new Date();
+  const now = brusselsNow();
   const month = rangeFor("mois", now);
   const monthKey = month.start.slice(0, 7);
 

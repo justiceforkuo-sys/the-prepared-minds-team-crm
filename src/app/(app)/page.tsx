@@ -1,6 +1,6 @@
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
-import { daysSince, mondayOf, toISO } from "@/lib/pilotage";
+import { brusselsNow, daysSince, mondayOf, toISO } from "@/lib/pilotage";
 import { TodayBoard } from "./today-board";
 import { DailyNumbers } from "./daily-numbers";
 import { PipelineSection, type CallItem, type ReactivateClient, type StalledSale } from "./pipeline-section";
@@ -10,7 +10,7 @@ export default async function TodayPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
 
-  const now = new Date();
+  const now = brusselsNow();
   const dateLabel = now.toLocaleDateString("fr-BE", {
     weekday: "long",
     day: "numeric",

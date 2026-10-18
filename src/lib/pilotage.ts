@@ -1,5 +1,11 @@
 export type PeriodKind = "semaine" | "mois" | "trimestre";
 
+// Le serveur (Vercel) tourne en UTC : on lit l'heure murale belge pour que
+// "aujourd'hui" ne soit pas la veille entre minuit et 2 h.
+export function brusselsNow(): Date {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" }));
+}
+
 export function toISO(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

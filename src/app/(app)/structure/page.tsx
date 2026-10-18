@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
-import { rangeFor } from "@/lib/pilotage";
+import { brusselsNow, rangeFor } from "@/lib/pilotage";
 import { StructureBoard } from "./structure-board";
 import { GroupEngagement } from "./group-engagement";
 import type { TeamEngagementRow, TeamNumbersRow } from "@/types/database";
@@ -11,7 +11,7 @@ export default async function StructurePage() {
   if (!person) return null;
   if (person.status === "essai") notFound();
 
-  const now = new Date();
+  const now = brusselsNow();
   const week = rangeFor("semaine", now);
   const month = rangeFor("mois", now);
   const monthKey = month.start.slice(0, 7);
