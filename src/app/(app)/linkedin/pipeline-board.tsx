@@ -20,6 +20,8 @@ import {
 } from "@/lib/linkedin/types";
 import { ContactCard, type Outcome } from "./contact-card";
 import { ImportPanel } from "./import-panel";
+import { CHALLENGE_EVENT, ChallengeStrip } from "./challenge-strip";
+import { BADGE_BY_CODE, celebrationMessage, type ChallengeSummary } from "@/lib/linkedin/challenge";
 
 type TileFilter = "reply" | "due" | "priority" | "rdv" | null;
 const PAGE_SIZE = 40;
@@ -50,6 +52,7 @@ export function PipelineBoard({
   templates,
   teamNames,
   viewOptions,
+  challenge,
 }: {
   meId: string;
   meName: string;
@@ -61,6 +64,7 @@ export function PipelineBoard({
   templates: LinkedinTemplate[];
   teamNames: string[];
   viewOptions: { id: string; name: string }[];
+  challenge: ChallengeSummary | null;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -79,6 +83,9 @@ export function PipelineBoard({
   const [calendly, setCalendly] = useState(calendlyUrl ?? "");
   const [savedCalendly, setSavedCalendly] = useState(calendlyUrl ?? "");
   const [message, setMessage] = useState<string | null>(null);
+  const [newBadges, setNewBadges] = useState<string[]>([]);
+  const [celebration, setCelebration] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const isDue = (c: LinkedinContact) => c.next_action !== null && c.next_action <= today && !CLOSED_STATUSES.has(c.status);
 
@@ -153,6 +160,15 @@ export function PipelineBoard({
     for (const spec of events) await logEvent(id, spec);
   };
 
+  // Après une action qui compte pour le Défi : badges éventuels + rafraîchissement du bandeau 🔥
+  const afterAction = async () => {
+    if (readOnly || !challenge?.joined) return;
+    const { data } = await supabase.rpc("linkedin_refresh_badges");
+    const earned = (data as string[] | null) ?? [];
+    if (earned.length > 0) setNewBadges((prev) => [...prev, ...earned]);
+    window.dispatchEvent(new Event(CHALLENGE_EVENT));
+  };
+
   const send = async (c: LinkedinContact) => {
     const effect = afterSend(c.status);
     if (!effect) return;
@@ -176,6 +192,7 @@ export function PipelineBoard({
       },
       events
     );
+    await afterAction();
   };
 
   const outcome = async (c: LinkedinContact, o: Outcome) => {
@@ -199,6 +216,10 @@ export function PipelineBoard({
       }
       case "rdv":
         await patchContact(c.id, { status: "RDV fixé", next_action: null }, ["Statut : RDV fixé"]);
+        if (challenge?.joined) {
+          setCelebration(celebrationMessage(meName.split(" ")[0]));
+          setCopied(false);
+        }
         break;
       case "client":
         await patchContact(c.id, { status: "Client / Partenaire", next_action: null }, ["Statut : Client / Partenaire"]);
@@ -210,6 +231,7 @@ export function PipelineBoard({
         await patchContact(c.id, { status: "Pas intéressé", next_action: null }, ["Statut : Pas intéressé"]);
         break;
     }
+    await afterAction();
   };
 
   const createProspect = async (c: LinkedinContact) => {
@@ -300,6 +322,41 @@ export function PipelineBoard({
           Aujourd&apos;hui : {sentToday} / {DAILY_LIMIT}
         </span>
       </div>
+
+      {!readOnly && <ChallengeStrip initial={challenge} />}
+
+      {newBadges.length > 0 && (
+        <div className="mb-3 flex items-center justify-between rounded-2xl border border-gold bg-card px-3.5 py-2.5 text-xs text-ink">
+          <span>
+            🏅 <strong>Nouveau badge</strong> :{" "}
+            {newBadges.map((b) => `${BADGE_BY_CODE[b]?.icon ?? ""} ${BADGE_BY_CODE[b]?.label ?? b}`).join(" · ")}
+          </span>
+          <button onClick={() => setNewBadges([])} className="text-muted">
+            Fermer
+          </button>
+        </div>
+      )}
+
+      {celebration && (
+        <div className="mb-3 rounded-2xl border border-gold bg-card px-3.5 py-3 text-xs text-ink">
+          <div className="mb-2 font-bold">Un RDV de plus ! Partage-le avec l&apos;équipe :</div>
+          <div className="mb-2 rounded-lg border border-line px-3 py-2 text-sm">{celebration}</div>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(celebration);
+                setCopied(true);
+              }}
+              className="rounded-lg bg-gold px-3 py-1.5 font-bold text-night"
+            >
+              {copied ? "Copié ✓" : "Copier le message"}
+            </button>
+            <button onClick={() => setCelebration(null)} className="rounded-lg border border-line px-3 py-1.5 text-muted">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {message && (
         <div className="mb-3 flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2 text-xs text-ink">

@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { countSentToday, fetchAllContacts } from "@/lib/linkedin/fetch";
 import { PipelineBoard } from "./pipeline-board";
 import type { LinkedinTemplate } from "@/lib/linkedin/types";
+import type { ChallengeSummary } from "@/lib/linkedin/challenge";
 
 interface PersonRow {
   id: string;
@@ -37,11 +38,13 @@ export default async function LinkedinPage({ searchParams }: { searchParams: Pro
   const me = people.find((p) => p.id === person.id);
 
   // La RLS reste la vraie barrière : même si l'URL est trafiquée, la base ne renvoie rien d'interdit.
-  const [contacts, sentToday, { data: templateRows }] = await Promise.all([
+  const [contacts, sentToday, { data: templateRows }, { data: summaryRows }] = await Promise.all([
     fetchAllContacts(supabase, ownerId),
     countSentToday(supabase, ownerId),
     supabase.from("linkedin_templates").select("*"),
+    supabase.rpc("linkedin_challenge_summary"),
   ]);
+  const challenge = ((summaryRows as ChallengeSummary[] | null) ?? [])[0] ?? null;
   // Modèles d'équipe + versions personnelles du propriétaire du pipeline affiché
   const templates = ((templateRows as LinkedinTemplate[] | null) ?? []).filter(
     (t) => t.owner_id === null || t.owner_id === ownerId
@@ -64,6 +67,7 @@ export default async function LinkedinPage({ searchParams }: { searchParams: Pro
       templates={templates}
       teamNames={people.map((p) => p.name)}
       viewOptions={viewOptions}
+      challenge={challenge}
     />
   );
 }
