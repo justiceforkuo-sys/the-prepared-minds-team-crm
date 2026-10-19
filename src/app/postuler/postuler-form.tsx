@@ -246,7 +246,7 @@ export function PostulerForm({
             <input name="consent" type="checkbox" required defaultChecked={v("consent") === "on"} className="mt-1" />
             <span>
               J&apos;accepte que Prepared Minds Team utilise ces informations pour étudier ma candidature et me recontacter. Elles ne sont jamais transmises à des tiers et
-              sont supprimées après 12 mois sans suite.{" "}
+              sont supprimées après 24 mois sans suite.{" "}
               <Link href="/confidentialite" target="_blank" className="font-bold text-gold-light underline">
                 Confidentialité
               </Link>

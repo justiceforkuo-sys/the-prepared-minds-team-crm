@@ -32,7 +32,7 @@ export default function ConfidentialitePage() {
         </section>
         <section>
           <h2 className="mb-1 font-bold">Combien de temps ?</h2>
-          <p className="text-muted">Elles sont supprimées après 12 mois sans suite. Si tu rejoins l&apos;équipe, elles deviennent ta fiche de collaborateur.</p>
+          <p className="text-muted">Elles sont supprimées après 24 mois sans suite. Si tu rejoins l&apos;équipe, elles deviennent ta fiche de collaborateur.</p>
         </section>
         <section>
           <h2 className="mb-1 font-bold">Tes droits</h2>
