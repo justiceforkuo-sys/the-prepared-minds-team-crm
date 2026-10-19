@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
-import { SprintPanel } from "./sprint-panel";
 import type {
   ConnectionStatus,
   ExistingContactMatch,
@@ -251,8 +250,6 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
           </button>
         </div>
       </div>
-
-      <SprintPanel ownerId={ownerId} prospects={prospects} />
 
       {showQuick && (
         <div className="mb-3 rounded-2xl border border-line bg-card p-3.5">
