@@ -8,8 +8,14 @@ import { fmtDate } from "@/lib/format";
 
 export interface CallItem {
   id: string;
-  kind: "suivi" | "tache";
   label: string;
+  sub: string;
+  date: string;
+}
+
+export interface TaskItem {
+  id: string;
+  title: string;
   sub: string;
   date: string;
 }
@@ -57,6 +63,7 @@ export function PipelineSection({
   todayCount,
   upcomingCount,
   reminderCount,
+  tasks,
   callPlan,
   stalledSales,
   reactivate,
@@ -67,6 +74,7 @@ export function PipelineSection({
   todayCount: number;
   upcomingCount: number;
   reminderCount: number;
+  tasks: TaskItem[];
   callPlan: CallItem[];
   stalledSales: StalledSale[];
   reactivate: ReactivateClient[];
@@ -80,11 +88,12 @@ export function PipelineSection({
     await supabase.from("clients").update({ last_contact_at: new Date().toISOString() }).eq("id", id);
   };
 
+  const lateTasks = tasks.filter((t) => t.date < today).length;
   const remaining = Math.max(0, reactivateTotal - (reactivate.length - toReactivate.length));
 
   return (
     <div className="mb-3">
-      <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">Pipeline commercial</div>
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">Suivis prospects</div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Tile icon={AlertTriangle} label="Suivis en retard" value={lateCount} alert />
         <Tile icon={CalendarClock} label="À faire aujourd'hui" value={todayCount} />
@@ -95,8 +104,8 @@ export function PipelineSection({
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-line bg-card p-4">
           <div className="mb-2 flex items-center justify-between">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Mon plan d&apos;appels</div>
-            <Link href="/suivis" className="text-xs text-gold-light">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Mon plan d&apos;appels — suivis prospects</div>
+            <Link href="/prospects?vue=a-relancer" className="text-xs text-gold-light">
               Ouvrir
             </Link>
           </div>
@@ -105,7 +114,7 @@ export function PipelineSection({
           ) : (
             <div className="flex flex-col gap-1.5">
               {callPlan.map((c) => (
-                <div key={`${c.kind}-${c.id}`} className="flex items-center justify-between gap-2 text-xs">
+                <div key={c.id} className="flex items-center justify-between gap-2 text-xs">
                   <div className="min-w-0">
                     <div className="truncate text-ink">{c.label}</div>
                     <div className="truncate text-[11px] text-muted">{c.sub}</div>
@@ -144,6 +153,34 @@ export function PipelineSection({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-line bg-card p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted">Tâches (agenda)</div>
+          <Link href="/agenda" className="text-xs text-gold-light">
+            Ouvrir
+          </Link>
+        </div>
+        <div className="mb-2 flex gap-4 text-xs">
+          <span className={lateTasks > 0 ? "font-bold text-red" : "text-muted"}>{lateTasks} en retard</span>
+          <span className="text-muted">{tasks.length - lateTasks} sous 7 jours</span>
+        </div>
+        {tasks.length === 0 ? (
+          <div className="text-xs text-muted">Aucune tâche avec échéance dans les 7 prochains jours.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+            {tasks.slice(0, 8).map((t) => (
+              <div key={t.id} className="flex items-center justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  <div className="truncate text-ink">{t.title}</div>
+                  <div className="truncate text-[11px] text-muted">{t.sub}</div>
+                </div>
+                <span className={`flex-shrink-0 font-bold ${t.date < today ? "text-red" : "text-gold-light"}`}>{fmtDate(t.date)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-3 rounded-2xl border border-line bg-card p-4">

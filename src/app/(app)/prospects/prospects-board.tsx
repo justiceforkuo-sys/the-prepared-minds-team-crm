@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtDate } from "@/lib/format";
+import { brusselsDate } from "@/lib/linkedin/fetch";
+import { FollowUpBanner } from "./follow-up-banner";
 import type {
   ConnectionStatus,
   ExistingContactMatch,
@@ -85,7 +87,7 @@ const emptyForm: FormValues = {
   connection_status: "",
 };
 
-export function ProspectsBoard({ ownerId }: { ownerId: string }) {
+export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string }) {
   const supabase = createClient();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,6 +207,11 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
     setProspects((prev) => prev.filter((p) => p.id !== id));
   };
 
+  const setFollowUp = async (id: string, date: string | null) => {
+    setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, next_follow_up: date } : p)));
+    await supabase.from("prospects").update({ next_follow_up: date }).eq("id", id);
+  };
+
   const setStage = async (id: string, stage: ProspectStage) => {
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, stage } : p)));
     await supabase.from("prospects").update({ stage }).eq("id", id);
@@ -250,6 +257,14 @@ export function ProspectsBoard({ ownerId }: { ownerId: string }) {
           </button>
         </div>
       </div>
+
+      <FollowUpBanner
+        prospects={prospects}
+        ownerId={ownerId}
+        today={brusselsDate(new Date())}
+        highlight={vue === "a-relancer"}
+        onSetFollowUp={setFollowUp}
+      />
 
       {showQuick && (
         <div className="mb-3 rounded-2xl border border-line bg-card p-3.5">

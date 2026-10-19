@@ -1,9 +1,10 @@
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { brusselsNow, daysSince, mondayOf, toISO } from "@/lib/pilotage";
+import { FOLLOW_UP_COLUMNS, TERMINAL_STAGES_FILTER, WEEK_HORIZON_DAYS, addDaysIso, bucketFollowUps, type FollowUpRow } from "@/lib/follow-ups";
 import { TodayBoard } from "./today-board";
 import { DailyNumbers } from "./daily-numbers";
-import { PipelineSection, type CallItem, type ReactivateClient, type StalledSale } from "./pipeline-section";
+import { PipelineSection, type CallItem, type ReactivateClient, type StalledSale, type TaskItem } from "./pipeline-section";
 import type { DailyActivity, TeamProductionRow, CompanyRankingRow } from "@/types/database";
 
 export default async function TodayPage() {
@@ -20,9 +21,7 @@ export default async function TodayPage() {
   const weekStart = mondayOf(now);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
-  const in7 = new Date(now);
-  in7.setDate(in7.getDate() + 7);
-  const in7Iso = toISO(in7);
+  const in7Iso = addDaysIso(today, WEEK_HORIZON_DAYS);
   const stalledCutoff = new Date(now.getTime() - 7 * 86400000).toISOString();
   const reactivateCutoff = new Date(now.getTime() - 90 * 86400000).toISOString();
 
@@ -48,11 +47,11 @@ export default async function TodayPage() {
       .lte("date", toISO(weekEnd)),
     supabase
       .from("prospects")
-      .select("id, name, stage, next_follow_up")
+      .select(FOLLOW_UP_COLUMNS)
       .eq("owner_id", person.id)
       .not("next_follow_up", "is", null)
       .lte("next_follow_up", in7Iso)
-      .not("stage", "in", "(Perdu,Partenaire)")
+      .not("stage", "in", TERMINAL_STAGES_FILTER)
       .order("next_follow_up"),
     supabase.from("goals").select("*").eq("person_id", person.id).eq("done", false).order("created_at", { ascending: false }),
     supabase
@@ -100,7 +99,8 @@ export default async function TodayPage() {
   const position = ranking.findIndex((r) => r.person_id === person.id) + 1;
 
   const taskList = (tasks as unknown as { id: string; title: string; due_date: string; assigner: { name: string } | null }[]) ?? [];
-  const followList = followUps ?? [];
+  // Suivis de prospects : exactement la même définition que le bandeau « À relancer » de /prospects
+  const followBuckets = bucketFollowUps((followUps as FollowUpRow[] | null) ?? [], person.id, today);
   const reminderList =
     (reminders as unknown as {
       id: string;
@@ -108,26 +108,20 @@ export default async function TodayPage() {
       client_policy: { product_label: string | null; client: { name: string } | null } | null;
     }[]) ?? [];
 
-  const callItems: CallItem[] = [
-    ...followList.map<CallItem>((p) => ({
-      id: p.id,
-      kind: "suivi",
-      label: p.name,
-      sub: `Suivi — ${p.stage}`,
-      date: p.next_follow_up as string,
-    })),
-    ...taskList.map<CallItem>((t) => ({
-      id: t.id,
-      kind: "tache",
-      label: t.title,
-      sub: t.assigner ? `Tâche de ${t.assigner.name}` : "Tâche",
-      date: t.due_date,
-    })),
-  ].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const callItems: CallItem[] = [...followBuckets.late, ...followBuckets.today, ...followBuckets.week].map((p) => ({
+    id: p.id,
+    label: p.name,
+    sub: `Suivi — ${p.stage}`,
+    date: p.next_follow_up as string,
+  }));
 
-  const lateCount = callItems.filter((c) => c.date < today).length;
-  const todayCount = callItems.filter((c) => c.date === today).length;
-  const upcomingCount = callItems.filter((c) => c.date > today).length;
+  // Tâches (agenda) : comptées à part, jamais mélangées aux suivis de prospects
+  const taskItems: TaskItem[] = taskList.map((t) => ({
+    id: t.id,
+    title: t.title,
+    sub: t.assigner ? `Tâche de ${t.assigner.name}` : "Tâche",
+    date: t.due_date,
+  }));
 
   const stalledSales: StalledSale[] = (stalled ?? []).map((s) => ({
     id: s.id,
@@ -157,9 +151,10 @@ export default async function TodayPage() {
       />
       <PipelineSection
         today={today}
-        lateCount={lateCount}
-        todayCount={todayCount}
-        upcomingCount={upcomingCount}
+        lateCount={followBuckets.late.length}
+        todayCount={followBuckets.today.length}
+        upcomingCount={followBuckets.week.length}
+        tasks={taskItems}
         reminderCount={reminderList.length}
         callPlan={callItems.slice(0, 8)}
         stalledSales={stalledSales}

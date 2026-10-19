@@ -246,6 +246,8 @@ export function PipelineBoard({
         category,
         stage: category === "prescripteur" ? "Échange qualifié" : "RDV pris",
         priority: "B",
+        // Un suivi dès le lendemain : le prospect apparaît tout de suite dans le bandeau « À relancer » de /prospects
+        next_follow_up: addDays(today, 1),
       })
       .select("id")
       .single();
@@ -254,7 +256,7 @@ export function PipelineBoard({
       return;
     }
     await patchContact(c.id, { prospect_id: data.id as string });
-    setMessage(`Prospect créé (${category}) — retrouve-le dans Prospects.`);
+    setMessage(`Prospect créé (${category}) avec un suivi demain — retrouve-le dans Prospects, bandeau « À relancer ».`);
   };
 
   const saveCalendly = async () => {
