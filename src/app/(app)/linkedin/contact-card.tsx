@@ -271,7 +271,9 @@ export function ContactCard({
 
               {contact.status === "RDV fixé" && (
                 <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-line bg-card-alt p-2.5 text-xs">
-                  {contact.prospect_id ? (
+                  {contact.grp === "D" ? (
+                    <span className="text-green">Un candidat a été créé dans Recrutement (source LinkedIn) : retrouve-le dans l&apos;onglet Recrutement.</span>
+                  ) : contact.prospect_id ? (
                     <span className="text-green">Prospect créé dans le CRM.</span>
                   ) : (
                     <>

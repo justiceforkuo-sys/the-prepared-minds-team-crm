@@ -3,6 +3,8 @@ import { createClient } from "@/utils/supabase/server";
 import { brusselsNow, daysSince, mondayOf, toISO } from "@/lib/pilotage";
 import { FOLLOW_UP_COLUMNS, TERMINAL_STAGES_FILTER, WEEK_HORIZON_DAYS, addDaysIso, bucketFollowUps, type FollowUpRow } from "@/lib/follow-ups";
 import { TodayBoard } from "./today-board";
+import { CandidatesToCall, type CallbackCandidate } from "./candidates-to-call";
+import { OPEN_STATUSES, needsCallback, type RecruitmentRow } from "@/lib/recruitment";
 import { DailyNumbers } from "./daily-numbers";
 import { PipelineSection, type CallItem, type ReactivateClient, type StalledSale, type TaskItem } from "./pipeline-section";
 import type { DailyActivity, TeamProductionRow, CompanyRankingRow } from "@/types/database";
@@ -37,6 +39,7 @@ export default async function TodayPage() {
     { data: companyRanking },
     { data: stalled },
     { data: toReactivate, count: reactivateTotal },
+    { data: recruitRows },
   ] = await Promise.all([
     supabase.from("daily_activity").select("*").eq("person_id", person.id).eq("date", today).maybeSingle(),
     supabase
@@ -87,6 +90,11 @@ export default async function TodayPage() {
       .or(`last_contact_at.lt.${reactivateCutoff},and(last_contact_at.is.null,created_at.lt.${reactivateCutoff})`)
       .order("created_at")
       .limit(8),
+    supabase
+      .from("recruitment_applications")
+      .select("id, name, status, created_at, next_action, next_action_date")
+      .eq("owner_id", person.id)
+      .in("status", OPEN_STATUSES),
   ]);
 
   const productionRows = (production as TeamProductionRow[] | null) ?? [];
@@ -136,6 +144,17 @@ export default async function TodayPage() {
     daysSinceContact: daysSince(c.last_contact_at ?? c.created_at, now),
   }));
 
+  // Candidats à rappeler : « Nouveau » depuis plus de 24 h, ou prochaine action arrivée à échéance
+  const callbacks: CallbackCandidate[] = ((recruitRows as Pick<RecruitmentRow, "id" | "name" | "status" | "created_at" | "next_action" | "next_action_date">[] | null) ?? [])
+    .filter((c) => needsCallback(c, today, now))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      status: c.status,
+      reason: c.next_action_date && c.next_action_date <= today ? `${c.next_action ?? "Rappel prévu"} · ${c.next_action_date}` : `Nouveau depuis ${daysSince(c.created_at, now)} j`,
+      urgent: c.status === "Nouveau" && (now.getTime() - new Date(c.created_at).getTime()) / 3600000 >= 48,
+    }));
+
   return (
     <div>
       <div className="text-xs capitalize text-muted">{dateLabel}</div>
@@ -161,6 +180,7 @@ export default async function TodayPage() {
         reactivate={reactivate}
         reactivateTotal={reactivateTotal ?? reactivate.length}
       />
+      <CandidatesToCall items={callbacks} />
       <TodayBoard
         personId={person.id}
         myRank={person.rank}

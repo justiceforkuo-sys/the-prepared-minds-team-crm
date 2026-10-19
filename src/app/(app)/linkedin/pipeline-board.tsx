@@ -230,6 +230,7 @@ export function PipelineBoard({
       }
       case "rdv":
         await patchContact(c.id, { status: "RDV fixé", next_action: null }, ["Statut : RDV fixé"]);
+        if (c.grp === "D") await createCandidate(c);
         if (challenge?.joined) {
           setCelebration(celebrationMessage(meName.split(" ")[0]));
           setCopied(false);
@@ -246,6 +247,30 @@ export function PipelineBoard({
         break;
     }
     await afterAction();
+  };
+
+  // Groupe D (Recrues) : le RDV fixé crée un candidat dans Recrutement, responsable = propriétaire du contact
+  const createCandidate = async (c: LinkedinContact) => {
+    const { error } = await supabase.from("recruitment_applications").insert({
+      recruiter_id: ownerId,
+      owner_id: ownerId,
+      name: `${c.first_name} ${c.last_name}`.trim(),
+      current_situation: c.position,
+      referral_source: "LinkedIn",
+      status: "Entretien planifié",
+      next_action: "Confirmer la date et l'heure de l'entretien",
+      next_action_date: addDays(today, 1),
+      linkedin_contact_id: c.id,
+    });
+    if (error?.code === "23505") {
+      setMessage("Ce contact est déjà dans Recrutement.");
+      return;
+    }
+    if (error) {
+      setMessage(`Création du candidat impossible : ${error.message}`);
+      return;
+    }
+    setMessage("Candidat créé dans Recrutement (source LinkedIn), avec une première action pour demain.");
   };
 
   const createProspect = async (c: LinkedinContact) => {

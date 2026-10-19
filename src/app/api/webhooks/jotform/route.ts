@@ -68,6 +68,7 @@ export async function POST(request: Request) {
     {
       jotform_submission_id: submissionId,
       recruiter_id: recruiter?.id ?? null,
+      owner_id: recruiter?.id ?? null,
       name: findByKeyword(fields, "Nom complet") ?? findByKeyword(fields, "Nom") ?? "Candidat sans nom",
       phone: findByKeyword(fields, "Téléphone"),
       email: findByKeyword(fields, "Email"),
