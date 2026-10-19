@@ -2,12 +2,14 @@ import Link from "next/link";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import type { LinkedinTemplate, TemplateStat } from "@/lib/linkedin/types";
+import type { CalendlyLinks } from "@/lib/linkedin/messages";
 import { MessagesEditor } from "./messages-editor";
 
 interface PersonRow {
   id: string;
   name: string;
   calendly_url: string | null;
+  calendly_links: CalendlyLinks | null;
 }
 
 export default async function MessagesPage() {
@@ -18,7 +20,7 @@ export default async function MessagesPage() {
   const [{ data: templateRows }, { data: statRows }, { data: peopleRows }, { data: badgeRows }] = await Promise.all([
     supabase.from("linkedin_templates").select("*"),
     supabase.rpc("linkedin_template_stats"),
-    supabase.from("people").select("id, name, calendly_url"),
+    supabase.from("people").select("id, name, calendly_url, calendly_links"),
     supabase.from("linkedin_badges").select("user_id, badge"),
   ]);
 
@@ -51,6 +53,7 @@ export default async function MessagesPage() {
         meName={person.name}
         isAdmin={person.is_admin}
         calendlyUrl={me?.calendly_url ?? null}
+        calendlyLinks={me?.calendly_links ?? null}
         initialTeam={templates.filter((t) => t.owner_id === null)}
         initialMine={templates.filter((t) => t.owner_id === person.id)}
         others={templates.filter((t) => t.owner_id !== null && t.owner_id !== person.id)}

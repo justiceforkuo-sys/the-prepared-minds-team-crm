@@ -9,6 +9,7 @@ import { GROUPS, CLOSED_STATUSES, afterSend } from "@/lib/linkedin/status";
 import { brusselsDate, fetchAllContacts } from "@/lib/linkedin/fetch";
 import { normalize } from "@/lib/linkedin/classify";
 import { resolveTemplate } from "@/lib/linkedin/templates";
+import type { CalendlyLinks } from "@/lib/linkedin/messages";
 import { stepFor } from "@/lib/linkedin/status";
 import {
   DAILY_LIMIT,
@@ -32,6 +33,10 @@ function addDays(iso: string, n: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+type LinkGroup = "A" | "B" | "C" | "D";
+const LINK_GROUPS: LinkGroup[] = ["A", "B", "C", "D"];
+const LINK_LABEL: Record<LinkGroup, string> = { A: "A · Structures partenaires", B: "B · Soignants", C: "C · Prescripteurs", D: "D · Recrues" };
+
 const PROSPECT_CATEGORY: Record<LinkedinGroup, "client" | "recrutement" | "prescripteur"> = {
   A: "prescripteur",
   B: "client",
@@ -49,6 +54,7 @@ export function PipelineBoard({
   initialContacts,
   initialSentToday,
   calendlyUrl,
+  calendlyLinks,
   templates,
   teamNames,
   viewOptions,
@@ -61,6 +67,7 @@ export function PipelineBoard({
   initialContacts: LinkedinContact[];
   initialSentToday: number;
   calendlyUrl: string | null;
+  calendlyLinks: CalendlyLinks | null;
   templates: LinkedinTemplate[];
   teamNames: string[];
   viewOptions: { id: string; name: string }[];
@@ -82,6 +89,13 @@ export function PipelineBoard({
   const [shown, setShown] = useState(PAGE_SIZE);
   const [calendly, setCalendly] = useState(calendlyUrl ?? "");
   const [savedCalendly, setSavedCalendly] = useState(calendlyUrl ?? "");
+  const [links, setLinks] = useState<Record<LinkGroup, string>>({
+    A: calendlyLinks?.A ?? "",
+    B: calendlyLinks?.B ?? "",
+    C: calendlyLinks?.C ?? "",
+    D: calendlyLinks?.D ?? "",
+  });
+  const [savedLinks, setSavedLinks] = useState(links);
   const [message, setMessage] = useState<string | null>(null);
   const [newBadges, setNewBadges] = useState<string[]>([]);
   const [celebration, setCelebration] = useState<string | null>(null);
@@ -259,6 +273,18 @@ export function PipelineBoard({
     setMessage(`Prospect créé (${category}) avec un suivi demain — retrouve-le dans Prospects, bandeau « À relancer ».`);
   };
 
+  const saveLinks = async () => {
+    if (LINK_GROUPS.every((g) => links[g].trim() === savedLinks[g].trim())) return;
+    const clean = Object.fromEntries(LINK_GROUPS.map((g) => [g, links[g].trim()]).filter(([, v]) => v));
+    const { error } = await supabase.from("people").update({ calendly_links: clean }).eq("id", meId);
+    if (error) {
+      setMessage(`Enregistrement des liens Calendly impossible : ${error.message}`);
+      return;
+    }
+    setSavedLinks(links);
+    setMessage("Liens Calendly enregistrés.");
+  };
+
   const saveCalendly = async () => {
     const value = calendly.trim();
     if (value === savedCalendly) return;
@@ -377,15 +403,38 @@ export function PipelineBoard({
             teamNames={teamNames}
             onImported={reload}
           />
-          <div className="mb-3 flex items-center gap-2">
-            <input
-              value={calendly}
-              onChange={(e) => setCalendly(e.target.value)}
-              onBlur={saveCalendly}
-              placeholder="Mon lien Calendly (https://calendly.com/…) — utilisé dans les messages"
-              className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-xs text-ink outline-none focus:border-gold"
-            />
-          </div>
+          <details className="mb-3 rounded-lg border border-line bg-card px-3 py-2 text-xs" open={!LINK_GROUPS.some((g) => savedLinks[g]) && !savedCalendly}>
+            <summary className="cursor-pointer font-bold text-ink">
+              Mes liens Calendly{" "}
+              <span className="font-normal text-muted">
+                — un par groupe ; le CRM ajoute ?utm_source=linkedin&amp;utm_campaign=&lt;groupe&gt;
+              </span>
+            </summary>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {LINK_GROUPS.map((g) => (
+                <label key={g} className="flex flex-col gap-1 text-muted">
+                  {LINK_LABEL[g]}
+                  <input
+                    value={links[g]}
+                    onChange={(e) => setLinks((prev) => ({ ...prev, [g]: e.target.value }))}
+                    onBlur={saveLinks}
+                    placeholder="https://calendly.com/…"
+                    className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                  />
+                </label>
+              ))}
+              <label className="flex flex-col gap-1 text-muted sm:col-span-2">
+                Lien de repli (utilisé si un groupe n&apos;a pas son lien)
+                <input
+                  value={calendly}
+                  onChange={(e) => setCalendly(e.target.value)}
+                  onBlur={saveCalendly}
+                  placeholder="https://calendly.com/…"
+                  className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                />
+              </label>
+            </div>
+          </details>
         </>
       )}
 
@@ -482,6 +531,7 @@ export function PipelineBoard({
               forcing={forceId === c.id}
               collaboratorName={ownerId === meId ? meName : ownerName}
               calendlyUrl={ownerId === meId ? savedCalendly || null : null}
+              calendlyLinks={ownerId === meId ? savedLinks : null}
               templates={templates}
               ownerId={ownerId}
               onToggle={() => {

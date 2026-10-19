@@ -4,12 +4,14 @@ import { countSentToday, fetchAllContacts } from "@/lib/linkedin/fetch";
 import { PipelineBoard } from "./pipeline-board";
 import type { LinkedinTemplate } from "@/lib/linkedin/types";
 import type { ChallengeSummary } from "@/lib/linkedin/challenge";
+import type { CalendlyLinks } from "@/lib/linkedin/messages";
 
 interface PersonRow {
   id: string;
   name: string;
   reports_to: string | null;
   calendly_url: string | null;
+  calendly_links: CalendlyLinks | null;
 }
 
 export default async function LinkedinPage({ searchParams }: { searchParams: Promise<{ de?: string }> }) {
@@ -18,7 +20,7 @@ export default async function LinkedinPage({ searchParams }: { searchParams: Pro
   const { de } = await searchParams;
 
   const supabase = await createClient();
-  const { data: peopleData } = await supabase.from("people").select("id, name, reports_to, calendly_url").order("name");
+  const { data: peopleData } = await supabase.from("people").select("id, name, reports_to, calendly_url, calendly_links").order("name");
   const people = (peopleData as PersonRow[] | null) ?? [];
 
   // Qui peut-on consulter ? Soi-même + sa cascade ; l'admin voit tout le monde.
@@ -64,6 +66,7 @@ export default async function LinkedinPage({ searchParams }: { searchParams: Pro
       initialContacts={contacts}
       initialSentToday={sentToday}
       calendlyUrl={me?.calendly_url ?? null}
+      calendlyLinks={me?.calendly_links ?? null}
       templates={templates}
       teamNames={people.map((p) => p.name)}
       viewOptions={viewOptions}

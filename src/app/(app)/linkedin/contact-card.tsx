@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Copy, ExternalLink, Send } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { GROUPS, GROUP_LABEL, STATUS_COLOR, STEP_LABEL, afterSend, stepFor } from "@/lib/linkedin/status";
-import { CALENDLY_PLACEHOLDER, renderMessage } from "@/lib/linkedin/messages";
+import { CALENDLY_PLACEHOLDER, renderMessage, type CalendlyLinks } from "@/lib/linkedin/messages";
 import { resolveTemplate, type TemplateSource } from "@/lib/linkedin/templates";
 import {
   DAILY_LIMIT,
@@ -121,6 +121,7 @@ export function ContactCard({
   forcing,
   collaboratorName,
   calendlyUrl,
+  calendlyLinks,
   templates,
   ownerId,
   onToggle,
@@ -137,6 +138,7 @@ export function ContactCard({
   forcing: boolean;
   collaboratorName: string;
   calendlyUrl: string | null;
+  calendlyLinks: CalendlyLinks | null;
   templates: LinkedinTemplate[];
   ownerId: string;
   onToggle: () => void;
@@ -160,6 +162,7 @@ export function ContactCard({
           grp: contact.grp,
           collaboratorName,
           calendlyUrl,
+          calendlyLinks,
         })
       : null;
 

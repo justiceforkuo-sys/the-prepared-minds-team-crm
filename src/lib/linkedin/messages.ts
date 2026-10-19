@@ -110,6 +110,24 @@ Le plus simple serait d'en parler 15 minutes de vive voix. Vous pouvez choisir u
 
 export const CALENDLY_PLACEHOLDER = "[ajoute ton lien Calendly]";
 
+// Un lien Calendly par groupe de messages (A à D). Le CRM ajoute lui-même le suivi de campagne.
+export type CalendlyLinks = Partial<Record<"A" | "B" | "C" | "D", string>>;
+
+/** Lien du groupe (sinon lien unique de repli), avec ?utm_source=linkedin&utm_campaign=<groupe>. */
+export function calendlyFor(grp: LinkedinGroup, links: CalendlyLinks | null | undefined, fallback: string | null | undefined): string | null {
+  const own = grp === "A" || grp === "B" || grp === "C" || grp === "D" ? links?.[grp]?.trim() : "";
+  const base = own || fallback?.trim() || "";
+  if (!base) return null;
+  try {
+    const url = new URL(base);
+    url.searchParams.set("utm_source", "linkedin");
+    url.searchParams.set("utm_campaign", grp);
+    return url.toString();
+  } catch {
+    return base;
+  }
+}
+
 function capitalizeName(s: string): string {
   return s
     .trim()
@@ -135,6 +153,7 @@ export interface MessageContext {
   grp: LinkedinGroup;
   collaboratorName: string;
   calendlyUrl: string | null;
+  calendlyLinks?: CalendlyLinks | null;
 }
 
 export function templateFor(grp: LinkedinGroup, step: MessageStep): string | null {
@@ -151,7 +170,7 @@ export function renderMessage(template: string, ctx: MessageContext): string {
   const vars: Record<string, string> = {
     prenom: capitalizeName(ctx.firstName),
     entreprise: company || companyFallback,
-    calendly: ctx.calendlyUrl?.trim() || CALENDLY_PLACEHOLDER,
+    calendly: calendlyFor(ctx.grp, ctx.calendlyLinks, ctx.calendlyUrl) ?? CALENDLY_PLACEHOLDER,
     prenom_collab: myFirst,
     mon_prenom: myFirst,
     poste: ctx.position?.trim() || "votre métier",

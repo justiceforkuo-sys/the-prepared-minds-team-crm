@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { AlertTriangle, Feather } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { GROUP_LABEL, STEP_LABEL } from "@/lib/linkedin/status";
-import { renderMessage, templateFor } from "@/lib/linkedin/messages";
+import { renderMessage, templateFor, type CalendlyLinks } from "@/lib/linkedin/messages";
 import {
   FSMA_REMINDER,
   PREVIEW_CONTACT,
@@ -45,6 +45,7 @@ interface CellProps {
   mineStat: TemplateStat | undefined;
   meName: string;
   calendlyUrl: string | null;
+  calendlyLinks: CalendlyLinks | null;
   isAdmin: boolean;
   onSave: (grp: TemplateGroup, step: MessageStep, variant: string, body: string) => Promise<void>;
   onRevert: (grp: TemplateGroup, step: MessageStep, variant: string) => Promise<void>;
@@ -87,6 +88,7 @@ function Cell(p: CellProps) {
         grp: p.grp === "ALL" ? "B" : (p.grp as LinkedinGroup),
         collaboratorName: p.meName,
         calendlyUrl: p.calendlyUrl,
+        calendlyLinks: p.calendlyLinks,
       })
     : null;
 
@@ -227,6 +229,7 @@ export function MessagesEditor({
   meName,
   isAdmin,
   calendlyUrl,
+  calendlyLinks,
   initialTeam,
   initialMine,
   others,
@@ -238,6 +241,7 @@ export function MessagesEditor({
   meName: string;
   isAdmin: boolean;
   calendlyUrl: string | null;
+  calendlyLinks: CalendlyLinks | null;
   initialTeam: LinkedinTemplate[];
   initialMine: LinkedinTemplate[];
   others: LinkedinTemplate[];
@@ -345,6 +349,7 @@ export function MessagesEditor({
         mineStat={m ? stats[m.id] : undefined}
         meName={meName}
         calendlyUrl={calendlyUrl}
+        calendlyLinks={calendlyLinks}
         isAdmin={isAdmin}
         onSave={onSave}
         onRevert={onRevert}
