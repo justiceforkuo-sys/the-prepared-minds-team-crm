@@ -407,7 +407,7 @@ export function PipelineBoard({
             <summary className="cursor-pointer font-bold text-ink">
               Mes liens Calendly{" "}
               <span className="font-normal text-muted">
-                — un par groupe ; le CRM ajoute ?utm_source=linkedin&amp;utm_campaign=&lt;groupe&gt;
+                — un par groupe ; le CRM ajoute ?utm_source=linkedin&amp;utm_campaign=structures, soignants, prescripteurs ou recrues
               </span>
             </summary>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
