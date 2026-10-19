@@ -150,7 +150,7 @@ function StoryRow({ s }: { s: Story }) {
         <input value={f.theme} onChange={(e) => setF({ ...f, theme: e.target.value })} className={inputCls} />
         <input value={f.semaine_prevue ?? ""} placeholder="Semaine" inputMode="numeric" onChange={(e) => setF({ ...f, semaine_prevue: e.target.value === "" ? null : Number(e.target.value) })} className={inputCls} />
       </div>
-      <textarea value={f.histoire} onChange={(e) => setF({ ...f, histoire: e.target.value })} rows={4} placeholder="L'histoire (sans nom de client)" className={`${inputCls} mt-2 w-full`} />
+      <textarea value={f.histoire} onChange={(e) => setF({ ...f, histoire: e.target.value })} rows={4} placeholder="Une histoire vécue en rendez-vous, racontée simplement (sans nom de client)" className={`${inputCls} mt-2 w-full`} />
       <input value={f.question_groupe ?? ""} onChange={(e) => setF({ ...f, question_groupe: e.target.value })} placeholder="Question au groupe" className={`${inputCls} mt-2 w-full`} />
       <div className="mt-2 flex flex-wrap items-center gap-3 text-muted">
         <button disabled={pending} onClick={save} className={goldBtn}>

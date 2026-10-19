@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/utils/supabase/service";
 import { JOTFORM_RECRUITER_BY_FORM_ID } from "@/lib/jotform-forms";
+import { isValidWebhookKey } from "@/lib/webhook-keys";
 
 // Jotform envoie le champ "pretty" sous la forme :
 // "Nom complet:John Doe, Téléphone:0470 12 34 56, Email:john@test.com, ..."
@@ -38,6 +39,10 @@ function parseBirthdate(raw: string | null): string | null {
 }
 
 export async function POST(request: Request) {
+  // L'URL déclarée dans Jotform doit porter la clé : …/api/webhooks/jotform?key=<clé>
+  if (!isValidWebhookKey("jotform", new URL(request.url).searchParams.get("key"))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const formData = await request.formData();
   const formId = formData.get("formID")?.toString() ?? "";
   const submissionId = formData.get("submissionID")?.toString() ?? "";

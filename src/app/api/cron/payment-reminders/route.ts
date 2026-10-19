@@ -14,6 +14,17 @@ export async function GET(request: Request) {
   const supabase = createServiceClient();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Garde-fou : tant que PAYMENT_REMINDER_CLIENT_EMAILS n'est pas « on », aucun email ne part vers les clients.
+  // Les rappels restent « en attente » et visibles par le collaborateur dans l'application (page Aujourd'hui).
+  if (process.env.PAYMENT_REMINDER_CLIENT_EMAILS !== "on") {
+    const { count } = await supabase
+      .from("payment_reminders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending")
+      .lte("remind_on", today);
+    return NextResponse.json({ sent: 0, disabled: true, pending: count ?? 0 });
+  }
+
   const { data: reminders, error } = await supabase
     .from("payment_reminders")
     .select(

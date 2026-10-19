@@ -5,7 +5,13 @@ const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/activer"];
 
 // Routes ouvertes sans session : appels pg_cron et lien de désinscription (ils vérifient eux-mêmes leur secret /
 // leur jeton signé) et la page publique de confidentialité, lisible même connecté. Le proxy les laisse passer telles quelles.
-const SELF_AUTHENTICATED_API = ["/api/cron/linkedin-ritual", "/api/linkedin/unsubscribe"];
+const SELF_AUTHENTICATED_API = [
+  "/api/cron/linkedin-ritual",
+  "/api/cron/payment-reminders",
+  "/api/linkedin/unsubscribe",
+  "/api/webhooks/jotform",
+  "/api/webhooks/calendly",
+];
 // Pages publiques lisibles par tous, connectés ou non (formulaire de candidature : le parrain peut prévisualiser son lien)
 const OPEN_PAGE_PREFIXES = ["/postuler", "/confidentialite"];
 
