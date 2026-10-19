@@ -1,14 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/activer", "/postuler"];
+const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/activer"];
 
 // Routes ouvertes sans session : appels pg_cron et lien de désinscription (ils vérifient eux-mêmes leur secret /
 // leur jeton signé) et la page publique de confidentialité, lisible même connecté. Le proxy les laisse passer telles quelles.
-const SELF_AUTHENTICATED_API = ["/api/cron/linkedin-ritual", "/api/linkedin/unsubscribe", "/confidentialite"];
+const SELF_AUTHENTICATED_API = ["/api/cron/linkedin-ritual", "/api/linkedin/unsubscribe"];
+// Pages publiques lisibles par tous, connectés ou non (formulaire de candidature : le parrain peut prévisualiser son lien)
+const OPEN_PAGE_PREFIXES = ["/postuler", "/confidentialite"];
 
 export async function updateSession(request: NextRequest) {
-  if (SELF_AUTHENTICATED_API.includes(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+  if (SELF_AUTHENTICATED_API.includes(pathname) || OPEN_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next({ request });
   }
 
