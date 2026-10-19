@@ -1,15 +1,15 @@
 import { Lock } from "lucide-react";
 import { createServiceClient } from "@/utils/supabase/service";
+import { displayName } from "@/lib/linkedin/messages";
 import { PostulerForm } from "../postuler-form";
 
 export default async function PostulerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = createServiceClient();
-  const { data: recruiter } = await supabase
-    .from("people")
-    .select("id, name")
-    .eq("slug", slug)
-    .maybeSingle();
+  const [{ data: recruiter }, { data: slotSetting }] = await Promise.all([
+    supabase.from("people").select("id, name").eq("slug", slug).maybeSingle(),
+    supabase.from("app_settings").select("value").eq("key", "recruitment_training_slots").maybeSingle(),
+  ]);
 
   if (!recruiter) {
     return (
@@ -25,5 +25,8 @@ export default async function PostulerPage({ params }: { params: Promise<{ slug:
     );
   }
 
-  return <PostulerForm slug={slug} recruiterName={recruiter.name} />;
+  const slots = Array.isArray(slotSetting?.value) ? (slotSetting.value as unknown[]).filter((s): s is string => typeof s === "string" && s.trim() !== "") : [];
+  const sponsorFirstName = displayName(recruiter.name).split(/\s+/)[0];
+
+  return <PostulerForm slug={slug} sponsorFirstName={sponsorFirstName} slots={slots} />;
 }

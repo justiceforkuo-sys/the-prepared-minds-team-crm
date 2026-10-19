@@ -8,6 +8,7 @@ import { OvbImportPanel } from "./ovb-import-panel";
 import { OvbPeriodsPanel } from "./ovb-periods-panel";
 import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
 import { TeamTrackingPanel } from "./team-tracking-panel";
+import { RecruitmentSettingsPanel } from "./recruitment-settings-panel";
 import type { Goal, LinkedinSprint, OvbPeriod, Prospect } from "@/types/database";
 
 export default async function AdminPage() {
@@ -16,7 +17,7 @@ export default async function AdminPage() {
   if (!person.is_admin) notFound();
 
   const supabase = await createClient();
-  const [{ data: people }, { data: ovbPeriods }, { count: ungeocodedCount }] = await Promise.all([
+  const [{ data: people }, { data: ovbPeriods }, { count: ungeocodedCount }, { data: slotSetting }] = await Promise.all([
     supabase.from("people").select("*").order("name"),
     supabase.from("ovb_periods").select("*"),
     supabase
@@ -24,6 +25,7 @@ export default async function AdminPage() {
       .select("id", { count: "exact", head: true })
       .is("lat", null)
       .not("address", "is", null),
+    supabase.from("app_settings").select("value").eq("key", "recruitment_training_slots").maybeSingle(),
   ]);
 
   // Sprint LinkedIn / Objectifs sont des tables RLS "person_id = soi-même
@@ -59,6 +61,13 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <GeocodeBackfillPanel initialCount={ungeocodedCount ?? 0} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <RecruitmentSettingsPanel
+          initialSlots={Array.isArray(slotSetting?.value) ? (slotSetting.value as unknown[]).filter((s): s is string => typeof s === "string") : []}
+          adminId={person.id}
+        />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

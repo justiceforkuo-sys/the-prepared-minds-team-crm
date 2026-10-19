@@ -3,9 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/reset-password", "/activer", "/postuler"];
 
-// Routes appelées sans session (pg_cron, lien de désinscription d'un mail) : elles
-// vérifient elles-mêmes leur secret / leur jeton signé, le proxy les laisse passer telles quelles.
-const SELF_AUTHENTICATED_API = ["/api/cron/linkedin-ritual", "/api/linkedin/unsubscribe"];
+// Routes ouvertes sans session : appels pg_cron et lien de désinscription (ils vérifient eux-mêmes leur secret /
+// leur jeton signé) et la page publique de confidentialité, lisible même connecté. Le proxy les laisse passer telles quelles.
+const SELF_AUTHENTICATED_API = ["/api/cron/linkedin-ritual", "/api/linkedin/unsubscribe", "/confidentialite"];
 
 export async function updateSession(request: NextRequest) {
   if (SELF_AUTHENTICATED_API.includes(request.nextUrl.pathname)) {
