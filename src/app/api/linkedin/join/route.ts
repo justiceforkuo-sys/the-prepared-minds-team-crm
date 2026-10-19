@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentPerson } from "@/lib/current-person";
+import { isPreFt2Newcomer } from "@/lib/parcours";
 import { createClient } from "@/utils/supabase/server";
 import { buildRitualIcs, sendJoinEmail } from "@/lib/linkedin/ritual-server";
 
@@ -8,6 +9,7 @@ import { buildRitualIcs, sendJoinEmail } from "@/lib/linkedin/ritual-server";
 export async function POST(request: Request) {
   const person = await getCurrentPerson();
   if (!person) return NextResponse.json({ error: "non connecté" }, { status: 401 });
+  if (isPreFt2Newcomer(person)) return NextResponse.json({ error: "Le Défi LinkedIn est proposé après le passage FT2 / JFA II." }, { status: 403 });
 
   const body = (await request.json().catch(() => ({}))) as { ritualTime?: string; emailDaily?: boolean; resendInvite?: boolean };
   if (body.ritualTime !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(body.ritualTime)) {

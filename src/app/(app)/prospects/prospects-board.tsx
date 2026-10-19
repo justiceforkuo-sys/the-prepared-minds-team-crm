@@ -63,6 +63,16 @@ const CATEGORY_COLOR: Record<ProspectCategory, string> = {
 };
 const CONNECTION_STATUSES: ConnectionStatus[] = ["En attente", "Oui", "Non"];
 
+// Liste des 100 (parcours du nouveau) : classement de chaque personne de l'entourage
+type Classement = "travailleur" | "non_travailleur" | "potentiel_recrutement";
+const CLASSEMENTS: Classement[] = ["travailleur", "non_travailleur", "potentiel_recrutement"];
+const CLASSEMENT_LABEL: Record<Classement, string> = {
+  travailleur: "Travailleur",
+  non_travailleur: "Non travailleur",
+  potentiel_recrutement: "Potentiel recrutement",
+};
+type ProspectRow = Prospect & { classement_liste?: Classement | null };
+
 type FormValues = {
   name: string;
   phone: string;
@@ -73,6 +83,7 @@ type FormValues = {
   category: ProspectCategory;
   network_contact_name: string;
   connection_status: ConnectionStatus | "";
+  classement_liste: Classement | "";
 };
 
 const emptyForm: FormValues = {
@@ -85,6 +96,7 @@ const emptyForm: FormValues = {
   category: "client",
   network_contact_name: "",
   connection_status: "",
+  classement_liste: "",
 };
 
 export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string }) {
@@ -94,6 +106,8 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
   const [stageFilter, setStageFilter] = useState<ProspectStage | "Tous">("Tous");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "Tous">("Tous");
   const [categoryFilter, setCategoryFilter] = useState<ProspectCategory | "Tous">("Tous");
+  const [classementFilter, setClassementFilter] = useState<Classement | "Tous">("Tous");
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [showQuick, setShowQuick] = useState(false);
   const [quickName, setQuickName] = useState("");
@@ -169,6 +183,7 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
       category: p.category,
       network_contact_name: p.network_contact_name ?? "",
       connection_status: p.connection_status ?? "",
+      classement_liste: (p as ProspectRow).classement_liste ?? "",
     });
     setFormCrossMatch(null);
     setShowForm(true);
@@ -186,6 +201,7 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
       category: form.category,
       network_contact_name: form.category === "prescripteur" ? form.network_contact_name.trim() || null : null,
       connection_status: form.category === "prescripteur" ? form.connection_status || null : null,
+      classement_liste: form.classement_liste || null,
     };
     if (editing) {
       const { data } = await supabase.from("prospects").update(payload).eq("id", editing.id).select().single();
@@ -212,6 +228,32 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
     await supabase.from("prospects").update({ next_follow_up: date }).eq("id", id);
   };
 
+  const setClassement = async (id: string, value: Classement | "") => {
+    setProspects((prev) => prev.map((p) => (p.id === id ? ({ ...p, classement_liste: value || null } as Prospect) : p)));
+    await supabase.from("prospects").update({ classement_liste: value || null }).eq("id", id);
+  };
+
+  // « Potentiel recrutement » : candidature dans Recrutement (source : liste des 100)
+  const createCandidature = async (p: Prospect) => {
+    const { data: existing } = await supabase.from("recruitment_applications").select("id").eq("recruiter_id", ownerId).ilike("name", p.name).maybeSingle();
+    if (existing) {
+      setNotice(`${p.name} est déjà dans Recrutement.`);
+      return;
+    }
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+    const { error } = await supabase.from("recruitment_applications").insert({
+      recruiter_id: ownerId,
+      owner_id: ownerId,
+      name: p.name,
+      phone: p.phone,
+      referral_source: "Liste des 100",
+      status: "Nouveau",
+      next_action: "Premier contact",
+      next_action_date: today,
+    });
+    setNotice(error ? `Création impossible : ${error.message}` : `Candidature créée pour ${p.name} : retrouve-la dans Recrutement.`);
+  };
+
   const setStage = async (id: string, stage: ProspectStage) => {
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, stage } : p)));
     await supabase.from("prospects").update({ stage }).eq("id", id);
@@ -234,9 +276,10 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
     if (stageFilter !== "Tous") list = list.filter((p) => p.stage === stageFilter);
     if (priorityFilter !== "Tous") list = list.filter((p) => p.priority === priorityFilter);
     if (categoryFilter !== "Tous") list = list.filter((p) => p.category === categoryFilter);
+    if (classementFilter !== "Tous") list = list.filter((p) => (p as ProspectRow).classement_liste === classementFilter);
     const rank: Record<Priority, number> = { A: 0, B: 1, C: 2 };
     return [...list].sort((a, b) => rank[a.priority] - rank[b.priority]);
-  }, [prospects, stageFilter, priorityFilter, categoryFilter]);
+  }, [prospects, stageFilter, priorityFilter, categoryFilter, classementFilter]);
 
   return (
     <div>
@@ -367,6 +410,29 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
         ))}
       </div>
 
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-2">
+        {(["Tous", ...CLASSEMENTS] as const).map((c) => (
+          <button
+            key={c}
+            onClick={() => setClassementFilter(c)}
+            className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs ${
+              classementFilter === c ? "border-gold bg-line text-gold-light" : "border-line bg-card text-muted"
+            }`}
+          >
+            {c === "Tous" ? "Toute la liste" : CLASSEMENT_LABEL[c]}
+          </button>
+        ))}
+      </div>
+
+      {notice && (
+        <div className="mb-3 flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2 text-xs text-ink">
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} className="text-muted">
+            Fermer
+          </button>
+        </div>
+      )}
+
       {loading && <div className="text-sm text-muted">Chargement...</div>}
       {!loading && filtered.length === 0 && (
         <div className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-muted">
@@ -436,6 +502,26 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
                 ))}
               </select>
               {p.next_follow_up && <div className="text-xs text-muted">Suivi : {fmtDate(p.next_follow_up)}</div>}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <select
+                value={(p as ProspectRow).classement_liste ?? ""}
+                onChange={(e) => setClassement(p.id, e.target.value as Classement | "")}
+                className="rounded-md border border-line bg-card-alt px-2 py-1 text-xs text-ink"
+                title="Liste des 100"
+              >
+                <option value="">Liste des 100 : non classé</option>
+                {CLASSEMENTS.map((c) => (
+                  <option key={c} value={c}>
+                    {CLASSEMENT_LABEL[c]}
+                  </option>
+                ))}
+              </select>
+              {(p as ProspectRow).classement_liste === "potentiel_recrutement" && (
+                <button onClick={() => createCandidature(p)} className="rounded-md bg-gold px-2.5 py-1 font-bold text-night">
+                  Créer une candidature
+                </button>
+              )}
             </div>
             {p.category === "prescripteur" && p.stage === "Nouveau lead client généré" && (
               <div className="mt-2 border-t border-line pt-2">
@@ -582,6 +668,20 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
               onChange={(e) => setForm((f) => ({ ...f, next_follow_up: e.target.value }))}
               className="mb-2.5 w-full rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
             />
+
+            <label className="mb-1 block text-xs text-muted">Liste des 100 (classement)</label>
+            <select
+              value={form.classement_liste}
+              onChange={(e) => setForm((f) => ({ ...f, classement_liste: e.target.value as Classement | "" }))}
+              className="mb-2.5 w-full rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
+            >
+              <option value="">Non classé</option>
+              {CLASSEMENTS.map((c) => (
+                <option key={c} value={c}>
+                  {CLASSEMENT_LABEL[c]}
+                </option>
+              ))}
+            </select>
 
             <label className="mb-1 block text-xs text-muted">Notes</label>
             <textarea

@@ -26,13 +26,15 @@ export interface NavItem {
   icon: LucideIcon;
   adminOnly?: boolean;
   trialHidden?: boolean;
+  /** masqué pour un nouveau collaborateur avant FT2 / JFA II (le LinkedIn est proposé après) */
+  newcomerHidden?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Aujourd'hui", icon: Sunrise },
   { href: "/dashboard", label: "Tableau", icon: LayoutDashboard },
   { href: "/prospects", label: "Prospects", icon: Users },
-  { href: "/linkedin", label: "LinkedIn", icon: Send },
+  { href: "/linkedin", label: "LinkedIn", icon: Send, newcomerHidden: true },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
   { href: "/finances", label: "Finances", icon: PiggyBank },

@@ -1,5 +1,6 @@
 import { Flame } from "lucide-react";
 import { getCurrentPerson } from "@/lib/current-person";
+import { isPreFt2Newcomer } from "@/lib/parcours";
 import { SidebarNav, MobileNav } from "@/components/sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut } from "./actions";
@@ -54,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <h1 className="mt-0.5 font-serif text-2xl font-semibold text-ink">CRM</h1>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
+          <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} isNewcomer={isPreFt2Newcomer(person)} />
         </div>
         <div className="mt-auto border-t border-line pt-4">
           <div className="mb-2 flex items-center justify-between text-xs text-muted">
@@ -96,7 +97,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
 
-        <MobileNav isAdmin={person.is_admin} isTrial={person.status === "essai"} />
+        <MobileNav isAdmin={person.is_admin} isTrial={person.status === "essai"} isNewcomer={isPreFt2Newcomer(person)} />
       </div>
     </div>
   );

@@ -4,6 +4,9 @@ import { brusselsNow, daysSince, mondayOf, toISO } from "@/lib/pilotage";
 import { FOLLOW_UP_COLUMNS, TERMINAL_STAGES_FILTER, WEEK_HORIZON_DAYS, addDaysIso, bucketFollowUps, type FollowUpRow } from "@/lib/follow-ups";
 import { TodayBoard } from "./today-board";
 import { CandidatesToCall, type CallbackCandidate } from "./candidates-to-call";
+import { ParcoursAlerts } from "./parcours-alerts";
+import { ctxFor, loadParcours } from "@/lib/parcours-data";
+import { computeAlerts } from "@/lib/parcours";
 import { OPEN_STATUSES, needsCallback, type RecruitmentRow } from "@/lib/recruitment";
 import { DailyNumbers } from "./daily-numbers";
 import { PipelineSection, type CallItem, type ReactivateClient, type StalledSale, type TaskItem } from "./pipeline-section";
@@ -144,6 +147,24 @@ export default async function TodayPage() {
     daysSinceContact: daysSince(c.last_contact_at ?? c.created_at, now),
   }));
 
+  // Alertes de décrochage des nouveaux collaborateurs dont tu es le mentor
+  const parcours = await loadParcours(supabase);
+  const jsDay = now.getDay();
+  const parcoursAlerts = parcours.rows
+    .filter((r) => r.person_id !== person.id)
+    .flatMap((r) => {
+      const c = ctxFor(parcours, r.person_id);
+      if (!c) return [];
+      return computeAlerts({
+        ...c,
+        etapes: parcours.etapes,
+        progression: parcours.progression.filter((p) => p.user_id === r.person_id),
+        rythme: parcours.rythme.filter((x) => x.user_id === r.person_id),
+        weekday: jsDay === 0 ? 7 : jsDay,
+        hour: now.getHours(),
+      });
+    });
+
   // Candidats à rappeler : « Nouveau » depuis plus de 24 h, ou prochaine action arrivée à échéance
   const callbacks: CallbackCandidate[] = ((recruitRows as Pick<RecruitmentRow, "id" | "name" | "status" | "created_at" | "next_action" | "next_action_date">[] | null) ?? [])
     .filter((c) => needsCallback(c, today, now))
@@ -180,6 +201,7 @@ export default async function TodayPage() {
         reactivate={reactivate}
         reactivateTotal={reactivateTotal ?? reactivate.length}
       />
+      <ParcoursAlerts alerts={parcoursAlerts} />
       <CandidatesToCall items={callbacks} />
       <TodayBoard
         personId={person.id}

@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isPreFt2Newcomer } from "@/lib/parcours";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { countSentToday, fetchAllContacts } from "@/lib/linkedin/fetch";
@@ -17,6 +19,8 @@ interface PersonRow {
 export default async function LinkedinPage({ searchParams }: { searchParams: Promise<{ de?: string }> }) {
   const person = await getCurrentPerson();
   if (!person) return null;
+  // Le Pipeline et le Défi LinkedIn sont proposés après le passage FT2 / JFA II
+  if (isPreFt2Newcomer(person)) notFound();
   const { de } = await searchParams;
 
   const supabase = await createClient();

@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isPreFt2Newcomer } from "@/lib/parcours";
 import Link from "next/link";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
@@ -7,6 +9,8 @@ import { DefiView } from "./defi-view";
 export default async function DefiPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
+  // Le Pipeline et le Défi LinkedIn sont proposés après le passage FT2 / JFA II
+  if (isPreFt2Newcomer(person)) notFound();
   const supabase = await createClient();
 
   const [{ data: summaryRows }, { data: podiumRows }, { data: overviewRows }, { data: badgeRows }, { data: winRows }, { data: peopleRows }, { data: goalRows }] =

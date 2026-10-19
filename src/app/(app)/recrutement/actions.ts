@@ -4,7 +4,6 @@ import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { createServiceClient } from "@/utils/supabase/service";
 import { generateUniqueSlugFor } from "@/lib/slug";
-import { ONBOARDING_STEPS } from "@/lib/onboarding-steps";
 import { sendCollaboratorInvitation } from "@/lib/email/send-recruitment";
 import type { RecruitmentRow } from "@/lib/recruitment";
 
@@ -32,6 +31,7 @@ export async function launchOnboarding(applicationId: string, linkToPersonId?: s
   const sponsorId = app.owner_id ?? app.recruiter_id ?? me.id;
 
   let personId: string;
+  let startParcours = false;
   let note = "";
 
   if (linkToPersonId) {
@@ -62,6 +62,7 @@ export async function launchOnboarding(applicationId: string, linkToPersonId?: s
         .single();
       if (error || !person) return { ok: false, error: `Création de la fiche impossible : ${error?.message ?? "erreur inconnue"}` };
       personId = person.id;
+      startParcours = true;
 
       // Compte de connexion + lien d'activation (la fiche est rattachée au compte par email à la création)
       const { data: link, error: linkError } = await service.auth.admin.generateLink({ type: "invite", email: app.email });
@@ -84,11 +85,15 @@ export async function launchOnboarding(applicationId: string, linkToPersonId?: s
     }
   }
 
-  // Fast Start : les 9 étapes existent dès le départ (0/9), pour que le parrain suive la progression
-  await service.from("onboarding_progress").upsert(
-    ONBOARDING_STEPS.map((s) => ({ person_id: personId, step_id: s.id, done_by_self: false })),
-    { onConflict: "person_id,step_id", ignoreDuplicates: true }
-  );
+  // Nouveau parcours : 1 000 unités en 60 jours + agrément FSMA. J1 = aujourd'hui ; les 5 modules démarrent « à faire ».
+  if (startParcours) {
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+    await service.from("people").update({ parcours_statut: "actif", integration_date: today }).eq("id", personId);
+    await service.from("modules_fsma").upsert(
+      ["1.1", "1.2", "3.1", "3.2", "4"].map((m) => ({ user_id: personId, module: m, statut: "a_faire" })),
+      { onConflict: "user_id,module", ignoreDuplicates: true }
+    );
+  }
 
   const { error: updateError } = await service
     .from("recruitment_applications")
