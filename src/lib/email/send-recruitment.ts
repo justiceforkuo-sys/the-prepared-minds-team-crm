@@ -16,7 +16,7 @@ export async function sendCandidateConfirmation(opts: { to: string; name: string
     `Merci pour ta candidature chez Prepared Minds Team. Elle a bien été transmise à ${opts.recruiterName}.`,
     "",
     opts.interviewUrl
-      ? `Pour aller vite, tu peux réserver ton entretien de 30 minutes ici : ${opts.interviewUrl}`
+      ? `Pour aller vite, tu peux réserver ton entretien de 45 minutes ici : ${opts.interviewUrl}`
       : `${opts.recruiterName} te recontacte sous 24 à 48 heures pour fixer ton entretien.`,
     "",
     "À très vite,",

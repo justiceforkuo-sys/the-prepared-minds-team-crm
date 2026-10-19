@@ -65,7 +65,7 @@ export function PostulerForm({
           <h1 className="font-serif text-xl font-semibold text-ink">Merci {result.firstName} !</h1>
           <p className="mt-1.5 text-sm text-muted">
             {result.interviewUrl
-              ? "Réserve ton entretien de 30 minutes maintenant."
+              ? "Réserve ton entretien de 45 minutes maintenant."
               : `${result.recruiterName} te recontacte sous 24 à 48 heures pour fixer ton entretien.`}
           </p>
           <p className="mt-1 text-xs text-muted">Un email de confirmation vient de t&apos;être envoyé.</p>
