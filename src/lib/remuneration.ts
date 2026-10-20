@@ -7,9 +7,11 @@ export const REMU_START = "2026-01-01";
 
 export type RemuFields = { date_demarrage: string | null; agrement_fsma_at: string | null };
 export const remuOf = (p: Person) => p as Person & Partial<RemuFields>;
+/** Ce type de paiement ne concerne que FT1 à FT3 (JFA I, II, III) : il n'affecte pas le rang FA et au-dessus. */
+export const REMU_RANKS = ["JFAI", "JFAII", "JFAIII"];
 export function isRemuConcerned(p: Person): boolean {
   const d = remuOf(p).date_demarrage;
-  return !!d && d >= REMU_START;
+  return !!d && d >= REMU_START && REMU_RANKS.includes(p.rank);
 }
 
 export interface BaremeRow {

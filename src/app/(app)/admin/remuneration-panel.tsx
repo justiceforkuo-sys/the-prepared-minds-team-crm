@@ -240,7 +240,7 @@ export function RemunerationPanel({
     <div>
       <h3 className="mb-1 font-serif text-lg font-semibold text-ink">Rémunération des nouveaux (démarrés depuis le 1er janvier 2026)</h3>
       <p className="mb-3 text-xs text-muted">
-        Apporteur d&apos;affaires avant l&apos;agrément FSMA (forfait par client), puis sous-agent (unités × valeur du point du rang à la souscription) avec un rattrapage calculé une fois.
+        Concerne uniquement FT1 à FT3 : le rang FA et au-dessus n&apos;est pas affecté. Apporteur d&apos;affaires avant l&apos;agrément FSMA (forfait par client), puis sous-agent (unités × valeur du point du rang à la souscription) avec un rattrapage calculé une fois.
       </p>
 
       {pending.length > 0 && (
