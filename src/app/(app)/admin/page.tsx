@@ -9,6 +9,11 @@ import { OvbPeriodsPanel } from "./ovb-periods-panel";
 import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
 import { TeamTrackingPanel } from "./team-tracking-panel";
 import { RecruitmentSettingsPanel } from "./recruitment-settings-panel";
+import { RemunerationPanel, type RemuPersonRow } from "./remuneration-panel";
+import { loadRemuSummary } from "@/lib/remuneration-data";
+import { brusselsNow, toISO } from "@/lib/pilotage";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { BaremeRow } from "@/lib/remuneration";
 import type { Goal, LinkedinSprint, OvbPeriod, Prospect } from "@/types/database";
 
 export default async function AdminPage() {
@@ -38,6 +43,38 @@ export default async function AdminPage() {
     serviceSupabase.from("goals").select("*"),
   ]);
 
+  // Rémunération des collaborateurs démarrés à partir du 1er janvier 2026
+  const svc = serviceSupabase as unknown as SupabaseClient;
+  const [{ data: remuPeople }, { data: baremeRows }, { data: valeurRows }] = await Promise.all([
+    svc.from("people").select("id, name, rank, date_demarrage, agrement_fsma_at").not("date_demarrage", "is", null).order("name"),
+    supabase.from("bareme_forfait_client").select("id, rang_min, rang_max, montant, date_effet").order("rang_min").order("date_effet"),
+    supabase.from("valeur_point_rang").select("rang, valeur"),
+  ]);
+  const remuRows: RemuPersonRow[] = await Promise.all(
+    ((remuPeople as { id: string; name: string; rank: string; date_demarrage: string; agrement_fsma_at: string | null }[] | null) ?? []).map(async (p) => {
+      const sum = await loadRemuSummary(svc, p.id);
+      return {
+        id: p.id,
+        name: p.name,
+        rank: p.rank,
+        date_demarrage: p.date_demarrage,
+        agrement_fsma_at: p.agrement_fsma_at,
+        clients: sum.forfaits.length,
+        forfaitsTotal: sum.forfaitsTotal,
+        forfaitsPayes: sum.forfaitsPayes,
+        unpaid: sum.forfaits.filter((f) => !f.paye_le).length,
+        reserve: sum.reserve,
+        unitsTotal: sum.unitsTotal,
+        rattrapage: sum.rattrapage,
+      };
+    })
+  );
+  const inRemu = new Set(remuRows.map((r) => r.id));
+  const RANK_ORDER = ["JFAI", "JFAII", "JFAIII", "FA", "FC", "CD", "CR", "CN"];
+  const valeurs = ((valeurRows as { rang: string; valeur: number }[] | null) ?? [])
+    .map((v) => ({ rang: v.rang, valeur: Number(v.valeur) }))
+    .sort((a, b) => RANK_ORDER.indexOf(a.rang) - RANK_ORDER.indexOf(b.rang));
+
   return (
     <div>
       <h2 className="font-serif text-xl font-semibold text-ink">Admin</h2>
@@ -49,6 +86,16 @@ export default async function AdminPage() {
 
       <div className="mt-4">
         <PayoutPanel people={people ?? []} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <RemunerationPanel
+          rows={remuRows}
+          candidates={(people ?? []).filter((p) => !inRemu.has(p.id) && p.active).map((p) => ({ id: p.id, name: p.name }))}
+          bareme={((baremeRows as BaremeRow[] | null) ?? []).map((b) => ({ ...b, montant: Number(b.montant) }))}
+          valeurs={valeurs}
+          today={toISO(brusselsNow())}
+        />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

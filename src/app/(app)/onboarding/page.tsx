@@ -5,6 +5,8 @@ import { createServiceClient } from "@/utils/supabase/service";
 import { brusselsNow, toISO } from "@/lib/pilotage";
 import { ctxFor, loadParcours } from "@/lib/parcours-data";
 import { parcoursOf, weekOf } from "@/lib/parcours";
+import { isRemuConcerned } from "@/lib/remuneration";
+import { loadRemuSummary } from "@/lib/remuneration-data";
 import { ONBOARDING_STEPS } from "@/lib/onboarding-steps";
 import { NewcomerDashboard } from "./newcomer-dashboard";
 import { MentorCohort, type Story } from "./mentor-cohort";
@@ -87,6 +89,7 @@ export default async function OnboardingPage() {
   const archivedDone = (archived ?? []).filter((a) => a.done_by_self).length;
 
   const mentorOfMe = myCtx?.row.mentor_id ?? null;
+  const remu = myCtx && isRemuConcerned(person) ? await loadRemuSummary(supabase, person.id) : null;
 
   return (
     <div>
@@ -107,6 +110,7 @@ export default async function OnboardingPage() {
           evaluationLink={(mentorOfMe && links.get(mentorOfMe)?.evaluation) || null}
           celebrate={data.promoted.includes(person.id)}
           recosToday={newcomerAlerts}
+          remu={remu}
         />
       ) : (
         !isMentorView && (

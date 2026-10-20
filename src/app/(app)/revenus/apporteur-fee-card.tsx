@@ -1,9 +1,10 @@
 import { fmtEUR } from "@/lib/format";
 import { feeForClientNumber, totalApporteurFee } from "@/lib/apporteur-fee";
+import type { BaremeRow } from "@/lib/remuneration";
 
-export function ApporteurFeeCard({ clientCount }: { clientCount: number }) {
-  const currentTierFee = clientCount > 0 ? feeForClientNumber(clientCount) : null;
-  const totalEarned = totalApporteurFee(clientCount);
+export function ApporteurFeeCard({ clientCount, bareme }: { clientCount: number; bareme?: BaremeRow[] }) {
+  const currentTierFee = clientCount > 0 ? feeForClientNumber(clientCount, bareme) : null;
+  const totalEarned = totalApporteurFee(clientCount, bareme);
 
   return (
     <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

@@ -5,6 +5,7 @@ import { FOLLOW_UP_COLUMNS, TERMINAL_STAGES_FILTER, WEEK_HORIZON_DAYS, addDaysIs
 import { TodayBoard } from "./today-board";
 import { CandidatesToCall, type CallbackCandidate } from "./candidates-to-call";
 import { ParcoursAlerts } from "./parcours-alerts";
+import { RattrapageAlerts } from "./rattrapage-alerts";
 import { ctxFor, loadParcours } from "@/lib/parcours-data";
 import { computeAlerts } from "@/lib/parcours";
 import { OPEN_STATUSES, needsCallback, type RecruitmentRow } from "@/lib/recruitment";
@@ -165,6 +166,16 @@ export default async function TodayPage() {
       });
     });
 
+  // Admin : rattrapages calculés à l'agrément et pas encore versés
+  let rattrapagesAVerser: { name: string; montant: number }[] = [];
+  if (person.is_admin) {
+    const { data: due } = await supabase.from("rattrapages").select("montant, person:people(name)").is("verse_le", null);
+    rattrapagesAVerser = ((due as unknown as { montant: number; person: { name: string } | { name: string }[] | null }[] | null) ?? []).map((d) => {
+      const p = Array.isArray(d.person) ? d.person[0] : d.person;
+      return { name: p?.name ?? "Collaborateur", montant: Number(d.montant) };
+    });
+  }
+
   // Candidats à rappeler : « Nouveau » depuis plus de 24 h, ou prochaine action arrivée à échéance
   const callbacks: CallbackCandidate[] = ((recruitRows as Pick<RecruitmentRow, "id" | "name" | "status" | "created_at" | "next_action" | "next_action_date">[] | null) ?? [])
     .filter((c) => needsCallback(c, today, now))
@@ -201,6 +212,7 @@ export default async function TodayPage() {
         reactivate={reactivate}
         reactivateTotal={reactivateTotal ?? reactivate.length}
       />
+      <RattrapageAlerts items={rattrapagesAVerser} />
       <ParcoursAlerts alerts={parcoursAlerts} />
       <CandidatesToCall items={callbacks} />
       <TodayBoard

@@ -7,6 +7,9 @@ import { RevenueBoard } from "./revenue-board";
 import { CommissionSimulator } from "./commission-simulator";
 import { BudgetPanel } from "./budget-panel";
 import { ApporteurFeeCard } from "./apporteur-fee-card";
+import { RemunerationCard } from "./remuneration-card";
+import { loadRemuSummary } from "@/lib/remuneration-data";
+import { isRemuConcerned, remuOf, type BaremeRow } from "@/lib/remuneration";
 import type { TeamProductionRow, BudgetItem, BudgetEntry } from "@/types/database";
 
 export default async function RevenusPage() {
@@ -30,6 +33,12 @@ export default async function RevenusPage() {
     ]);
 
   const payoutsByMonth = Object.fromEntries((payouts ?? []).map((p) => [p.month, p.payout]));
+
+  // Barème du forfait par client (table modifiable par l'admin) pour les apporteurs hors nouveau système
+  const { data: baremeData } = await supabase.from("bareme_forfait_client").select("id, rang_min, rang_max, montant, date_effet");
+  const baremeRows = ((baremeData as BaremeRow[] | null) ?? []).map((b) => ({ ...b, montant: Number(b.montant) }));
+  const concerned = isRemuConcerned(person);
+  const remu = concerned ? await loadRemuSummary(supabase, person.id) : null;
 
   const rows = (production as TeamProductionRow[] | null) ?? [];
   const me = rows.find((r) => r.depth === 0);
@@ -56,7 +65,18 @@ export default async function RevenusPage() {
         <CommissionSimulator rank={person.rank} />
       </div>
 
-      {person.contract_type === "apporteur" && <ApporteurFeeCard clientCount={clientCount ?? 0} />}
+      {remu ? (
+        <RemunerationCard
+          summary={remu}
+          rank={person.rank}
+          pointValue={RANKS_INFO.find((r) => r.code === person.rank)?.unitValue ?? 0}
+          agrementAt={remuOf(person).agrement_fsma_at ?? null}
+          unitsThisMonth={me?.units_this_month ?? 0}
+          unitsTotal={me?.units_total ?? 0}
+        />
+      ) : (
+        person.contract_type === "apporteur" && <ApporteurFeeCard clientCount={clientCount ?? 0} bareme={baremeRows} />
+      )}
 
       <BudgetPanel
         meId={person.id}

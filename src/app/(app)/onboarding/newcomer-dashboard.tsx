@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CalendarClock, Check, Lock, PartyPopper } from "lucide-react";
 import { fmtDate } from "@/lib/format";
+import { RattrapageReserve } from "@/components/rattrapage-reserve";
+import type { RemuSummary } from "@/lib/remuneration";
 import {
   AGREMENT_LABEL,
   FSMA_MODULES,
@@ -66,6 +68,7 @@ export function NewcomerDashboard({
   evaluationLink,
   celebrate,
   recosToday,
+  remu,
 }: {
   ctx: Ctx;
   etapes: Etape[];
@@ -75,6 +78,7 @@ export function NewcomerDashboard({
   evaluationLink: string | null;
   celebrate: boolean;
   recosToday: { ok: boolean; text: string }[];
+  remu?: RemuSummary | null;
 }) {
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -130,6 +134,12 @@ export function NewcomerDashboard({
           <button onClick={() => setMessage(null)} className="text-muted">
             Fermer
           </button>
+        </div>
+      )}
+
+      {remu && (
+        <div className="mb-3">
+          <RattrapageReserve summary={remu} agreed={agree} />
         </div>
       )}
 
