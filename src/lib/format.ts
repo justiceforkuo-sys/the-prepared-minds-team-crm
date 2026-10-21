@@ -8,5 +8,7 @@ export function fmtEUR(n: number | null | undefined) {
 
 export function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("fr-BE", { day: "2-digit", month: "short" });
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("fr-BE", { day: "2-digit", month: "short" });
 }

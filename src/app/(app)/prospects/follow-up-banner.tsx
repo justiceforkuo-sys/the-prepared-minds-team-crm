@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { googleCalendarUrl } from "@/lib/calendar";
-import { addDaysIso, bucketFollowUps, daysBetween, type FollowUpRow } from "@/lib/follow-ups";
+import { FOLLOW_UP_MAX, addDaysIso, bucketFollowUps, daysBetween, isSaneFollowUpDate, type FollowUpRow } from "@/lib/follow-ups";
 import type { ProspectCategory } from "@/types/database";
 
 const CATEGORY_LABEL: Record<ProspectCategory, string> = {
@@ -138,11 +138,12 @@ export function FollowUpBanner({
                             type="date"
                             value={nextDate}
                             min={today}
+                            max={FOLLOW_UP_MAX}
                             onChange={(e) => setNextDate(e.target.value)}
                             className="rounded-md border border-line bg-card px-2 py-1 text-xs text-ink outline-none focus:border-gold"
                           />
                           <button
-                            disabled={!nextDate}
+                            disabled={!isSaneFollowUpDate(nextDate)}
                             onClick={() => {
                               onSetFollowUp(p.id, nextDate);
                               setDoneId(null);

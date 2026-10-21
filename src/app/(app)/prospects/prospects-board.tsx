@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { FOLLOW_UP_MAX, FOLLOW_UP_MIN, isSaneFollowUpDate } from "@/lib/follow-ups";
 import { fmtDate } from "@/lib/format";
 import { brusselsDate } from "@/lib/linkedin/fetch";
 import { FollowUpBanner } from "./follow-up-banner";
@@ -191,6 +192,10 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
 
   const saveForm = async () => {
     if (!form.name.trim()) return;
+    if (form.next_follow_up && !isSaneFollowUpDate(form.next_follow_up)) {
+      setNotice("Date de prochain suivi invalide : vérifie l'année (4 chiffres).");
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       phone: form.phone || null,
@@ -665,6 +670,8 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
             <input
               type="date"
               value={form.next_follow_up}
+              min={FOLLOW_UP_MIN}
+              max={FOLLOW_UP_MAX}
               onChange={(e) => setForm((f) => ({ ...f, next_follow_up: e.target.value }))}
               className="mb-2.5 w-full rounded-lg border border-line bg-card-alt px-3 py-2 text-sm text-ink outline-none focus:border-gold"
             />

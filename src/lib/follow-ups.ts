@@ -23,6 +23,14 @@ export function isOpenFollowUp(p: Pick<Prospect, "owner_id" | "stage" | "next_fo
   );
 }
 
+/** Bornes d'une date de suivi : évite les années à 5 chiffres (ex. « 20227 ») saisies par erreur. */
+export const FOLLOW_UP_MIN = "2020-01-01";
+export const FOLLOW_UP_MAX = "2100-12-31";
+
+export function isSaneFollowUpDate(iso: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) && iso >= FOLLOW_UP_MIN && iso <= FOLLOW_UP_MAX && !Number.isNaN(Date.parse(iso));
+}
+
 export function addDaysIso(iso: string, n: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d + n));
