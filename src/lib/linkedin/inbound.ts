@@ -129,6 +129,19 @@ export function extractHeadline(text: string, name: string): { position: string 
   return { position: next, company: null };
 }
 
+/**
+ * Les vrais emails LinkedIn n'ont que le prénom dans l'objet (« Mélyne a accepté votre invitation, découvrez son
+ * réseau ») ; le nom complet est dans l'expéditeur : « Mélyne Hubeaux via LinkedIn ».
+ */
+export function fullNameFromSender(from: string, subjectName: string): string | null {
+  const display = from.replace(/<[^>]*>/, "").replace(/^["'\s]+|["'\s]+$/g, "");
+  const m = display.match(/^(.+?)\s+(?:via|par|over)\s+linkedin\b/i);
+  if (!m) return null;
+  const full = cleanName(m[1]);
+  const first = normalize(subjectName).split(" ")[0];
+  return first && normalize(full).split(" ")[0] === first && full.split(" ").length > subjectName.split(" ").length ? full : null;
+}
+
 function splitName(name: string): { first: string; last: string } {
   const parts = name.split(" ").filter(Boolean);
   return { first: parts[0] ?? name, last: parts.slice(1).join(" ") };
@@ -156,7 +169,7 @@ export function parseLinkedinEmail(email: InboundEmail): ParsedEmail {
   if (!url) return { kind: "ignore", reason: "aucun lien de profil LinkedIn dans l'email" };
 
   const { position, company } = extractHeadline(text, name);
-  const { first, last } = splitName(name);
+  const { first, last } = splitName(fullNameFromSender(email.from, name) ?? name);
   return { kind: "relation", first_name: first, last_name: last, linkedin_url: url, position, company };
 }
 
