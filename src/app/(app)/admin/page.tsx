@@ -10,6 +10,8 @@ import { GeocodeBackfillPanel } from "./geocode-backfill-panel";
 import { TeamTrackingPanel } from "./team-tracking-panel";
 import { RecruitmentSettingsPanel } from "./recruitment-settings-panel";
 import { RemunerationPanel, type RemuPersonRow } from "./remuneration-panel";
+import { InboundLogPanel, type InboundAdminRow } from "./inbound-log-panel";
+import { webhookKey } from "@/lib/webhook-keys";
 import { loadRemuSummary } from "@/lib/remuneration-data";
 import { brusselsNow, toISO } from "@/lib/pilotage";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -69,6 +71,17 @@ export default async function AdminPage() {
       };
     })
   );
+  // Journal des emails LinkedIn reçus (bloc 7, voie 1)
+  const { data: inboundRows } = await svc
+    .from("linkedin_inbound_log")
+    .select("id, received_at, subject, result, detail, raw_body, owner:people(name)")
+    .order("received_at", { ascending: false })
+    .limit(60);
+  const inbound: InboundAdminRow[] = ((inboundRows as unknown as { id: string; received_at: string; subject: string | null; result: string; detail: string | null; raw_body: string | null; owner: { name: string } | { name: string }[] | null }[] | null) ?? []).map((r) => {
+    const o = Array.isArray(r.owner) ? r.owner[0] : r.owner;
+    return { id: r.id, received_at: r.received_at, owner_name: o?.name ?? null, subject: r.subject, result: r.result, detail: r.detail, hasRaw: !!r.raw_body };
+  });
+  const inboundEndpoint = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://the-prepared-minds-team-crm.vercel.app"}/api/inbound/linkedin?key=${webhookKey("inbound-linkedin")}`;
   const inRemu = new Set(remuRows.map((r) => r.id));
   const RANK_ORDER = ["JFAI", "JFAII", "JFAIII", "FA", "FC", "CD", "CR", "CN"];
   const valeurs = ((valeurRows as { rang: string; valeur: number }[] | null) ?? [])
@@ -96,6 +109,10 @@ export default async function AdminPage() {
           valeurs={valeurs}
           today={toISO(brusselsNow())}
         />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <InboundLogPanel rows={inbound} endpoint={inboundEndpoint} />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

@@ -11,6 +11,7 @@ const SELF_AUTHENTICATED_API = [
   "/api/linkedin/unsubscribe",
   "/api/webhooks/jotform",
   "/api/webhooks/calendly",
+  "/api/inbound/linkedin",
 ];
 // Pages publiques lisibles par tous, connectés ou non (formulaire de candidature : le parrain peut prévisualiser son lien)
 const OPEN_PAGE_PREFIXES = ["/postuler", "/confidentialite"];

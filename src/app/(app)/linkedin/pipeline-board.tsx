@@ -21,6 +21,7 @@ import {
 } from "@/lib/linkedin/types";
 import { ContactCard, type Outcome } from "./contact-card";
 import { ImportPanel } from "./import-panel";
+import { NewRelationsPanel, type InboundLogRow } from "./new-relations-panel";
 import { CHALLENGE_EVENT, ChallengeStrip } from "./challenge-strip";
 import { BADGE_BY_CODE, celebrationMessage, type ChallengeSummary } from "@/lib/linkedin/challenge";
 
@@ -59,6 +60,7 @@ export function PipelineBoard({
   teamNames,
   viewOptions,
   challenge,
+  relations,
 }: {
   meId: string;
   meName: string;
@@ -72,6 +74,7 @@ export function PipelineBoard({
   teamNames: string[];
   viewOptions: { id: string; name: string }[];
   challenge: ChallengeSummary | null;
+  relations: { goal: number; lastImportAt: string | null; inbox: string | null; log: InboundLogRow[] };
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -422,9 +425,18 @@ export function PipelineBoard({
 
       {!readOnly && (
         <>
+          <NewRelationsPanel
+            contacts={contacts}
+            today={today}
+            goal={relations.goal}
+            readOnly={readOnly}
+            inbox={relations.inbox}
+            lastImportAt={relations.lastImportAt}
+            log={relations.log}
+          />
           <ImportPanel
             ownerId={ownerId}
-            existingUrls={new Set(contacts.map((c) => c.linkedin_url))}
+            existing={new Map(contacts.map((c) => [c.linkedin_url, { id: c.id, company: c.company, position: c.position }]))}
             teamNames={teamNames}
             onImported={reload}
           />

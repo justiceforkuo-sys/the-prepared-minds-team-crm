@@ -7,6 +7,15 @@ import { classify, buildTeamNames } from "@/lib/linkedin/classify";
 import { readLinkedinExport, type ParsedConnection } from "@/lib/linkedin/csv";
 import { GROUPS } from "@/lib/linkedin/status";
 import type { LinkedinGroup } from "@/lib/linkedin/types";
+import { recordLinkedinImport } from "./actions";
+
+export const LINKEDIN_EXPORT_URL = "https://www.linkedin.com/mypreferences/d/download-my-data";
+
+export interface ExistingContact {
+  id: string;
+  company: string | null;
+  position: string | null;
+}
 
 interface Prepared {
   conn: ParsedConnection;
@@ -17,12 +26,12 @@ interface Prepared {
 
 export function ImportPanel({
   ownerId,
-  existingUrls,
+  existing,
   teamNames,
   onImported,
 }: {
   ownerId: string;
-  existingUrls: Set<string>;
+  existing: Map<string, ExistingContact>;
   teamNames: string[];
   onImported: () => Promise<void>;
 }) {
@@ -33,6 +42,7 @@ export function ImportPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [summary, setSummary] = useState<string | null>(null);
 
   const pick = async (file: File | undefined) => {
     setError(null);
@@ -59,13 +69,25 @@ export function ImportPanel({
     }
   };
 
-  const fresh = prepared?.filter((p) => !existingUrls.has(p.conn.linkedin_url)) ?? [];
+  const fresh = prepared?.filter((p) => !existing.has(p.conn.linkedin_url)) ?? [];
+  // Fiches déjà là dont le poste ou l'entreprise manque (créées par un email « invitation acceptée ») : on les complète
+  const completions =
+    prepared?.flatMap((p) => {
+      const ex = existing.get(p.conn.linkedin_url);
+      if (!ex) return [];
+      const patch: { company?: string; position?: string } = {};
+      if (!ex.company && p.conn.company) patch.company = p.conn.company;
+      if (!ex.position && p.conn.position) patch.position = p.conn.position;
+      return Object.keys(patch).length > 0 ? [{ id: ex.id, patch }] : [];
+    }) ?? [];
+  const unchanged = (prepared?.length ?? 0) - fresh.length - completions.length;
   const countBy = (list: Prepared[]) =>
     GROUPS.map((g) => ({ ...g, n: list.filter((p) => p.grp === g.code).length }));
 
   const run = async () => {
-    if (fresh.length === 0) return;
+    if (fresh.length === 0 && completions.length === 0) return;
     setBusy(true);
+    setSummary(null);
     setProgress(0);
     setError(null);
     const CHUNK = 200;
@@ -94,7 +116,13 @@ export function ImportPanel({
       }
       setProgress(Math.min(fresh.length, i + CHUNK));
     }
+    // Compléter les fiches existantes (jamais statut, note ni groupe)
+    for (let i = 0; i < completions.length; i += 20) {
+      await Promise.all(completions.slice(i, i + 20).map((c) => supabase.from("linkedin_contacts").update(c.patch).eq("id", c.id)));
+    }
+    await recordLinkedinImport();
     await onImported();
+    setSummary(`${fresh.length} nouvelle${fresh.length > 1 ? "s" : ""} relation${fresh.length > 1 ? "s" : ""}, ${completions.length} fiche${completions.length > 1 ? "s" : ""} complétée${completions.length > 1 ? "s" : ""}, ${unchanged} déjà à jour.`);
     setBusy(false);
     setPrepared(null);
     setFileName("");
@@ -103,19 +131,28 @@ export function ImportPanel({
 
   return (
     <div className="mb-3">
+      {summary && (
+        <div className="mb-2 rounded-lg border border-gold bg-card px-3 py-2 text-xs font-bold text-ink">
+          Mise à jour terminée : {summary}
+        </div>
+      )}
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink"
       >
-        <Upload size={13} /> Importer mes relations LinkedIn
+        <Upload size={13} /> Mettre à jour mes relations
       </button>
 
       {open && (
         <div className="mt-2 rounded-2xl border border-line bg-card p-4">
           <p className="text-xs text-muted">
-            Sur LinkedIn : Paramètres → Confidentialité des données → Obtenir une copie de vos données → Connexions.
-            Dépose ici le fichier <strong className="text-ink">Connections.csv</strong> (ou le zip complet). Un ré-import
-            ajoute seulement les nouvelles relations : tes statuts et notes ne sont jamais écrasés.
+            1. Ouvre{" "}
+            <a href={LINKEDIN_EXPORT_URL} target="_blank" rel="noopener noreferrer" className="font-bold text-gold-light underline">
+              la page de téléchargement de tes données LinkedIn
+            </a>{" "}
+            et coche <strong className="text-ink">« Relations »</strong> (Connections), puis demande l&apos;archive. 2. Dépose ici le fichier{" "}
+            <strong className="text-ink">Connections.csv</strong> (ou le zip complet). Les nouvelles relations sont ajoutées, le poste et l&apos;entreprise
+            des fiches créées par email sont complétés : tes statuts, notes et groupes ne sont jamais écrasés.
           </p>
           <input
             type="file"
@@ -130,7 +167,7 @@ export function ImportPanel({
             <div className="mt-3">
               <div className="text-sm text-ink">
                 <strong>{prepared.length}</strong> relations lues · <strong className="text-gold-light">{fresh.length}</strong>{" "}
-                nouvelle{fresh.length > 1 ? "s" : ""} · {prepared.length - fresh.length} déjà dans ton pipeline
+                nouvelle{fresh.length > 1 ? "s" : ""} · <strong className="text-ink">{completions.length}</strong> fiche{completions.length > 1 ? "s" : ""} à compléter · {unchanged} déjà à jour
               </div>
               <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                 {countBy(fresh).map((g) => (
@@ -145,10 +182,10 @@ export function ImportPanel({
               </p>
               <button
                 onClick={run}
-                disabled={busy || fresh.length === 0}
+                disabled={busy || (fresh.length === 0 && completions.length === 0)}
                 className="mt-3 rounded-lg bg-gold px-4 py-2 text-xs font-bold text-night disabled:opacity-50"
               >
-                {busy ? `Import… ${progress} / ${fresh.length}` : `Importer ${fresh.length} nouvelle${fresh.length > 1 ? "s" : ""} relation${fresh.length > 1 ? "s" : ""}`}
+                {busy ? `Import… ${progress} / ${fresh.length}` : `Mettre à jour : ${fresh.length} nouvelle${fresh.length > 1 ? "s" : ""}, ${completions.length} à compléter`}
               </button>
             </div>
           )}

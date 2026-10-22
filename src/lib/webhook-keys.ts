@@ -2,13 +2,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 // Clés d'URL des webhooks entrants (Jotform, Calendly) : dérivées de la clé service, jamais stockées dans le dépôt.
 // L'URL à déclarer chez le fournisseur est `…/api/webhooks/<nom>?key=<clé>`.
-export function webhookKey(label: "jotform" | "calendly"): string {
+export function webhookKey(label: "jotform" | "calendly" | "inbound-linkedin"): string {
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!secret) throw new Error("SUPABASE_SERVICE_ROLE_KEY manquant");
   return createHmac("sha256", secret).update(`webhook:${label}`).digest("hex");
 }
 
-export function isValidWebhookKey(label: "jotform" | "calendly", provided: string | null): boolean {
+export function isValidWebhookKey(label: "jotform" | "calendly" | "inbound-linkedin", provided: string | null): boolean {
   if (!provided) return false;
   const a = Buffer.from(provided);
   const b = Buffer.from(webhookKey(label));

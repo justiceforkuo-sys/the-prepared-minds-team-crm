@@ -6,6 +6,8 @@ import { TodayBoard } from "./today-board";
 import { CandidatesToCall, type CallbackCandidate } from "./candidates-to-call";
 import { ParcoursAlerts } from "./parcours-alerts";
 import { RattrapageAlerts } from "./rattrapage-alerts";
+import { NewRelationsNotice } from "./new-relations-notice";
+import { isPreFt2Newcomer } from "@/lib/parcours";
 import { ctxFor, loadParcours } from "@/lib/parcours-data";
 import { computeAlerts } from "@/lib/parcours";
 import { OPEN_STATUSES, needsCallback, type RecruitmentRow } from "@/lib/recruitment";
@@ -166,6 +168,20 @@ export default async function TodayPage() {
       });
     });
 
+  // Nouvelles relations LinkedIn (emails « invitation acceptée ») arrivées depuis hier
+  let newRelations = 0;
+  if (!isPreFt2Newcomer(person)) {
+    const since = new Date(Date.parse(`${addDaysIso(today, -1)}T00:00:00Z`) - 2 * 3600 * 1000).toISOString();
+    const { count } = await supabase
+      .from("linkedin_contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", person.id)
+      .eq("status", "À contacter")
+      .contains("tags", ["Nouvelle relation"])
+      .gte("created_at", since);
+    newRelations = count ?? 0;
+  }
+
   // Admin : rattrapages calculés à l'agrément et pas encore versés
   let rattrapagesAVerser: { name: string; montant: number }[] = [];
   if (person.is_admin) {
@@ -213,6 +229,7 @@ export default async function TodayPage() {
         reactivateTotal={reactivateTotal ?? reactivate.length}
       />
       <RattrapageAlerts items={rattrapagesAVerser} />
+      <NewRelationsNotice count={newRelations} />
       <ParcoursAlerts alerts={parcoursAlerts} />
       <CandidatesToCall items={callbacks} />
       <TodayBoard
