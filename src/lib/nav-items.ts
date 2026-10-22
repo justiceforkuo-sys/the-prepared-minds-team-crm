@@ -19,6 +19,7 @@ import {
   Table2,
   Send,
   Lightbulb,
+  Library,
 } from "lucide-react";
 
 export interface NavItem {
@@ -48,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
   { href: "/formation", label: "Starter Pack", icon: GraduationCap },
   { href: "/scripts", label: "Scripts", icon: BookOpen },
+  { href: "/solutions", label: "Solutions", icon: Library },
   { href: "/objectifs", label: "Objectifs", icon: Target },
   { href: "/idees", label: "Mes idées", icon: Lightbulb },
   { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },

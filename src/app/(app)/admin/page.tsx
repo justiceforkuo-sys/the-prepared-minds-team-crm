@@ -12,6 +12,7 @@ import { RecruitmentSettingsPanel } from "./recruitment-settings-panel";
 import { RemunerationPanel, type RemuPersonRow } from "./remuneration-panel";
 import { InboundLogPanel, type InboundAdminRow } from "./inbound-log-panel";
 import { TiroirsPanel } from "./tiroirs-panel";
+import { SolutionsEditorsPanel } from "./solutions-editors-panel";
 import type { Tiroir } from "@/lib/idees";
 import { webhookKey } from "@/lib/webhook-keys";
 import { loadRemuSummary } from "@/lib/remuneration-data";
@@ -116,6 +117,10 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <InboundLogPanel rows={inbound} endpoint={inboundEndpoint} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <SolutionsEditorsPanel people={(people ?? []).filter((p) => p.active).map((p) => ({ id: p.id, name: p.name, editor: (p as { peut_editer_solutions?: boolean }).peut_editer_solutions === true }))} />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

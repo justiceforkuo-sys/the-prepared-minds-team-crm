@@ -8,6 +8,8 @@ import { ParcoursAlerts } from "./parcours-alerts";
 import { RattrapageAlerts } from "./rattrapage-alerts";
 import { NewRelationsNotice } from "./new-relations-notice";
 import { IdeesReminder } from "./idees-reminder";
+import { SolutionsAlerts } from "./solutions-alerts";
+import { reviewReason, type ReviewReason, type Solution, type SolutionDocument } from "@/lib/solutions";
 import { isPreFt2Newcomer } from "@/lib/parcours";
 import { ctxFor, loadParcours } from "@/lib/parcours-data";
 import { computeAlerts } from "@/lib/parcours";
@@ -186,6 +188,21 @@ export default async function TodayPage() {
   // Idées non traitées (rappel hebdomadaire : le vendredi, ou dès que 8 idées s'accumulent)
   const { count: ideesPending } = await supabase.from("idees").select("id", { count: "exact", head: true }).eq("user_id", person.id).eq("statut", "a_traiter");
 
+  // Fiches de la bibliothèque des solutions à revérifier (admin et responsables des fiches)
+  let solutionsToReview: { id: string; nom: string; reason: ReviewReason }[] = [];
+  if (person.is_admin || (person as { peut_editer_solutions?: boolean }).peut_editer_solutions) {
+    const [{ data: sols }, { data: docRows }] = await Promise.all([
+      supabase.from("solutions").select("id, nom, publiee, verifiee_le").eq("publiee", true),
+      supabase.from("solution_documents").select("solution_id, depose_le"),
+    ]);
+    const docsBy = new Map<string, Pick<SolutionDocument, "depose_le">[]>();
+    for (const d of (docRows as { solution_id: string; depose_le: string }[] | null) ?? []) docsBy.set(d.solution_id, [...(docsBy.get(d.solution_id) ?? []), d]);
+    solutionsToReview = ((sols as Pick<Solution, "id" | "nom" | "publiee" | "verifiee_le">[] | null) ?? []).flatMap((s) => {
+      const reason = reviewReason(s, docsBy.get(s.id) ?? [], today);
+      return reason ? [{ id: s.id, nom: s.nom, reason }] : [];
+    });
+  }
+
   // Admin : rattrapages calculés à l'agrément et pas encore versés
   let rattrapagesAVerser: { name: string; montant: number }[] = [];
   if (person.is_admin) {
@@ -235,6 +252,7 @@ export default async function TodayPage() {
       <RattrapageAlerts items={rattrapagesAVerser} />
       <NewRelationsNotice count={newRelations} />
       <IdeesReminder count={ideesPending ?? 0} isFriday={now.getDay() === 5} />
+      <SolutionsAlerts items={solutionsToReview} />
       <ParcoursAlerts alerts={parcoursAlerts} />
       <CandidatesToCall items={callbacks} />
       <TodayBoard
