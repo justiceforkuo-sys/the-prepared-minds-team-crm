@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172047">
+  <title>Hors ligne · Capture d'idée</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #172047; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+    main { width: 100%; max-width: 480px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { font-size: 13px; color: #cadcfc; margin: 0 0 12px; line-height: 1.4; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 140px; border-radius: 10px; border: 1px solid #3a4980; background: #0f1636; color: #fff; padding: 10px; font-size: 16px; }
+    .row { display: flex; gap: 8px; margin-top: 10px; }
+    button { flex: 1; border: 0; border-radius: 999px; padding: 12px 16px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    #mic { background: transparent; border: 1px solid #f5cd54; color: #f5cd54; }
+    #mic.on { background: #d9534f; border-color: #d9534f; color: #fff; }
+    #save { background: #f5cd54; color: #172047; }
+    #save:disabled { opacity: .5; }
+    #status { margin-top: 10px; font-size: 13px; min-height: 18px; }
+    a { color: #f5cd54; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pas de réseau, mais ton idée compte</h1>
+    <p>Écris ou dicte ton idée : elle est gardée sur ton téléphone et envoyée automatiquement au CRM dès que le réseau revient.</p>
+    <textarea id="t" placeholder="Ton idée, même un seul mot…" autofocus></textarea>
+    <div class="row">
+      <button id="mic" type="button">Dicter</button>
+      <button id="save" type="button" disabled>Enregistrer</button>
+    </div>
+    <div id="status"></div>
+    <p style="margin-top:16px"><a href="/" onclick="location.reload();return false">Réessayer d'ouvrir le CRM</a></p>
+  </main>
+  <script>
+    var KEY = "pmt_idees_queue";
+    var t = document.getElementById("t"), save = document.getElementById("save"), mic = document.getElementById("mic"), status = document.getElementById("status");
+    var source = "texte", rec = null;
+    function uuid() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); });
+    }
+    function load() { try { var l = JSON.parse(localStorage.getItem(KEY) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+    function refresh() { save.disabled = !t.value.trim(); }
+    t.addEventListener("input", function () { source = source === "voix" ? "voix" : "texte"; refresh(); });
+    save.addEventListener("click", function () {
+      var texte = t.value.trim(); if (!texte) return;
+      if (rec) rec.stop();
+      var q = load(); q.push({ id: uuid(), texte: texte, source: source, cree_le: new Date().toISOString() });
+      try { localStorage.setItem(KEY, JSON.stringify(q)); } catch (e) { status.textContent = "Stockage plein : garde ton idée et réessaie."; return; }
+      t.value = ""; source = "texte"; refresh();
+      status.textContent = "Idée gardée sur ton téléphone ✓ (" + q.length + " en attente d'envoi)";
+    });
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { mic.style.display = "none"; }
+    else {
+      mic.addEventListener("click", function () {
+        if (rec) { rec.stop(); return; }
+        rec = new SR(); rec.lang = "fr-BE"; rec.continuous = true; rec.interimResults = false;
+        rec.onresult = function (e) { for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) { t.value += (t.value && !/\s$/.test(t.value) ? " " : "") + e.results[i][0].transcript.trim(); source = "voix"; } } refresh(); };
+        rec.onend = function () { mic.classList.remove("on"); mic.textContent = "Dicter"; rec = null; };
+        rec.onerror = function () { status.textContent = "Dictée indisponible : tu peux écrire."; };
+        mic.classList.add("on"); mic.textContent = "Arrêter"; rec.start();
+      });
+    }
+    var n = load().length; if (n) status.textContent = n + " idée(s) déjà en attente d'envoi.";
+  </script>
+</body>
+</html>

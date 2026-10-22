@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -9,6 +9,11 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "The Prepared Minds Team CRM",
   description: "CRM Prepared Minds Team",
+  appleWebApp: { capable: true, title: "PMT CRM", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#172047",
 };
 
 export default function RootLayout({

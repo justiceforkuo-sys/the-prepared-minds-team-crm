@@ -7,6 +7,7 @@ import { CandidatesToCall, type CallbackCandidate } from "./candidates-to-call";
 import { ParcoursAlerts } from "./parcours-alerts";
 import { RattrapageAlerts } from "./rattrapage-alerts";
 import { NewRelationsNotice } from "./new-relations-notice";
+import { IdeesReminder } from "./idees-reminder";
 import { isPreFt2Newcomer } from "@/lib/parcours";
 import { ctxFor, loadParcours } from "@/lib/parcours-data";
 import { computeAlerts } from "@/lib/parcours";
@@ -182,6 +183,9 @@ export default async function TodayPage() {
     newRelations = count ?? 0;
   }
 
+  // Idées non traitées (rappel hebdomadaire : le vendredi, ou dès que 8 idées s'accumulent)
+  const { count: ideesPending } = await supabase.from("idees").select("id", { count: "exact", head: true }).eq("user_id", person.id).eq("statut", "a_traiter");
+
   // Admin : rattrapages calculés à l'agrément et pas encore versés
   let rattrapagesAVerser: { name: string; montant: number }[] = [];
   if (person.is_admin) {
@@ -230,6 +234,7 @@ export default async function TodayPage() {
       />
       <RattrapageAlerts items={rattrapagesAVerser} />
       <NewRelationsNotice count={newRelations} />
+      <IdeesReminder count={ideesPending ?? 0} isFriday={now.getDay() === 5} />
       <ParcoursAlerts alerts={parcoursAlerts} />
       <CandidatesToCall items={callbacks} />
       <TodayBoard

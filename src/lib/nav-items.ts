@@ -18,6 +18,7 @@ import {
   PiggyBank,
   Table2,
   Send,
+  Lightbulb,
 } from "lucide-react";
 
 export interface NavItem {
@@ -48,5 +49,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/formation", label: "Starter Pack", icon: GraduationCap },
   { href: "/scripts", label: "Scripts", icon: BookOpen },
   { href: "/objectifs", label: "Objectifs", icon: Target },
+  { href: "/idees", label: "Mes idées", icon: Lightbulb },
   { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
 ];
