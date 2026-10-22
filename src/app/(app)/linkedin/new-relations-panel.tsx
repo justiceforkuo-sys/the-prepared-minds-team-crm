@@ -33,7 +33,7 @@ const STEPS = [
   { t: "Copie ton adresse de réception", d: "C'est l'adresse ci-dessus, propre à toi. Ne la partage à personne." },
   {
     t: "Gmail : Paramètres → Voir tous les paramètres → Transfert et POP/IMAP → Ajouter une adresse de transfert",
-    d: "Colle ton adresse. Gmail envoie un email de confirmation : son code ou son lien apparaît ici, dans « Derniers emails reçus » (rafraîchis la page). Outlook : Paramètres → Courrier → Règles.",
+    d: "Colle ton adresse. ATTENTION : selon ton compte, Gmail active tout de suite le transfert de TOUS tes emails. Vérifie que « Désactiver le transfert » est coché, sinon coche-le et enregistre. Si Gmail demande un code de confirmation, il apparaît ici (rafraîchis la page). Outlook : Paramètres → Courrier → Règles.",
   },
   {
     t: "Crée le filtre",
@@ -153,6 +153,8 @@ export function NewRelationsPanel({
               <Copy size={12} /> {copied ? "Copié" : "Copier"}
             </button>
           </div>
+          <video src="/tutoriel-linkedin-email.mp4" controls preload="none" className="mt-3 w-full rounded-lg border border-line" />
+          <div className="mt-1 text-[11px] text-muted">Vidéo de 3 minutes : toutes les étapes, pas à pas.</div>
           <ol className="mt-3 flex flex-col gap-2">
             {STEPS.map((s, i) => (
               <li key={i} className="flex gap-2">
