@@ -68,5 +68,17 @@ export default async function DecomptesPage({ searchParams }: { searchParams: Pr
   const names: Record<string, string> = {};
   for (const p of (people as { id: string; name: string }[] | null) ?? []) names[p.id] = p.name;
 
-  return <DecomptesBoard key={month} month={month} monthOptions={options} rows={rows} names={names} isAdmin={person.is_admin} />;
+  // Nombre de preuves de paiement jointes à chaque contrat du mois
+  const proofs: Record<string, number> = {};
+  for (let i = 0; i < rows.length; i += 150) {
+    const { data } = await db.from("decompte_preuves").select("client_policy_id").in("client_policy_id", rows.slice(i, i + 150).map((r) => r.id));
+    for (const r of (data as { client_policy_id: string }[] | null) ?? []) proofs[r.client_policy_id] = (proofs[r.client_policy_id] ?? 0) + 1;
+  }
+
+  // Corrections manuelles du PVQ1 pour ce mois
+  const { data: adj } = await db.from("pvq1_ajustements").select("user_id, pct, note").eq("month", month);
+  const ajustements: Record<string, { pct: number; note: string | null }> = {};
+  for (const a of (adj as { user_id: string; pct: number; note: string | null }[] | null) ?? []) ajustements[a.user_id] = { pct: Number(a.pct), note: a.note };
+
+  return <DecomptesBoard key={month} month={month} monthOptions={options} rows={rows} names={names} isAdmin={person.is_admin} meId={person.id} proofs={proofs} ajustements={ajustements} />;
 }
