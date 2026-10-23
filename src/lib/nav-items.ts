@@ -20,6 +20,7 @@ import {
   Send,
   Lightbulb,
   Library,
+  Receipt,
 } from "lucide-react";
 
 export interface NavItem {
@@ -41,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
   { href: "/finances", label: "Finances", icon: PiggyBank },
   { href: "/clients", label: "Clients", icon: Contact },
+  { href: "/decomptes", label: "Décomptes", icon: Receipt, trialHidden: true },
   { href: "/cartographie", label: "Carte", icon: Map },
   { href: "/recouvrement", label: "Recouvrement", icon: AlertTriangle, trialHidden: true },
   { href: "/equipe", label: "Équipe", icon: Network, trialHidden: true },
