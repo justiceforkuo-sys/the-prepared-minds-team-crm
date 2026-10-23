@@ -66,10 +66,10 @@ function ManualEditor({ r }: { r: RemuPersonRow }) {
   const [f, setF] = useState({
     date: r.date_demarrage,
     clients: String(m ? m.nb_clients : r.clients),
-    forfaits: String(m ? m.forfaits_total : r.forfaitsTotal),
+    forfaits: String(Math.round((m ? m.forfaits_total : r.forfaitsTotal) * 100) / 100),
     payes: String(m ? m.forfaits_payes : r.forfaitsPayes),
     unites: String(m ? Math.round(m.unites * 100) / 100 : Math.round(r.unitsTotal * 100) / 100),
-    reserve: String(m ? m.reserve : r.reserve),
+    reserve: String(Math.round((m ? m.reserve : r.reserve) * 100) / 100),
     rattrapage: m && m.rattrapage !== null ? String(m.rattrapage) : "",
     note: m?.note ?? "",
   });
