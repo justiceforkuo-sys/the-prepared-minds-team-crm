@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, BellOff, ChevronDown, ChevronUp, Edit3, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR, fmtDate } from "@/lib/format";
-import { IARD_PRODUCTS, VIE_PRODUCTS } from "@/lib/commission-products";
-import { KNOWN_PARTNERS } from "@/lib/decompte-deadline";
-import type { Client, ClientPolicy, ExistingContactMatch, PaymentReminder, PolicyStatus, Rank } from "@/types/database";
-
-type Category = "iard" | "vie";
+import { COMPANIES, DEAL_STAGE_COLOR, companyById, computeUnits, currentMonthKey, monthLabel, type CompanyId } from "@/lib/units";
+import type {
+  Client,
+  ClientPolicy,
+  ExistingContactMatch,
+  PaymentMode,
+  PaymentReminder,
+  PolicyStatus,
+  Rank,
+} from "@/types/database";
 
 const POLICY_STATUSES: PolicyStatus[] = ["Actif", "Arrêté", "Racheté", "En pause"];
 const POLICY_STATUS_COLOR: Record<PolicyStatus, string> = {
@@ -18,19 +23,26 @@ const POLICY_STATUS_COLOR: Record<PolicyStatus, string> = {
   "En pause": "#c99a3f",
 };
 
-const PARTNER_OPTIONS = [...KNOWN_PARTNERS, "Autre"];
+const PAYMENT_MODES: PaymentMode[] = ["Virement bancaire", "Domiciliation"];
 
 const emptyPolicyForm = {
-  category: "iard" as Category,
-  productId: IARD_PRODUCTS[0].id,
-  vieProductId: VIE_PRODUCTS[0].id,
+  company: "axa" as CompanyId,
+  productCode: COMPANIES[0].products[0].code,
+  productOther: "",
   amount: "",
   manual: false,
   manualUnits: "",
-  partner: KNOWN_PARTNERS[0],
-  partnerOther: "",
+  signedOn: "",
+  effectiveOn: "",
+  paymentMode: "Virement bancaire" as PaymentMode,
+  productionMonth: currentMonthKey(),
   followupDate: "",
 };
+
+function productionMonthOptions(): string[] {
+  const now = new Date();
+  return [0, 1, 2].map((i) => currentMonthKey(new Date(now.getFullYear(), now.getMonth() - i, 1)));
+}
 
 function nextReminderDueDate(): string {
   const now = new Date();
@@ -81,15 +93,13 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
     referredBy: "",
   });
 
-  const iardProduct = IARD_PRODUCTS.find((p) => p.id === policyForm.productId) ?? IARD_PRODUCTS[0];
-  const vieProduct = VIE_PRODUCTS.find((p) => p.id === policyForm.vieProductId) ?? VIE_PRODUCTS[0];
+  const company = companyById(policyForm.company);
   const amountNum = parseFloat(policyForm.amount.replace(",", ".")) || 0;
-  const computedUnits = useMemo(() => {
-    if (policyForm.category === "iard") return (amountNum / 1000) * iardProduct.perThousand;
-    return vieProduct.basis === "capital" ? (amountNum / 1000) * vieProduct.factor : amountNum * vieProduct.factor;
-  }, [policyForm.category, amountNum, iardProduct, vieProduct]);
+  const computedUnits = computeUnits(company, amountNum);
   const finalUnits = policyForm.manual ? parseFloat(policyForm.manualUnits.replace(",", ".")) || 0 : computedUnits;
-  const productLabel = policyForm.category === "iard" ? iardProduct.label : vieProduct.label;
+  const selectedProduct = company.products.find((p) => p.code === policyForm.productCode);
+  const productCode = policyForm.productCode === "__autre" ? policyForm.productOther.trim() : policyForm.productCode;
+  const productLabel = `${company.short}${productCode ? ` - ${productCode}` : ""}`;
 
   const togglePolicyForm = (clientId: string) => {
     setPolicyFormId((prev) => (prev === clientId ? null : clientId));
@@ -106,19 +116,26 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
   const addPolicy = async (clientId: string) => {
     if (!policyForm.manual && amountNum <= 0) return;
     if (policyForm.manual && !policyForm.manualUnits) return;
-    if (!policyForm.followupDate) return;
+    if (!policyForm.followupDate || !productCode) return;
     const client = clients.find((c) => c.id === clientId);
-    const partner = policyForm.partner === "Autre" ? policyForm.partnerOther.trim() || null : policyForm.partner;
+    const partner = company.partner;
     const { data } = await supabase
       .from("client_policies")
       .insert({
         client_id: clientId,
         partner,
-        product: policyForm.category === "iard" ? iardProduct.id : vieProduct.id,
+        product: company.id,
         product_label: productLabel,
         worth: amountNum,
         units: Math.round(finalUnits * 100) / 100,
         followup_date: policyForm.followupDate,
+        monthly_premium: company.basis === "monthly" ? amountNum : null,
+        capital: company.basis === "capital" ? amountNum : null,
+        signed_on: policyForm.signedOn || null,
+        effective_on: policyForm.effectiveOn || null,
+        payment_mode: policyForm.paymentMode,
+        production_month: policyForm.productionMonth,
+        deal_stage: policyForm.signedOn ? "Contrat signé" : "Offre en cours",
       })
       .select()
       .single();
@@ -561,6 +578,11 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                             {p.product_label}
                             {p.partner ? <span className="text-muted"> · {p.partner}</span> : null}
                             <span className="text-muted"> · {p.units} u</span>
+                            {p.deal_stage && (
+                              <span className="ml-1.5 text-[10px] font-bold" style={{ color: DEAL_STAGE_COLOR[p.deal_stage] }}>
+                                {p.deal_stage}
+                              </span>
+                            )}
                           </div>
                           <div className="ml-2 flex flex-shrink-0 items-center gap-2">
                             {p.worth > 0 && <span className="text-muted">{fmtEUR(p.worth)}</span>}
@@ -664,63 +686,40 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                   {canEdit && policyFormId === c.id && (
                     <div className="mt-2 flex flex-col gap-2 rounded-lg border border-line bg-card-alt p-3">
                       <div className="flex gap-2">
-                        {(["iard", "vie"] as const).map((cat) => (
+                        {COMPANIES.map((co) => (
                           <button
-                            key={cat}
-                            onClick={() => setPolicyForm((f) => ({ ...f, category: cat }))}
+                            key={co.id}
+                            onClick={() =>
+                              setPolicyForm((f) => ({ ...f, company: co.id, productCode: co.products[0].code, amount: "" }))
+                            }
                             className={`flex-1 rounded-md border px-2 py-1 text-xs font-bold ${
-                              policyForm.category === cat
+                              policyForm.company === co.id
                                 ? "border-gold bg-line text-gold-light"
                                 : "border-line text-muted"
                             }`}
                           >
-                            {cat === "iard" ? "IARD" : "Vie"}
+                            {co.label}
                           </button>
                         ))}
                       </div>
 
-                      {policyForm.category === "iard" ? (
-                        <select
-                          value={policyForm.productId}
-                          onChange={(e) => setPolicyForm((f) => ({ ...f, productId: e.target.value }))}
-                          className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
-                        >
-                          {IARD_PRODUCTS.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.label} ({p.perThousand} u/1000)
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <select
-                          value={policyForm.vieProductId}
-                          onChange={(e) => setPolicyForm((f) => ({ ...f, vieProductId: e.target.value }))}
-                          className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
-                        >
-                          {VIE_PRODUCTS.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-
                       <select
-                        value={policyForm.partner}
-                        onChange={(e) => setPolicyForm((f) => ({ ...f, partner: e.target.value }))}
+                        value={policyForm.productCode}
+                        onChange={(e) => setPolicyForm((f) => ({ ...f, productCode: e.target.value }))}
                         className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
                       >
-                        {PARTNER_OPTIONS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
+                        {company.products.map((p) => (
+                          <option key={p.code} value={p.code}>
+                            {p.code} — {p.label}
                           </option>
                         ))}
+                        <option value="__autre">Autre produit…</option>
                       </select>
-                      {policyForm.partner === "Autre" && (
+                      {policyForm.productCode === "__autre" && (
                         <input
-                          value={policyForm.partnerOther}
-                          onChange={(e) => setPolicyForm((f) => ({ ...f, partnerOther: e.target.value }))}
-                          placeholder="Nom du partenaire"
+                          value={policyForm.productOther}
+                          onChange={(e) => setPolicyForm((f) => ({ ...f, productOther: e.target.value }))}
+                          placeholder="Code du produit (ex. HOSPI)"
                           className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
                         />
                       )}
@@ -731,18 +730,65 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                           min={0}
                           value={policyForm.amount}
                           onChange={(e) => setPolicyForm((f) => ({ ...f, amount: e.target.value }))}
-                          placeholder={
-                            policyForm.category === "iard"
-                              ? "Prime annuelle (€)"
-                              : vieProduct.basis === "capital"
-                                ? "Capital assuré (€)"
-                                : "Prime mensuelle (€)"
-                          }
+                          placeholder={company.amountLabel}
                           className="flex-1 rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
                         />
                         <span className="flex-shrink-0 text-xs text-muted">
                           {policyForm.manual ? "—" : `${computedUnits.toFixed(2)} u`}
                         </span>
+                      </div>
+                      <div className="text-[10px] text-muted">
+                        {company.label} : {company.formulaLabel}
+                        {selectedProduct ? ` — ${selectedProduct.label}` : ""}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="mb-1 block text-[10px] text-muted">Date de signature</label>
+                          <input
+                            type="date"
+                            value={policyForm.signedOn}
+                            onChange={(e) => setPolicyForm((f) => ({ ...f, signedOn: e.target.value }))}
+                            className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] text-muted">Date d&apos;effet</label>
+                          <input
+                            type="date"
+                            value={policyForm.effectiveOn}
+                            onChange={(e) => setPolicyForm((f) => ({ ...f, effectiveOn: e.target.value }))}
+                            className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] text-muted">Mode de paiement</label>
+                          <select
+                            value={policyForm.paymentMode}
+                            onChange={(e) => setPolicyForm((f) => ({ ...f, paymentMode: e.target.value as PaymentMode }))}
+                            className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                          >
+                            {PAYMENT_MODES.map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] text-muted">Mois de production</label>
+                          <select
+                            value={policyForm.productionMonth}
+                            onChange={(e) => setPolicyForm((f) => ({ ...f, productionMonth: e.target.value }))}
+                            className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-xs capitalize text-ink outline-none focus:border-gold"
+                          >
+                            {productionMonthOptions().map((m) => (
+                              <option key={m} value={m}>
+                                {monthLabel(m)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       <label className="flex items-center gap-1.5 text-[11px] text-muted">
@@ -780,7 +826,7 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                       <div className="flex gap-2">
                         <button
                           onClick={() => addPolicy(c.id)}
-                          disabled={!policyForm.followupDate}
+                          disabled={!policyForm.followupDate || !productCode}
                           className="flex-1 rounded-md bg-gold py-1.5 text-xs font-bold text-night disabled:opacity-50"
                         >
                           Enregistrer ({finalUnits.toFixed(2)} u)

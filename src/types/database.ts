@@ -76,6 +76,14 @@ export type PaymentStatus =
 export type FeedbackReason = "Feedback direction/compagnie" | "Injoignable / coordonnées KO" | "Autre (voir note)";
 export type PolicyStatus = "Actif" | "Arrêté" | "Racheté" | "En pause";
 export type PolicySource = "manuel" | "ovb";
+export type DealStage =
+  | "Offre en cours"
+  | "Contrat signé"
+  | "Apparu en Rennelist"
+  | "Décompté"
+  | "Non paiement"
+  | "Conclue";
+export type PaymentMode = "Virement bancaire" | "Domiciliation";
 
 export interface ClientPolicy {
   id: string;
@@ -95,6 +103,15 @@ export interface ClientPolicy {
   policy_status: PolicyStatus;
   source: PolicySource;
   followup_date: string | null;
+  deal_stage: DealStage;
+  monthly_premium: number | null;
+  capital: number | null;
+  signed_on: string | null;
+  effective_on: string | null;
+  payment_mode: PaymentMode | null;
+  production_month: string;
+  decompte_month: string | null;
+  decompted_at: string | null;
   created_at: string;
 }
 
