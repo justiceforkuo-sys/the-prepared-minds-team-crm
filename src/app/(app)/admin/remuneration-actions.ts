@@ -86,3 +86,59 @@ export async function marquerRattrapageVerse(userId: string, date: string): Prom
   revalidatePath("/");
   return { ok: true, message: count ? "Rattrapage marqué comme versé." : "Rien à marquer." };
 }
+
+export interface RemuManuelInput {
+  dateDemarrage: string;
+  nbClients: number;
+  forfaitsTotal: number;
+  forfaitsPayes: number;
+  unites: number;
+  reserve: number;
+  rattrapage: number | null;
+  note: string;
+}
+
+const money = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n < 10_000_000;
+
+/** Encode à la main la rémunération d'une personne : ces valeurs remplacent le calcul automatique. */
+export async function enregistrerRemuManuel(userId: string, v: RemuManuelInput): Promise<RemuResult> {
+  const service = await adminContext();
+  if (!service) return { ok: false, error: "Réservé à l'administrateur." };
+  if (!DATE.test(v.dateDemarrage) || v.dateDemarrage < "2025-09-01") return { ok: false, error: "La date de début doit être le 1er septembre 2025 ou après." };
+  if (!Number.isInteger(v.nbClients) || v.nbClients < 0 || v.nbClients > 100000) return { ok: false, error: "Nombre de clients invalide." };
+  if (![v.forfaitsTotal, v.forfaitsPayes, v.unites, v.reserve].every(money) || (v.rattrapage !== null && !money(v.rattrapage))) return { ok: false, error: "Un des montants est invalide." };
+  if (v.forfaitsPayes > v.forfaitsTotal) return { ok: false, error: "Les forfaits payés dépassent les forfaits dus." };
+  const up = await service.from("people").update({ date_demarrage: v.dateDemarrage }).eq("id", userId);
+  if (up.error) return { ok: false, error: up.error.message };
+  const { error } = await service.from("remu_manuel").upsert(
+    {
+      user_id: userId,
+      nb_clients: v.nbClients,
+      forfaits_total: v.forfaitsTotal,
+      forfaits_payes: v.forfaitsPayes,
+      unites: v.unites,
+      reserve: v.reserve,
+      rattrapage: v.rattrapage,
+      note: v.note.trim() || null,
+      maj_le: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin");
+  revalidatePath("/revenus");
+  revalidatePath("/");
+  return { ok: true, message: "Valeurs encodées enregistrées." };
+}
+
+/** Supprime la saisie manuelle : le CRM revient au calcul automatique. */
+export async function retablirCalculAutomatique(userId: string): Promise<RemuResult> {
+  const service = await adminContext();
+  if (!service) return { ok: false, error: "Réservé à l'administrateur." };
+  const { error } = await service.from("remu_manuel").delete().eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin");
+  revalidatePath("/revenus");
+  revalidatePath("/");
+  return { ok: true, message: "Retour au calcul automatique." };
+}

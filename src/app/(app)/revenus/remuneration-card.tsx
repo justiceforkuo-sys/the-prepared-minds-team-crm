@@ -19,7 +19,7 @@ export function RemunerationCard({
   unitsTotal: number;
 }) {
   const agreed = !!agrementAt;
-  const count = summary.forfaits.length;
+  const count = summary.clientsCount;
   const tier = tierInfo(count, summary.bareme);
 
   return (

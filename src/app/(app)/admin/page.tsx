@@ -64,13 +64,14 @@ export default async function AdminPage() {
         rank: p.rank,
         date_demarrage: p.date_demarrage,
         agrement_fsma_at: p.agrement_fsma_at,
-        clients: sum.forfaits.length,
+        clients: sum.clientsCount,
         forfaitsTotal: sum.forfaitsTotal,
         forfaitsPayes: sum.forfaitsPayes,
         unpaid: sum.forfaits.filter((f) => !f.paye_le).length,
         reserve: sum.reserve,
         unitsTotal: sum.unitsTotal,
         rattrapage: sum.rattrapage,
+        manuel: sum.manuel,
       };
     })
   );

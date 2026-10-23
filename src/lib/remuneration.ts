@@ -112,4 +112,18 @@ export interface RemuSummary {
   unitsTotal: number;
   /** Ce que vaudrait le rattrapage si l'agrément était obtenu aujourd'hui : max(0, réserve − forfaits). */
   rattrapageEstime: number;
+  /** Nombre de clients rémunérés (calculé, ou encodé à la main). */
+  clientsCount: number;
+  /** Valeurs encodées à la main par l'administrateur (elles remplacent le calcul automatique). */
+  manuel: RemuManuel | null;
+}
+
+export interface RemuManuel {
+  nb_clients: number;
+  forfaits_total: number;
+  forfaits_payes: number;
+  unites: number;
+  reserve: number;
+  rattrapage: number | null;
+  note: string | null;
 }

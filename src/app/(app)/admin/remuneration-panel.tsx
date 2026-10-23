@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { eur, rankLabel, type BaremeRow, type RattrapageRow } from "@/lib/remuneration";
+import { eur, rankLabel, type BaremeRow, type RattrapageRow, type RemuManuel } from "@/lib/remuneration";
 import { fmtDate } from "@/lib/format";
 import {
   appliquerRemuneration,
   apercuRemuneration,
+  enregistrerRemuManuel,
+  retablirCalculAutomatique,
   marquerForfaitsPayes,
   marquerRattrapageVerse,
   recalculerRemuneration,
@@ -27,6 +29,7 @@ export interface RemuPersonRow {
   reserve: number;
   unitsTotal: number;
   rattrapage: RattrapageRow | null;
+  manuel: RemuManuel | null;
 }
 
 const inputCls = "rounded-md border border-line bg-card-alt px-2 py-1 text-xs text-ink outline-none focus:border-gold";
@@ -50,6 +53,86 @@ function PreviewBox({ p, title }: { p: RemuPreview; title: string }) {
         <strong>{eur(p.rattrapage_calcule ?? p.rattrapage_si_agrement_aujourdhui)}</strong>
       </div>
     </div>
+  );
+}
+
+const toNum = (v: string) => Number(v.replace(/\s/g, "").replace(",", "."));
+
+/** Encodage à la main : ces valeurs remplacent le calcul automatique tant qu'elles sont enregistrées. */
+function ManualEditor({ r }: { r: RemuPersonRow }) {
+  const m = r.manuel;
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [f, setF] = useState({
+    date: r.date_demarrage,
+    clients: String(m ? m.nb_clients : r.clients),
+    forfaits: String(m ? m.forfaits_total : r.forfaitsTotal),
+    payes: String(m ? m.forfaits_payes : r.forfaitsPayes),
+    unites: String(m ? Math.round(m.unites * 100) / 100 : Math.round(r.unitsTotal * 100) / 100),
+    reserve: String(m ? m.reserve : r.reserve),
+    rattrapage: m && m.rattrapage !== null ? String(m.rattrapage) : "",
+    note: m?.note ?? "",
+  });
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
+  const save = () =>
+    start(async () => {
+      const res = await enregistrerRemuManuel(r.id, {
+        dateDemarrage: f.date,
+        nbClients: toNum(f.clients),
+        forfaitsTotal: toNum(f.forfaits),
+        forfaitsPayes: toNum(f.payes),
+        unites: toNum(f.unites),
+        reserve: toNum(f.reserve),
+        rattrapage: f.rattrapage.trim() === "" ? null : toNum(f.rattrapage),
+        note: f.note,
+      });
+      setMsg(res.ok ? (res.message ?? "Enregistré.") : res.error);
+    });
+  const back = () =>
+    start(async () => {
+      const res = await retablirCalculAutomatique(r.id);
+      setMsg(res.ok ? (res.message ?? "Fait.") : res.error);
+    });
+  const field = (label: string, k: keyof typeof f, type = "text", hint?: string) => (
+    <label className="flex flex-col gap-0.5 text-muted">
+      {label}
+      <input type={type} value={f[k]} inputMode={type === "text" ? "decimal" : undefined} onChange={set(k)} className={inputCls} />
+      {hint && <span className="text-[10px]">{hint}</span>}
+    </label>
+  );
+  return (
+    <details className="mt-2 rounded-lg border border-line p-2" open={!!m}>
+      <summary className="cursor-pointer font-bold text-ink">
+        Encoder à la main {m ? <span className="font-normal text-gold-light">· valeurs encodées actives</span> : <span className="font-normal text-muted">· calcul automatique</span>}
+      </summary>
+      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        {field("Date de début", "date", "date")}
+        {field("Nombre de clients", "clients")}
+        {field("Forfaits dus (€)", "forfaits")}
+        {field("Forfaits déjà payés (€)", "payes")}
+        {field("Unités cumulées", "unites")}
+        {field("Valeur des unités mises de côté (€)", "reserve")}
+        {field("Rattrapage (€)", "rattrapage", "text", "Vide = réserve − forfaits")}
+        <label className="flex flex-col gap-0.5 text-muted sm:col-span-2">
+          Note
+          <input value={f.note} onChange={set("note")} className={inputCls} />
+        </label>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button disabled={pending} onClick={save} className={goldBtn}>
+          Enregistrer ces valeurs
+        </button>
+        {m && (
+          <button disabled={pending} onClick={back} className={ghostBtn}>
+            Revenir au calcul automatique
+          </button>
+        )}
+        {msg && <span className="text-[11px] text-ink">{msg}</span>}
+      </div>
+      <div className="mt-1 text-[11px] text-muted">
+        Ces valeurs remplacent le calcul automatique dans « Revenus » du collaborateur et dans la réserve de rattrapage. Le recalcul automatique ne les modifie pas.
+      </div>
+    </details>
   );
 }
 
@@ -119,6 +202,7 @@ function PersonRow({ r, today }: { r: RemuPersonRow; today: string }) {
           </button>
         )}
       </div>
+      <ManualEditor key={JSON.stringify(r.manuel) + r.date_demarrage} r={r} />
       {preview && <PreviewBox p={preview} title="Résultat du recalcul" />}
       {msg && <div className="mt-1 text-[11px] text-ink">{msg}</div>}
     </div>
