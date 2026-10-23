@@ -1,9 +1,9 @@
 import type { Person } from "@/types/database";
 
-// Rémunération des collaborateurs démarrés à partir du 1er janvier 2026 (bloc 6).
+// Rémunération des collaborateurs démarrés à partir du 1er septembre 2025 (bloc 6).
 // Apporteur d'affaires avant l'agrément FSMA (forfait par client), puis sous-agent OVB Willemot
 // (unités × valeur du point du rang à la souscription) avec un rattrapage calculé une seule fois.
-export const REMU_START = "2026-01-01";
+export const REMU_START = "2025-09-01";
 
 export type RemuFields = { date_demarrage: string | null; agrement_fsma_at: string | null };
 export const remuOf = (p: Person) => p as Person & Partial<RemuFields>;

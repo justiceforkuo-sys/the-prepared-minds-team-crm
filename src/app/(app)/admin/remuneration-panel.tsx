@@ -155,7 +155,7 @@ function AddPerson({ candidates, today }: { candidates: { id: string; name: stri
         </select>
         <label className="flex items-center gap-1.5 text-muted">
           Démarré le
-          <input type="date" value={date} min="2026-01-01" onChange={(e) => setDate(e.target.value)} className={inputCls} />
+          <input type="date" value={date} min="2025-09-01" onChange={(e) => setDate(e.target.value)} className={inputCls} />
         </label>
         <button disabled={pending || !id} onClick={() => run(false)} className={ghostBtn}>
           Aperçu de l&apos;historique
@@ -238,7 +238,7 @@ export function RemunerationPanel({
   const pending = rows.filter((r) => r.rattrapage && !r.rattrapage.verse_le);
   return (
     <div>
-      <h3 className="mb-1 font-serif text-lg font-semibold text-ink">Rémunération des nouveaux (démarrés depuis le 1er janvier 2026)</h3>
+      <h3 className="mb-1 font-serif text-lg font-semibold text-ink">Rémunération des nouveaux (démarrés depuis le 1er septembre 2025)</h3>
       <p className="mb-3 text-xs text-muted">
         Concerne uniquement FT1 à FT3 : le rang FA et au-dessus n&apos;est pas affecté. Apporteur d&apos;affaires avant l&apos;agrément FSMA (forfait par client), puis sous-agent (unités × valeur du point du rang à la souscription) avec un rattrapage calculé une fois.
       </p>

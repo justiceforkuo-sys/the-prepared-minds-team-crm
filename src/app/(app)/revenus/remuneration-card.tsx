@@ -2,7 +2,7 @@ import { RattrapageReserve } from "@/components/rattrapage-reserve";
 import { eur, rankLabel, tierInfo, type RemuSummary } from "@/lib/remuneration";
 import { fmtDate } from "@/lib/format";
 
-/** Ma rémunération de démarrage (collaborateurs démarrés à partir du 1er janvier 2026). */
+/** Ma rémunération de démarrage (collaborateurs démarrés à partir du 1er septembre 2025). */
 export function RemunerationCard({
   summary,
   rank,

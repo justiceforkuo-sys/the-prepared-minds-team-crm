@@ -48,7 +48,7 @@ export default async function AdminPage() {
     serviceSupabase.from("goals").select("*"),
   ]);
 
-  // Rémunération des collaborateurs démarrés à partir du 1er janvier 2026
+  // Rémunération des collaborateurs démarrés à partir du 1er septembre 2025
   const svc = serviceSupabase as unknown as SupabaseClient;
   const [{ data: remuPeople }, { data: baremeRows }, { data: valeurRows }] = await Promise.all([
     svc.from("people").select("id, name, rank, date_demarrage, agrement_fsma_at").not("date_demarrage", "is", null).order("name"),

@@ -35,11 +35,11 @@ export async function apercuRemuneration(userId: string): Promise<RemuResult> {
   return { ok: true, preview: data as RemuPreview };
 }
 
-/** Place la personne dans le nouveau système (date de démarrage >= 1er janvier 2026) et recalcule son historique. */
+/** Place la personne dans le nouveau système (date de démarrage >= 1er septembre 2025) et recalcule son historique. */
 export async function appliquerRemuneration(userId: string, dateDemarrage: string): Promise<RemuResult> {
   const service = await adminContext();
   if (!service) return { ok: false, error: "Réservé à l'administrateur." };
-  if (!DATE.test(dateDemarrage) || dateDemarrage < "2026-01-01") return { ok: false, error: "La date de démarrage doit être le 1er janvier 2026 ou après." };
+  if (!DATE.test(dateDemarrage) || dateDemarrage < "2025-09-01") return { ok: false, error: "La date de démarrage doit être le 1er septembre 2025 ou après." };
   const up = await service.from("people").update({ date_demarrage: dateDemarrage }).eq("id", userId);
   if (up.error) return { ok: false, error: up.error.message };
   const { data, error } = await service.rpc("remu_recalculer", { p_user: userId, p_apply: true });
