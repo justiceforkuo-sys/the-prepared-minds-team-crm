@@ -15,10 +15,12 @@ const SELF_AUTHENTICATED_API = [
 ];
 // Pages publiques lisibles par tous, connectés ou non (formulaire de candidature : le parrain peut prévisualiser son lien)
 const OPEN_PAGE_PREFIXES = ["/postuler", "/confidentialite"];
+// Connecteur Claude (MCP) : jetons signés vérifiés par les routes elles-mêmes ; la page de consentement /connecter-claude, elle, exige la session.
+const SELF_AUTHENTICATED_PREFIXES = ["/api/mcp", "/.well-known/"];
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  if (SELF_AUTHENTICATED_API.includes(pathname) || OPEN_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (SELF_AUTHENTICATED_API.includes(pathname) || SELF_AUTHENTICATED_PREFIXES.some((p) => pathname.startsWith(p)) || OPEN_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next({ request });
   }
 
