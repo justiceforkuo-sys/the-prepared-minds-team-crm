@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, BellOff, ChevronDown, ChevronUp, Edit3, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR, fmtDate } from "@/lib/format";
+import { dialHref } from "@/components/call-button";
 import { COMPANIES, DEAL_STAGE_COLOR, companyById, computeUnits, currentMonthKey, monthLabel, type CompanyId } from "@/lib/units";
 import type {
   Client,
@@ -467,6 +468,11 @@ export function ClientsBoard({ me, downline }: { me: PersonLite; downline: Perso
                   </div>
                   {isOpen ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
                 </button>
+                {dialHref(c.phone) && (
+                  <a href={dialHref(c.phone)!} className="ml-2 flex flex-shrink-0 items-center gap-1 rounded-md bg-gold px-2.5 py-1 text-xs font-bold text-night">
+                    Appeler
+                  </a>
+                )}
                 {canEdit && (
                   <button onClick={() => deleteClient(c.id)} className="ml-2 p-1">
                     <Trash2 size={14} className="text-red" />

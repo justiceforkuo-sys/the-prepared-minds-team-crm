@@ -533,7 +533,7 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
               </select>
               <div className="flex items-center gap-2">
                 {p.next_follow_up && <div className="text-xs text-muted">Suivi : {fmtDate(p.next_follow_up)}</div>}
-                <CallButton prospectId={p.id} onLogged={(stage, nextFollowUp) => setProspects((prev) => prev.map((x) => (x.id === p.id ? { ...x, stage: stage as ProspectStage, next_follow_up: nextFollowUp } : x)))} />
+                <CallButton prospectId={p.id} phone={p.phone} onLogged={(stage, nextFollowUp) => setProspects((prev) => prev.map((x) => (x.id === p.id ? { ...x, stage: stage as ProspectStage, next_follow_up: nextFollowUp } : x)))} />
               </div>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">

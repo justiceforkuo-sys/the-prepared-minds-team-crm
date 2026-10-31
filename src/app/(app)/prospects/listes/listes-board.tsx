@@ -111,7 +111,7 @@ function Row({ p, canEdit, onChange }: { p: ListeProspect; canEdit: boolean; onC
             {p.stage}
           </span>
         )}
-        {canEdit && <CallButton prospectId={p.id} onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })} />}
+        {canEdit && <CallButton prospectId={p.id} phone={p.phone} onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })} />}
         <button onClick={() => setOpen((o) => !o)} className={ghostBtn}>
           {p.notes ? "Note ●" : "Note"}
         </button>

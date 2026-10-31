@@ -20,6 +20,13 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
+        name: "Mes listes d'appels",
+        short_name: "Appels",
+        description: "Ouvrir mes listes de contacts à appeler",
+        url: "/prospects/listes",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
         name: "Capturer une idée",
         short_name: "Idée",
         description: "Dicter ou écrire une idée tout de suite",
