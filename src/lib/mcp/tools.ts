@@ -238,6 +238,39 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "suivi_appels",
+    title: "Suivi des appels",
+    description: "Nombre d'appels passés par chaque personne : aujourd'hui, cette semaine, ce mois-ci, au total, appels joints et rendez-vous pris ce mois-ci.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    async run() {
+      const rows = await fetchAll<{ person_id: string; called_at: string; outcome: string }>((from, to) =>
+        svc().from("call_log").select("person_id, called_at, outcome").order("called_at", { ascending: false }).range(from, to)
+      );
+      const names = await peopleNames();
+      const now = brusselsNow();
+      const today = toISO(now);
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      const weekStart = toISO(monday);
+      const monthStart = `${today.slice(0, 7)}-01`;
+      const by = new Map<string, { aujourdhui: number; semaine: number; mois: number; total: number; joints_mois: number; rdv_mois: number }>();
+      for (const r of rows) {
+        const day = new Date(r.called_at).toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+        const a = by.get(r.person_id) ?? { aujourdhui: 0, semaine: 0, mois: 0, total: 0, joints_mois: 0, rdv_mois: 0 };
+        a.total += 1;
+        if (day === today) a.aujourdhui += 1;
+        if (day >= weekStart) a.semaine += 1;
+        if (day >= monthStart) {
+          a.mois += 1;
+          if (["Répondu", "RDV pris", "Pas intéressé", "À rappeler"].includes(r.outcome)) a.joints_mois += 1;
+          if (r.outcome === "RDV pris") a.rdv_mois += 1;
+        }
+        by.set(r.person_id, a);
+      }
+      return { aujourd_hui: today, par_personne: [...by.entries()].map(([id, a]) => ({ personne: names[id] ?? "?", ...a })).sort((x, y) => y.mois - x.mois) };
+    },
+  },
+  {
     name: "chercher_client",
     title: "Chercher un client par son nom",
     description: "Retrouve des clients par une partie de leur nom : collaborateur responsable, total d'unités, contrats (produit, compagnie, unités, étape, mois). Aucune coordonnée n'est renvoyée.",

@@ -21,6 +21,7 @@ import {
   Lightbulb,
   Library,
   Receipt,
+  PhoneCall,
 } from "lucide-react";
 
 export interface NavItem {
@@ -37,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Aujourd'hui", icon: Sunrise },
   { href: "/dashboard", label: "Tableau", icon: LayoutDashboard },
   { href: "/prospects", label: "Prospects", icon: Users },
+  { href: "/appels", label: "Appels", icon: PhoneCall },
   { href: "/linkedin", label: "LinkedIn", icon: Send, newcomerHidden: true },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },

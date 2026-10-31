@@ -8,6 +8,7 @@ import { FOLLOW_UP_MAX, FOLLOW_UP_MIN, isSaneFollowUpDate } from "@/lib/follow-u
 import { fmtDate } from "@/lib/format";
 import { brusselsDate } from "@/lib/linkedin/fetch";
 import { FollowUpBanner } from "./follow-up-banner";
+import { CallButton } from "@/components/call-button";
 import type {
   ConnectionStatus,
   ExistingContactMatch,
@@ -111,6 +112,7 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
   const [categoryFilter, setCategoryFilter] = useState<ProspectCategory | "Tous">("Tous");
   const [classementFilter, setClassementFilter] = useState<Classement | "Tous">("Tous");
   const [notice, setNotice] = useState<string | null>(null);
+  const [inLists, setInLists] = useState(0);
 
   const [showQuick, setShowQuick] = useState(false);
   const [quickName, setQuickName] = useState("");
@@ -124,14 +126,23 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
   const [formCrossMatch, setFormCrossMatch] = useState<ExistingContactMatch[] | null>(null);
 
   useEffect(() => {
+    // Les contacts des listes importées (des milliers) se travaillent depuis « Listes » ; ils n'apparaissent ici que
+    // lorsqu'ils sont avancés (étape autre que « À contacter ») ou ont une date de relance.
     supabase
       .from("prospects")
       .select("*")
+      .or("list_id.is.null,next_follow_up.not.is.null,stage.neq.À contacter")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setProspects((data as Prospect[]) ?? []);
         setLoading(false);
       });
+    supabase
+      .from("prospects")
+      .select("id", { count: "exact", head: true })
+      .eq("stage", "À contacter")
+      .not("list_id", "is", null)
+      .then(({ count }) => setInLists(count ?? 0));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -310,6 +321,15 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
           </button>
         </div>
       </div>
+
+      {inLists > 0 && (
+        <Link href="/prospects/listes" className="mb-3 flex items-center justify-between rounded-2xl border border-gold bg-card px-3.5 py-2.5 text-xs text-ink">
+          <span>
+            <strong>{inLists}</strong> contacts à appeler sont dans tes listes.
+          </span>
+          <span className="font-bold text-gold-light">Ouvrir les listes →</span>
+        </Link>
+      )}
 
       <FollowUpBanner
         prospects={prospects}
@@ -511,7 +531,10 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
                   </option>
                 ))}
               </select>
-              {p.next_follow_up && <div className="text-xs text-muted">Suivi : {fmtDate(p.next_follow_up)}</div>}
+              <div className="flex items-center gap-2">
+                {p.next_follow_up && <div className="text-xs text-muted">Suivi : {fmtDate(p.next_follow_up)}</div>}
+                <CallButton prospectId={p.id} onLogged={(stage, nextFollowUp) => setProspects((prev) => prev.map((x) => (x.id === p.id ? { ...x, stage: stage as ProspectStage, next_follow_up: nextFollowUp } : x)))} />
+              </div>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
               <select

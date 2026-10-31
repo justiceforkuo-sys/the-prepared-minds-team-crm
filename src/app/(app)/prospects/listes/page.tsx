@@ -48,9 +48,16 @@ export default async function ListesPage({ searchParams }: { searchParams: Promi
         .eq("list_id", chosen.id)
         .order("name")
         .range(from, from + 999);
-      prospects.push(...((data as ListeProspect[] | null) ?? []));
+      prospects.push(...((data as Omit<ListeProspect, "calls">[] | null) ?? []).map((r) => ({ ...r, calls: 0 })));
       if (!data || data.length < 1000) break;
     }
+    const callCount: Record<string, number> = {};
+    for (let from = 0; ; from += 1000) {
+      const { data } = await svc.from("call_log").select("prospect_id").eq("list_id", chosen.id).order("id").range(from, from + 999);
+      for (const c of (data as { prospect_id: string | null }[] | null) ?? []) if (c.prospect_id) callCount[c.prospect_id] = (callCount[c.prospect_id] ?? 0) + 1;
+      if (!data || data.length < 1000) break;
+    }
+    for (const p of prospects) p.calls = callCount[p.id] ?? 0;
     let shares: ShareRow[] = [];
     if (chosen.role === "owner") {
       const { data } = await svc.from("prospect_list_shares").select("person_id, can_edit").eq("list_id", chosen.id);

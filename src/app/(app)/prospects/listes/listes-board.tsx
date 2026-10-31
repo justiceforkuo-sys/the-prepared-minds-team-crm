@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { MessageCircle, Phone, Share2, Users } from "lucide-react";
 import { fmtDate } from "@/lib/format";
+import { CallButton } from "@/components/call-button";
 import { modifierProspectListe, partagerListe, retirerPartage } from "./actions";
 
 type Role = "owner" | "edit" | "read";
@@ -23,6 +24,7 @@ export interface ListeProspect {
   stage: string;
   notes: string | null;
   next_follow_up: string | null;
+  calls: number;
 }
 export interface ShareRow {
   personId: string;
@@ -93,6 +95,7 @@ function Row({ p, canEdit, onChange }: { p: ListeProspect; canEdit: boolean; onC
               </>
             )}
             {p.next_follow_up && <span>· relance le {fmtDate(p.next_follow_up)}</span>}
+            {p.calls > 0 && <span>· {p.calls} appel{p.calls > 1 ? "s" : ""}</span>}
           </div>
         </div>
         {canEdit ? (
@@ -108,6 +111,7 @@ function Row({ p, canEdit, onChange }: { p: ListeProspect; canEdit: boolean; onC
             {p.stage}
           </span>
         )}
+        {canEdit && <CallButton prospectId={p.id} onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })} />}
         <button onClick={() => setOpen((o) => !o)} className={ghostBtn}>
           {p.notes ? "Note ●" : "Note"}
         </button>
