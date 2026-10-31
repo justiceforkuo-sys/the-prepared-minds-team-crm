@@ -14,7 +14,8 @@ export type ProspectStage =
   | "Nouveau lead client généré"
   | "Sans suite"
   | "RDV pris"
-  | "Entretien / Dossier";
+  | "Entretien / Dossier"
+  | "À contacter";
 export type Priority = "A" | "B" | "C";
 export type ProspectCategory = "recrutement" | "client" | "prescripteur";
 export type ConnectionStatus = "Oui" | "Non" | "En attente";
@@ -160,6 +161,7 @@ export interface Prospect {
   next_follow_up: string | null;
   product_id: string | null;
   montant: number | null;
+  list_id: string | null;
   created_at: string;
   updated_at: string;
 }

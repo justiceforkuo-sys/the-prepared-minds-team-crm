@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Edit3, Plus, Trash2, X, Zap } from "lucide-react";
+import { AlertTriangle, Edit3, ListChecks, Plus, Trash2, X, Zap } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { FOLLOW_UP_MAX, FOLLOW_UP_MIN, isSaneFollowUpDate } from "@/lib/follow-ups";
 import { fmtDate } from "@/lib/format";
@@ -16,7 +17,7 @@ import type {
   ProspectStage,
 } from "@/types/database";
 
-const STAGES: ProspectStage[] = ["Contacté", "Répondu", "RDV pris", "Entretien / Dossier", "Perdu"];
+const STAGES: ProspectStage[] = ["À contacter", "Contacté", "Répondu", "RDV pris", "Entretien / Dossier", "Perdu"];
 const PRESCRIPTEUR_STAGES: ProspectStage[] = [
   "Contacté",
   "Répondu",
@@ -31,6 +32,7 @@ const PRESCRIPTEUR_STAGES: ProspectStage[] = [
 // texte (select de statut) sur un fond de carte qui devient sombre en mode
 // nuit — un navy fixe y serait illisible, le token s'adapte automatiquement.
 const STAGE_COLOR: Record<ProspectStage, string> = {
+  "À contacter": "#8a97b0",
   Contact: "#5a6b85",
   Invité: "var(--color-gold-light)",
   "Présentation faite": "var(--color-gold-light)",
@@ -291,6 +293,9 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
       <div className="mb-3.5 flex items-center justify-between">
         <h2 className="font-serif text-xl font-semibold text-ink">Prospects</h2>
         <div className="flex gap-2">
+          <Link href="/prospects/listes" className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs text-ink">
+            <ListChecks size={13} /> Listes
+          </Link>
           <button
             onClick={() => setShowQuick((s) => !s)}
             className="flex items-center gap-1 rounded-full border border-gold px-3 py-1.5 text-xs text-gold-light"
