@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { MessageCircle, Phone, Share2, Users } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { CallButton } from "@/components/call-button";
+import { RdvReportButton } from "@/components/rdv-report";
 import { modifierProspectListe, partagerListe, retirerPartage } from "./actions";
 
 type Role = "owner" | "edit" | "read";
@@ -113,7 +114,7 @@ function Row({ p, canEdit, onChange }: { p: ListeProspect; canEdit: boolean; onC
         )}
         {canEdit && <CallButton prospectId={p.id} phone={p.phone} onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })} />}
         <button onClick={() => setOpen((o) => !o)} className={ghostBtn}>
-          {p.notes ? "Note ●" : "Note"}
+          {p.notes ? "Note · RDV ●" : "Note · RDV"}
         </button>
       </div>
       {open && (
@@ -129,6 +130,7 @@ function Row({ p, canEdit, onChange }: { p: ListeProspect; canEdit: boolean; onC
               </button>
             </div>
           )}
+          <RdvReportButton kind="prospect" contactId={p.id} canWrite={canEdit} onApplied={(patch) => onChange(p.id, patch as Partial<ListeProspect>)} />
         </div>
       )}
       {msg && <div className="mt-1 text-[11px] text-ink">{msg}</div>}

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const me = await getCurrentPerson();
   if (!me) return NextResponse.json({ error: "Session expirée." }, { status: 401 });
   const key = process.env.MISTRAL_API_KEY;
-  if (!key) return NextResponse.json({ error: "Transcription indisponible : écris ton idée, elle sera traitée pareil." }, { status: 503 });
+  if (!key) return NextResponse.json({ error: "Transcription indisponible : écris le texte à la main." }, { status: 503 });
 
   let audio: File | null = null;
   try {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Audio illisible." }, { status: 400 });
   }
   if (!audio || audio.size === 0) return NextResponse.json({ error: "Aucun audio reçu." }, { status: 400 });
-  if (audio.size > MAX_BYTES) return NextResponse.json({ error: "Audio trop long : découpe ton idée en deux." }, { status: 413 });
+  if (audio.size > MAX_BYTES) return NextResponse.json({ error: "Audio trop long : découpe-le en deux." }, { status: 413 });
 
   const body = new FormData();
   body.set("file", audio, audio.name || "idee.webm");
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     body,
     signal: AbortSignal.timeout(30000),
   }).catch(() => null);
-  if (!res || !res.ok) return NextResponse.json({ error: "La transcription a échoué : écris ton idée." }, { status: 502 });
+  if (!res || !res.ok) return NextResponse.json({ error: "La transcription a échoué : écris le texte à la main." }, { status: 502 });
   const json = (await res.json()) as { text?: string };
   return NextResponse.json({ text: (json.text ?? "").trim() });
 }

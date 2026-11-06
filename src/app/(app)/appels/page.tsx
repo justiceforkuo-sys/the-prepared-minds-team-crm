@@ -34,6 +34,19 @@ export default async function AppelsPage() {
     if (!data || data.length < 1000) break;
   }
 
+  // Rendez-vous effectués (comptes rendus) du mois, par personne
+  const monthFrom = `${toISO(brusselsNow()).slice(0, 7)}-01`;
+  let rdvQuery = svc.from("rdv_reports").select("author_id, outcome").gte("happened_on", monthFrom).limit(5000);
+  if (!me.is_admin) rdvQuery = rdvQuery.eq("author_id", me.id);
+  const { data: rdvRows } = await rdvQuery;
+  const rdvBy = new Map<string, { n: number; outcomes: Record<string, number> }>();
+  for (const r of (rdvRows as { author_id: string; outcome: string }[] | null) ?? []) {
+    const e = rdvBy.get(r.author_id) ?? { n: 0, outcomes: {} };
+    e.n += 1;
+    e.outcomes[r.outcome] = (e.outcomes[r.outcome] ?? 0) + 1;
+    rdvBy.set(r.author_id, e);
+  }
+
   const { data: people } = await svc.from("people").select("id, name, active");
   const names = Object.fromEntries(((people as { id: string; name: string }[] | null) ?? []).map((p) => [p.id, p.name]));
 
@@ -157,6 +170,29 @@ export default async function AppelsPage() {
             );
           })}
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-line bg-card p-3.5">
+        <div className="mb-2 text-sm font-bold text-ink">Rendez-vous effectués (ce mois-ci)</div>
+        {rdvBy.size === 0 ? (
+          <div className="text-xs text-muted">Aucun compte rendu de rendez-vous ce mois-ci. Utilise « Rendez-vous effectué » sur un prospect ou un candidat.</div>
+        ) : (
+          <div className="flex flex-col gap-1 text-xs">
+            {[...rdvBy.entries()]
+              .sort((x, y) => y[1].n - x[1].n)
+              .map(([id, e]) => (
+                <div key={id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card-alt px-2.5 py-1.5">
+                  <span className="font-bold text-ink">{names[id] ?? "?"}</span>
+                  <span className="text-muted">
+                    {Object.entries(e.outcomes)
+                      .map(([o, n]) => `${o} : ${n}`)
+                      .join(" · ")}
+                  </span>
+                  <span className="font-bold text-ink">{e.n}</span>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {Object.keys(outcomes).length > 0 && (

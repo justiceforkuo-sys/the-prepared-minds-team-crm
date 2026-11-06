@@ -9,6 +9,7 @@ import { fmtDate } from "@/lib/format";
 import { brusselsDate } from "@/lib/linkedin/fetch";
 import { FollowUpBanner } from "./follow-up-banner";
 import { CallButton } from "@/components/call-button";
+import { RdvReportButton } from "@/components/rdv-report";
 import type {
   ConnectionStatus,
   ExistingContactMatch,
@@ -536,6 +537,7 @@ export function ProspectsBoard({ ownerId, vue }: { ownerId: string; vue?: string
                 <CallButton prospectId={p.id} phone={p.phone} onLogged={(stage, nextFollowUp) => setProspects((prev) => prev.map((x) => (x.id === p.id ? { ...x, stage: stage as ProspectStage, next_follow_up: nextFollowUp } : x)))} />
               </div>
             </div>
+            <RdvReportButton kind="prospect" contactId={p.id} onApplied={(patch) => setProspects((prev) => prev.map((x) => (x.id === p.id ? ({ ...x, ...patch } as Prospect) : x)))} />
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
               <select
                 value={(p as ProspectRow).classement_liste ?? ""}

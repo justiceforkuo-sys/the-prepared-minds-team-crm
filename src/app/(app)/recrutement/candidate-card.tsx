@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RdvReportButton } from "@/components/rdv-report";
 import { Check, ChevronDown, ChevronUp, Copy, PhoneCall, UserCheck } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import {
@@ -214,6 +215,8 @@ export function CandidateCard({
                   Sans suite
                 </button>
               </div>
+
+              <RdvReportButton kind="candidat" contactId={c.id} onApplied={(patch) => onPatch(c.id, patch as Partial<RecruitmentRow>)} />
 
               {panel === "call" && (
                 <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-card-alt p-2">
