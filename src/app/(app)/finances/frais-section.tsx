@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -191,59 +191,101 @@ export function FraisSection({ personId, initialFrais, initialPct }: { personId:
             </div>
           )}
 
-          <div className="mt-3 flex flex-col gap-2">
-            {rows.length === 0 && <div className="text-xs text-muted">Aucun frais enregistré pour {year}.</div>}
-            {rows.map((r) => (
-              <div key={r.cat} className="rounded-xl border border-line bg-card-alt p-2.5 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <button onClick={() => setExpanded(expanded === r.cat ? null : r.cat)} className="min-w-0 flex-1 text-left">
-                    <div className="text-sm font-bold text-ink">{r.cat}</div>
-                    <div className="text-muted">
-                      {r.lines.length} ligne{r.lines.length > 1 ? "s" : ""} · payé {eur(r.total)}
-                    </div>
-                  </button>
-                  <div className="flex-shrink-0 text-right">
-                    <div className="font-bold text-gold-light">{eur(r.deductible)}</div>
-                    <label className="mt-0.5 flex items-center justify-end gap-1 text-muted">
-                      <input
-                        key={`${year}-${r.cat}-${r.pct}`}
-                        defaultValue={String(round2(r.pct * 100)).replace(".", ",")}
-                        inputMode="decimal"
-                        onBlur={(e) => {
-                          if (num(e.target.value) !== round2(r.pct * 100)) void savePct(r.cat, e.target.value);
-                        }}
-                        className={`${inputCls} w-14 text-right`}
-                        aria-label={`% d'usage pro, ${r.cat}`}
-                      />
-                      %
-                    </label>
-                  </div>
-                </div>
-                {r.justification && <div className="mt-1 text-[11px] text-muted">{r.justification}</div>}
-
-                {expanded === r.cat && (
-                  <div className="mt-2 flex flex-col gap-1">
-                    {r.lines.map((f) => (
-                      <div key={f.id} className="flex flex-wrap items-center justify-between gap-1.5 rounded-lg bg-card px-2 py-1.5">
-                        <span className="min-w-0 flex-1 text-ink">
-                          {dateFr(f.spent_on)} · {f.fournisseur || "—"}
-                          <span className="text-muted"> · {f.compte}</span>
-                        </span>
-                        <strong className="text-ink">{eur(f.montant)}</strong>
-                        <select value={f.categorie} onChange={(e) => recategorize(f, e.target.value)} className={`${inputCls} max-w-[150px]`} aria-label="Changer de catégorie">
-                          {[...CATEGORIES_FRAIS, ...(CATEGORIES_FRAIS.includes(f.categorie) ? [] : [f.categorie])].map((c) => (
-                            <option key={c}>{c}</option>
-                          ))}
-                        </select>
-                        <button onClick={() => remove(f)} className="text-muted hover:text-red" aria-label="Supprimer la ligne">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+          <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-[640px] border-collapse text-xs">
+              <thead>
+                <tr className="bg-card-alt text-left text-[10px] font-bold uppercase tracking-wide text-muted">
+                  <th className="px-2.5 py-1.5">Catégorie</th>
+                  <th className="px-2.5 py-1.5 text-right">Lignes</th>
+                  <th className="px-2.5 py-1.5 text-right">Total payé</th>
+                  <th className="px-2.5 py-1.5 text-right">% pro</th>
+                  <th className="px-2.5 py-1.5 text-right">Déductible</th>
+                  <th className="px-2.5 py-1.5">Justificatif</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-2.5 py-2 text-muted">
+                      Aucun frais enregistré pour {year}.
+                    </td>
+                  </tr>
                 )}
-              </div>
-            ))}
+                {rows.map((r) => (
+                  <Fragment key={r.cat}>
+                    <tr className="border-t border-line align-top">
+                      <td className="px-2.5 py-1.5">
+                        <button onClick={() => setExpanded(expanded === r.cat ? null : r.cat)} className="flex items-center gap-1 text-left font-bold text-ink" aria-expanded={expanded === r.cat}>
+                          {expanded === r.cat ? <ChevronUp size={12} className="flex-shrink-0 text-muted" /> : <ChevronDown size={12} className="flex-shrink-0 text-muted" />}
+                          {r.cat}
+                        </button>
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right text-muted">{r.lines.length}</td>
+                      <td className="whitespace-nowrap px-2.5 py-1.5 text-right text-ink">{eur(r.total)}</td>
+                      <td className="px-2.5 py-1.5 text-right">
+                        <label className="inline-flex items-center gap-1 text-muted">
+                          <input
+                            key={`${year}-${r.cat}-${r.pct}`}
+                            defaultValue={String(round2(r.pct * 100)).replace(".", ",")}
+                            inputMode="decimal"
+                            onBlur={(e) => {
+                              if (num(e.target.value) !== round2(r.pct * 100)) void savePct(r.cat, e.target.value);
+                            }}
+                            className={`${inputCls} w-14 text-right`}
+                            aria-label={`% d'usage pro, ${r.cat}`}
+                          />
+                          %
+                        </label>
+                      </td>
+                      <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-bold text-gold-light">{eur(r.deductible)}</td>
+                      <td className="px-2.5 py-1.5 text-muted">{r.justification}</td>
+                    </tr>
+                    {expanded === r.cat && (
+                      <tr className="bg-card-alt">
+                        <td colSpan={6} className="px-2.5 py-2">
+                          <table className="w-full border-collapse text-xs">
+                            <tbody>
+                              {r.lines.map((f) => (
+                                <tr key={f.id} className="border-t border-line first:border-t-0">
+                                  <td className="whitespace-nowrap py-1 pr-2 text-muted">{dateFr(f.spent_on)}</td>
+                                  <td className="py-1 pr-2 text-ink">{f.fournisseur || "—"}</td>
+                                  <td className="py-1 pr-2 text-muted">{f.compte}</td>
+                                  <td className="whitespace-nowrap py-1 pr-2 text-right font-bold text-ink">{eur(f.montant)}</td>
+                                  <td className="py-1 pr-2">
+                                    <select value={f.categorie} onChange={(e) => recategorize(f, e.target.value)} className={`${inputCls} max-w-[170px]`} aria-label="Changer de catégorie">
+                                      {[...CATEGORIES_FRAIS, ...(CATEGORIES_FRAIS.includes(f.categorie) ? [] : [f.categorie])].map((c) => (
+                                        <option key={c}>{c}</option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td className="py-1">
+                                    <button onClick={() => remove(f)} className="text-muted hover:text-red" aria-label="Supprimer la ligne">
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+              {rows.length > 0 && (
+                <tfoot>
+                  <tr className="border-t border-line bg-card-alt font-bold">
+                    <td className="px-2.5 py-1.5 text-ink">Total {year}</td>
+                    <td className="px-2.5 py-1.5 text-right text-muted">{rows.reduce((n, r) => n + r.lines.length, 0)}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5 text-right text-ink">{eur(totals.paid)}</td>
+                    <td />
+                    <td className="whitespace-nowrap px-2.5 py-1.5 text-right text-gold-light">{eur(totals.deductible)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              )}
+            </table>
           </div>
 
           <button onClick={() => setShowForm((s) => !s)} className="mt-3 flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-xs text-ink">
