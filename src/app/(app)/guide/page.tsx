@@ -62,9 +62,9 @@ export default async function GuidePage() {
 
       <nav className="mt-4 rounded-2xl border border-line bg-card p-3.5" aria-label="Sommaire du guide">
         <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted">Sommaire</div>
-        <ul className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+        <ul className="gap-x-4 text-xs sm:columns-2">
           {sections.map((s) => (
-            <li key={s}>
+            <li key={s} className="break-inside-avoid py-0.5">
               <a href={`#${slug(s)}`} className="text-ink hover:text-gold-light">
                 {s}
               </a>
