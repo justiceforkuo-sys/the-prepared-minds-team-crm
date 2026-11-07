@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { DebtsSection, type Debt, type DebtPayment } from "./debts-section";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import {
   computeFinances,
@@ -53,6 +54,8 @@ export function FinancesWorkspace({
   initialDeductibleSavings,
   initialSettings,
   initialGoals,
+  initialDebts,
+  initialDebtPayments,
 }: {
   personId: string;
   revenusAnnee: number;
@@ -60,6 +63,8 @@ export function FinancesWorkspace({
   initialDeductibleSavings: DeductibleSaving[];
   initialSettings: FinancialSettings;
   initialGoals: SavingsGoal[];
+  initialDebts: Debt[];
+  initialDebtPayments: DebtPayment[];
 }) {
   const supabase = createClient();
   const [expenses, setExpenses] = useState(initialExpenses);
@@ -147,6 +152,8 @@ export function FinancesWorkspace({
       </div>
 
       <GoalsSection personId={personId} goals={goals} setGoals={setGoals} supabase={supabase} />
+
+      <DebtsSection personId={personId} initialDebts={initialDebts} initialPayments={initialDebtPayments} />
 
       <SettingsSection settings={settings} setSettings={setSettings} supabase={supabase} />
     </div>

@@ -1,6 +1,7 @@
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { FinancesWorkspace } from "./finances-workspace";
+import type { Debt, DebtPayment } from "./debts-section";
 import type { DeductibleSaving, Expense, FinancialSettings, PayoutHistoryRow, SavingsGoal } from "@/types/database";
 
 export default async function FinancesPage() {
@@ -10,13 +11,15 @@ export default async function FinancesPage() {
   const currentYear = new Date().getFullYear().toString();
   const supabase = await createClient();
 
-  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }] =
+  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }] =
     await Promise.all([
       supabase.from("payout_history").select("month, payout").eq("person_id", person.id),
       supabase.from("expenses").select("*").eq("person_id", person.id).order("date", { ascending: false }),
       supabase.from("deductible_savings").select("*").eq("person_id", person.id).order("created_at"),
       supabase.from("financial_settings").select("*").eq("person_id", person.id).maybeSingle(),
       supabase.from("savings_goals").select("*").eq("person_id", person.id).order("created_at"),
+      supabase.from("finance_debts").select("*").eq("person_id", person.id).order("created_at"),
+      supabase.from("finance_debt_payments").select("*").eq("person_id", person.id).order("paid_on", { ascending: false }),
     ]);
 
   const revenusAnnee = ((payouts as PayoutHistoryRow[] | null) ?? [])
@@ -43,6 +46,8 @@ export default async function FinancesPage() {
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}
       initialSettings={(settings as FinancialSettings | null) ?? defaultSettings}
       initialGoals={(goals as SavingsGoal[]) ?? []}
+      initialDebts={((debts as Debt[] | null) ?? []).map((d) => ({ ...d, total: Number(d.total), deja_paye: Number(d.deja_paye), paiement_mensuel: d.paiement_mensuel === null ? null : Number(d.paiement_mensuel) }))}
+      initialDebtPayments={((debtPayments as DebtPayment[] | null) ?? []).map((p) => ({ ...p, montant: Number(p.montant) }))}
     />
   );
 }
