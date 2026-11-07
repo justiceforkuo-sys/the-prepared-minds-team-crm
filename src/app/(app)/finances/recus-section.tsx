@@ -25,7 +25,7 @@ const fmtInput = (n: number | null) => (n === null ? "" : String(n).replace(".",
 export function RecusSection({ personId, initialRecus }: { personId: string; initialRecus: Recu[] }) {
   const supabase = useMemo(() => createClient(), []);
   const [recus, setRecus] = useState(initialRecus);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const currentYear = new Date().getFullYear();
   const years = useMemo(() => [...new Set([currentYear, ...recus.map((r) => Number(r.mois.slice(0, 4)))])].sort((a, b) => b - a), [recus, currentYear]);
   const [year, setYear] = useState(currentYear);

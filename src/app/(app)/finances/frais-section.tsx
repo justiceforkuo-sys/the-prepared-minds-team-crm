@@ -38,6 +38,7 @@ export const CATEGORIES_FRAIS = [
   "Frais bancaires - comptes privés",
   "Basic-Fit (prospection + forme)",
   "À vérifier",
+  "Privé (exclu)",
 ];
 const COMPTES = ["BNP pro BE95", "BNP privé BE23", "Revolut", "Autre"];
 const A_VERIFIER = "À vérifier";
