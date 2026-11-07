@@ -5,6 +5,8 @@ export interface FinancesInput {
   expenses: Expense[];
   deductibleSavings: DeductibleSaving[];
   settings: FinancialSettings;
+  /** Frais professionnels déductibles de l'année (total × % d'usage pro), en plus des charges professionnelles saisies. */
+  fraisDeductibles?: number;
 }
 
 export interface FinancesResult {
@@ -30,8 +32,8 @@ function monthlyRecurrente(expenses: Expense[], type: Expense["type"]): number {
   return relevant.reduce((s, e) => s + e.montant, 0);
 }
 
-export function computeFinances({ revenusAnnee, expenses, deductibleSavings, settings }: FinancesInput): FinancesResult {
-  const chargesProAnnee = expenses.filter((e) => e.type === "professionnelle").reduce((s, e) => s + e.montant, 0);
+export function computeFinances({ revenusAnnee, expenses, deductibleSavings, settings, fraisDeductibles = 0 }: FinancesInput): FinancesResult {
+  const chargesProAnnee = expenses.filter((e) => e.type === "professionnelle").reduce((s, e) => s + e.montant, 0) + fraisDeductibles;
 
   const revenuNetImposable = revenusAnnee - chargesProAnnee;
   const cotisationsSociales = revenuNetImposable * settings.taux_cotisations_sociales;

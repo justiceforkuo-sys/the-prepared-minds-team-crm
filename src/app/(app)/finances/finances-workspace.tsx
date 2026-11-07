@@ -5,6 +5,8 @@ import { AlertTriangle, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-reac
 import { createClient } from "@/utils/supabase/client";
 import { DebtsSection, type Debt, type DebtPayment } from "./debts-section";
 import { DailySection, type DailySpend } from "./daily-section";
+import { FraisSection, type Frais, type FraisPct } from "./frais-section";
+import { RevenusSection, type Revenu } from "./revenus-section";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import {
   computeFinances,
@@ -51,6 +53,10 @@ const emptyGoalForm = { nom: "", montant_cible: "", montant_actuel: "0", date_ci
 export function FinancesWorkspace({
   personId,
   revenusAnnee,
+  fraisDeductiblesAnnee,
+  initialFrais,
+  initialFraisPct,
+  initialRevenus,
   initialExpenses,
   initialDeductibleSavings,
   initialSettings,
@@ -62,6 +68,10 @@ export function FinancesWorkspace({
 }: {
   personId: string;
   revenusAnnee: number;
+  fraisDeductiblesAnnee: number;
+  initialFrais: Frais[];
+  initialFraisPct: FraisPct[];
+  initialRevenus: Revenu[];
   initialExpenses: Expense[];
   initialDeductibleSavings: DeductibleSaving[];
   initialSettings: FinancialSettings;
@@ -78,8 +88,8 @@ export function FinancesWorkspace({
   const [goals, setGoals] = useState(initialGoals);
 
   const result = useMemo(
-    () => computeFinances({ revenusAnnee, expenses, deductibleSavings, settings }),
-    [revenusAnnee, expenses, deductibleSavings, settings]
+    () => computeFinances({ revenusAnnee, expenses, deductibleSavings, settings, fraisDeductibles: fraisDeductiblesAnnee }),
+    [revenusAnnee, fraisDeductiblesAnnee, expenses, deductibleSavings, settings]
   );
 
   return (
@@ -116,6 +126,8 @@ export function FinancesWorkspace({
 
       <ExpensesSection personId={personId} expenses={expenses} setExpenses={setExpenses} supabase={supabase} />
 
+      <FraisSection personId={personId} initialFrais={initialFrais} initialPct={initialFraisPct} />
+
       <SavingsSection
         personId={personId}
         deductibleSavings={deductibleSavings}
@@ -138,6 +150,8 @@ export function FinancesWorkspace({
           </div>
         </div>
       </div>
+
+      <RevenusSection personId={personId} initialRevenus={initialRevenus} depensesMensuelles={result.chargesPersoMensuelles + result.epargneMensuelleTotale} />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">Fonds d&apos;urgence</div>

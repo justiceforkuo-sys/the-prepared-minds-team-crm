@@ -3,6 +3,8 @@ import { createClient } from "@/utils/supabase/server";
 import { FinancesWorkspace } from "./finances-workspace";
 import type { Debt, DebtPayment } from "./debts-section";
 import type { DailySpend } from "./daily-section";
+import type { Frais, FraisPct } from "./frais-section";
+import type { Revenu } from "./revenus-section";
 import type { DeductibleSaving, Expense, FinancialSettings, PayoutHistoryRow, SavingsGoal } from "@/types/database";
 
 export default async function FinancesPage() {
@@ -17,7 +19,7 @@ export default async function FinancesPage() {
   sinceDate.setDate(sinceDate.getDate() - 62);
   const since = sinceDate.toISOString().slice(0, 10);
 
-  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }] =
+  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }, { data: frais }, { data: fraisPct }, { data: revenus }] =
     await Promise.all([
       supabase.from("payout_history").select("month, payout").eq("person_id", person.id),
       supabase.from("expenses").select("*").eq("person_id", person.id).order("date", { ascending: false }),
@@ -28,11 +30,26 @@ export default async function FinancesPage() {
       supabase.from("finance_debt_payments").select("*").eq("person_id", person.id).order("paid_on", { ascending: false }),
       supabase.from("finance_daily").select("*").eq("person_id", person.id).gte("spent_on", since).order("spent_on", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("finance_daily_settings").select("budget_jour").eq("person_id", person.id).maybeSingle(),
+      supabase.from("finance_frais").select("*").eq("person_id", person.id).order("spent_on").limit(5000),
+      supabase.from("finance_frais_pct").select("annee, categorie, pct, justification").eq("person_id", person.id),
+      supabase.from("finance_revenus").select("*").eq("person_id", person.id).order("ordre"),
     ]);
 
   const revenusAnnee = ((payouts as PayoutHistoryRow[] | null) ?? [])
     .filter((p) => p.month.startsWith(currentYear))
     .reduce((s, p) => s + p.payout, 0);
+
+  const fraisList = ((frais as Frais[] | null) ?? []).map((f) => ({ ...f, montant: Number(f.montant) }));
+  const pctList = ((fraisPct as FraisPct[] | null) ?? []).map((p) => ({ ...p, pct: Number(p.pct) }));
+  const revenusList = ((revenus as Revenu[] | null) ?? []).map((r) => ({
+    ...r,
+    montant_prudent: r.montant_prudent === null ? null : Number(r.montant_prudent),
+    montant_complet: r.montant_complet === null ? null : Number(r.montant_complet),
+  }));
+  // Frais professionnels déductibles de l'année en cours (total × % d'usage pro par catégorie) : ils réduisent le revenu imposable
+  const fraisDeductiblesAnnee = fraisList
+    .filter((f) => f.spent_on.startsWith(currentYear))
+    .reduce((s, f) => s + f.montant * (pctList.find((p) => String(p.annee) === currentYear && p.categorie === f.categorie)?.pct ?? 0), 0);
 
   const defaultSettings: FinancialSettings = {
     person_id: person.id,
@@ -50,6 +67,10 @@ export default async function FinancesPage() {
     <FinancesWorkspace
       personId={person.id}
       revenusAnnee={revenusAnnee}
+      fraisDeductiblesAnnee={Math.round(fraisDeductiblesAnnee * 100) / 100}
+      initialFrais={fraisList}
+      initialFraisPct={pctList}
+      initialRevenus={revenusList}
       initialExpenses={(expenses as Expense[]) ?? []}
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}
       initialSettings={(settings as FinancialSettings | null) ?? defaultSettings}
