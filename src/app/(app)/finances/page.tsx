@@ -5,6 +5,7 @@ import type { Debt, DebtPayment } from "./debts-section";
 import type { DailySpend } from "./daily-section";
 import type { Frais, FraisPct } from "./frais-section";
 import type { Revenu } from "./revenus-section";
+import type { Recu } from "./recus-section";
 import type { DeductibleSaving, Expense, FinancialSettings, PayoutHistoryRow, SavingsGoal } from "@/types/database";
 
 export default async function FinancesPage() {
@@ -19,7 +20,7 @@ export default async function FinancesPage() {
   sinceDate.setDate(sinceDate.getDate() - 62);
   const since = sinceDate.toISOString().slice(0, 10);
 
-  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }, { data: frais }, { data: fraisPct }, { data: revenus }] =
+  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }, { data: frais }, { data: fraisPct }, { data: revenus }, { data: recus }] =
     await Promise.all([
       supabase.from("payout_history").select("month, payout").eq("person_id", person.id),
       supabase.from("expenses").select("*").eq("person_id", person.id).order("date", { ascending: false }),
@@ -33,6 +34,7 @@ export default async function FinancesPage() {
       supabase.from("finance_frais").select("*").eq("person_id", person.id).order("spent_on").limit(5000),
       supabase.from("finance_frais_pct").select("annee, categorie, pct, justification").eq("person_id", person.id),
       supabase.from("finance_revenus").select("*").eq("person_id", person.id).order("ordre"),
+      supabase.from("finance_revenus_recus").select("mois, source, montant, note").eq("person_id", person.id).order("mois"),
     ]);
 
   const revenusAnnee = ((payouts as PayoutHistoryRow[] | null) ?? [])
@@ -46,6 +48,7 @@ export default async function FinancesPage() {
     montant_prudent: r.montant_prudent === null ? null : Number(r.montant_prudent),
     montant_complet: r.montant_complet === null ? null : Number(r.montant_complet),
   }));
+  const recusList = ((recus as Recu[] | null) ?? []).map((r) => ({ ...r, montant: r.montant === null ? null : Number(r.montant) }));
   // Frais professionnels déductibles de l'année en cours (total × % d'usage pro par catégorie) : ils réduisent le revenu imposable
   const fraisDeductiblesAnnee = fraisList
     .filter((f) => f.spent_on.startsWith(currentYear))
@@ -71,6 +74,7 @@ export default async function FinancesPage() {
       initialFrais={fraisList}
       initialFraisPct={pctList}
       initialRevenus={revenusList}
+      initialRecus={recusList}
       initialExpenses={(expenses as Expense[]) ?? []}
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}
       initialSettings={(settings as FinancialSettings | null) ?? defaultSettings}

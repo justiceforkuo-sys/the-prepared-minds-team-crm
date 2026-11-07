@@ -7,6 +7,7 @@ import { DebtsSection, type Debt, type DebtPayment } from "./debts-section";
 import { DailySection, type DailySpend } from "./daily-section";
 import { FraisSection, type Frais, type FraisPct } from "./frais-section";
 import { RevenusSection, type Revenu } from "./revenus-section";
+import { RecusSection, type Recu } from "./recus-section";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import {
   computeFinances,
@@ -57,6 +58,7 @@ export function FinancesWorkspace({
   initialFrais,
   initialFraisPct,
   initialRevenus,
+  initialRecus,
   initialExpenses,
   initialDeductibleSavings,
   initialSettings,
@@ -72,6 +74,7 @@ export function FinancesWorkspace({
   initialFrais: Frais[];
   initialFraisPct: FraisPct[];
   initialRevenus: Revenu[];
+  initialRecus: Recu[];
   initialExpenses: Expense[];
   initialDeductibleSavings: DeductibleSaving[];
   initialSettings: FinancialSettings;
@@ -152,6 +155,8 @@ export function FinancesWorkspace({
       </div>
 
       <RevenusSection personId={personId} initialRevenus={initialRevenus} depensesMensuelles={result.chargesPersoMensuelles + result.epargneMensuelleTotale} />
+
+      <RecusSection personId={personId} initialRecus={initialRecus} />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">Fonds d&apos;urgence</div>
