@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
@@ -99,6 +101,14 @@ export default async function OnboardingPage() {
           ? "Ton objectif : 1 000 unités pour passer FT2 / JFA II, en 60 jours maximum, et ton premier agrément FSMA."
           : "1 000 unités en 60 jours et le premier agrément FSMA : le suivi de chaque nouveau en un coup d'œil."}
       </p>
+
+      <Link href="/guide" className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 hover:border-gold">
+        <BookOpen size={20} className="flex-shrink-0 text-gold-light" />
+        <span className="text-xs text-muted">
+          <span className="block text-sm font-bold text-ink">Guide du CRM</span>
+          Ta première semaine, chaque page expliquée, le glossaire et les réponses aux questions fréquentes.
+        </span>
+      </Link>
 
       {myCtx ? (
         <NewcomerDashboard
