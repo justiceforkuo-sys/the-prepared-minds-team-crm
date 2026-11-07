@@ -548,8 +548,9 @@ function GoalsSection({
               </button>
             </div>
             <div className="mt-1 text-xs text-muted">
-              {fmtEUR(mensualiteObjectif(g))}/mois nécessaire
-              {g.date_cible ? ` (${moisRestants(g.date_cible)} mois restants)` : ""}
+              {g.date_cible
+                ? `${fmtEUR(mensualiteObjectif(g))}/mois nécessaire (${moisRestants(g.date_cible)} mois restants)`
+                : "Sans date cible : ajoute une date pour voir la mensualité nécessaire."}
             </div>
             {updatingId === g.id ? (
               <div className="mt-1.5 flex gap-1.5">

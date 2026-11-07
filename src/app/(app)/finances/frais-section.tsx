@@ -80,14 +80,15 @@ export function FraisSection({ personId, initialFrais, initialPct }: { personId:
         const total = round2(lines.reduce((s, f) => s + f.montant, 0));
         const p = pcts.find((x) => x.annee === year && x.categorie === cat);
         const pct = p?.pct ?? 0;
-        return { cat, lines, total, pct, deductible: round2(total * pct), justification: p?.justification ?? null };
+        return { cat, lines, total, pct, exact: total * pct, deductible: round2(total * pct), justification: p?.justification ?? null };
       })
       .filter((r) => r.lines.length > 0 || r.pct > 0);
   }, [frais, pcts, year]);
 
   const totals = useMemo(() => {
     const paid = rows.reduce((s, r) => s + r.total, 0);
-    const deductible = rows.reduce((s, r) => s + r.deductible, 0);
+    // Somme des montants exacts, arrondie une seule fois (arrondir ligne par ligne fait dériver le total d'un centime)
+    const deductible = round2(rows.reduce((s, r) => s + r.exact, 0));
     // Projection sur 12 mois pour l'année en cours : le déductible de la période écoulée ramené à l'année entière
     let projection: number | null = null;
     if (year === currentYear) {
