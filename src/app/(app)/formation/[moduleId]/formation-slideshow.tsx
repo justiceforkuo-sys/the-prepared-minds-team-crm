@@ -44,6 +44,16 @@ export function FormationSlideshow({
   const supabase = createClient();
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(initialDone);
+  // Vidéos vues à 90 % pendant cette visite : le module se valide quand elles le sont toutes
+  const [watched, setWatched] = useState<ReadonlySet<string>>(new Set());
+  const videoCount = media.filter((m) => m.kind === "video").length;
+
+  const markWatched = (id: string) => {
+    if (watched.has(id)) return;
+    const next = new Set(watched).add(id);
+    setWatched(next);
+    if (!done && next.size >= videoCount) void saveDone(true);
+  };
 
   const slides = useMemo(() => {
     if (!module.personalizedFirstSlide) return module.slides;
@@ -96,11 +106,12 @@ export function FormationSlideshow({
 
       <h2 className="font-serif text-lg font-semibold text-ink">{module.title}</h2>
 
-      {media.some((m) => m.kind === "video") && <div className="mt-1 mb-1 text-xs text-muted">Le module est validé automatiquement quand tu as vu {Math.round(AUTO_DONE_RATIO * 100)} % de la vidéo.</div>}
+      {media.some((m) => m.kind === "video") && <div className="mt-1 mb-1 text-xs text-muted">{videoCount > 1 ? `Le module est validé automatiquement quand tu as vu ${Math.round(AUTO_DONE_RATIO * 100)} % de chacune des ${videoCount} vidéos.` : `Le module est validé automatiquement quand tu as vu ${Math.round(AUTO_DONE_RATIO * 100)} % de la vidéo.`}</div>}
       {media
         .filter((m) => m.kind === "video")
         .map((m) => (
           <div key={m.id} className="mt-2 mb-3 overflow-hidden rounded-2xl border border-line bg-black">
+            {videoCount > 1 && <div className="bg-card px-3 py-2 text-xs font-bold text-ink">{m.title}</div>}
             <video
               controls
               playsInline
@@ -109,7 +120,7 @@ export function FormationSlideshow({
               className="aspect-video w-full"
               onTimeUpdate={(e) => {
                 const v = e.currentTarget;
-                if (!done && v.duration > 0 && v.currentTime / v.duration >= AUTO_DONE_RATIO) void saveDone(true);
+                if (v.duration > 0 && v.currentTime / v.duration >= AUTO_DONE_RATIO) markWatched(m.id);
               }}
             >
               Ton navigateur ne peut pas lire cette vidéo.
