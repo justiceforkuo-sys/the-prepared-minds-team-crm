@@ -67,14 +67,25 @@ export async function analyserIdee(texte: string, tiroirs: string[], today: stri
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: IDEES_MODEL,
-      max_tokens: 700,
+      // La réflexion du modèle (activée par défaut sur Haiku 5.5) est comptée dans max_tokens : effort bas et marge large,
+      // sinon elle peut consommer toute la place et ne laisser aucune réponse.
+      max_tokens: 4000,
+      output_config: { effort: "low" },
       system: SYSTEM(tiroirs, today),
       messages: [{ role: "user", content: `Idée brute :\n"""\n${texte.slice(0, 4000)}\n"""` }],
     }),
     signal: AbortSignal.timeout(25000),
   });
-  if (!res.ok) throw new Error(`API Anthropic ${res.status}`);
-  const body = (await res.json()) as { content?: { type: string; text?: string }[] };
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 160).replace(/\s+/g, " ");
+    throw new Error(`API Anthropic ${res.status} ${detail}`.trim());
+  }
+  const body = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
   const text = (body.content ?? []).map((c) => c.text ?? "").join("");
-  return normalizeAnalysis(extractJson(text), tiroirs, today);
+  try {
+    return normalizeAnalysis(extractJson(text), tiroirs, today);
+  } catch (e) {
+    const types = (body.content ?? []).map((c) => c.type).join(",") || "aucun";
+    throw new Error(`${e instanceof Error ? e.message : "réponse illisible"} (arrêt : ${body.stop_reason ?? "?"}, blocs : ${types})`);
+  }
 }
