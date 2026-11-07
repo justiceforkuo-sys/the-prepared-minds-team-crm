@@ -10,18 +10,22 @@ export default async function RecouvrementPage() {
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
-  const { data: policies } = await supabase
-    .from("client_policies")
-    .select("*, client:clients(name, owner_id)")
-    .or(
-      `payment_status.not.is.null,and(followup_date.lte.${today},policy_status.eq.Actif,payment_status.is.null)`
-    );
+  const [{ data: policies }, { data: people }] = await Promise.all([
+    supabase
+      .from("client_policies")
+      .select("*, client:clients(name, owner_id)")
+      .or(`payment_status.not.is.null,and(followup_date.lte.${today},policy_status.eq.Actif,payment_status.is.null)`),
+    supabase.from("people").select("id, name, active").order("name"),
+  ]);
+  const roster = (people as { id: string; name: string; active: boolean | null }[] | null) ?? [];
 
   return (
     <RecouvrementBoard
       meId={person.id}
       isAdmin={person.is_admin}
       initialPolicies={policies ?? []}
+      names={Object.fromEntries(roster.map((p) => [p.id, p.name]))}
+      assignable={person.is_admin ? roster.filter((p) => p.active !== false).map((p) => ({ id: p.id, name: p.name })) : []}
     />
   );
 }

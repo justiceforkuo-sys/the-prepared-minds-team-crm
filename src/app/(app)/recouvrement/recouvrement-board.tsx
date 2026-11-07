@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Plus, UserCheck } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { fmtEUR } from "@/lib/format";
 import { daysUntilCutoff } from "@/lib/decompte-deadline";
 import type { ClientPolicy, PaymentStatus, FeedbackReason } from "@/types/database";
+import { attribuerClient, retirerPaye } from "./actions";
 
 type PolicyRow = ClientPolicy & { client: { name: string; owner_id: string } | null };
 
@@ -42,10 +43,16 @@ export function RecouvrementBoard({
   meId,
   isAdmin,
   initialPolicies,
+  names,
+  assignable,
 }: {
   meId: string;
   isAdmin: boolean;
   initialPolicies: PolicyRow[];
+  /** Nom de chaque collaborateur, pour afficher à qui appartient un contrat. */
+  names: Record<string, string>;
+  /** Collaborateurs actifs à qui un administrateur peut attribuer un contrat. */
+  assignable: { id: string; name: string }[];
 }) {
   const supabase = createClient();
   const [policies, setPolicies] = useState(initialPolicies);
@@ -55,6 +62,9 @@ export function RecouvrementBoard({
   const [ownClients, setOwnClients] = useState<OwnClient[] | null>(null);
   const [selectedPolicyId, setSelectedPolicyId] = useState("");
   const [unpaidInput, setUnpaidInput] = useState("1");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ id: string; text: string; error: boolean } | null>(null);
+  const [assignTo, setAssignTo] = useState<Record<string, string>>({});
 
   const sorted = useMemo(
     () => [...policies].sort((a, b) => (b.unpaid_installments ?? 0) - (a.unpaid_installments ?? 0)),
@@ -108,6 +118,32 @@ export function RecouvrementBoard({
   const updatePolicy = async (id: string, patch: Partial<ClientPolicy>) => {
     setPolicies((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     await supabase.from("client_policies").update(patch).eq("id", id);
+  };
+
+  // Le client a payé : le contrat sort du recouvrement (rien n'est supprimé)
+  const markPaid = async (p: PolicyRow) => {
+    if (!window.confirm(`Le client ${p.client?.name ?? ""} a payé ? Ce contrat sort de la liste de recouvrement. Le contrat et le client ne sont pas supprimés.`)) return;
+    setBusy(p.id);
+    const res = await retirerPaye(p.id);
+    setBusy(null);
+    if (!res.ok) return setNotice({ id: p.id, text: res.error, error: true });
+    setPolicies((prev) => prev.filter((x) => x.id !== p.id));
+    setExpanded(null);
+  };
+
+  // Attribution au collaborateur à qui le contrat appartient (administrateur) : le client et tous ses contrats changent de propriétaire
+  const assign = async (p: PolicyRow) => {
+    const target = assignTo[p.id];
+    if (!target) return;
+    const name = names[target] ?? "ce collaborateur";
+    if (!window.confirm(`Attribuer le client ${p.client?.name ?? ""} et tous ses contrats à ${name} ?`)) return;
+    setBusy(p.id);
+    const res = await attribuerClient(p.id, target);
+    setBusy(null);
+    if (!res.ok) return setNotice({ id: p.id, text: res.error, error: true });
+    setPolicies((prev) => prev.map((x) => (x.client_id === p.client_id && x.client ? { ...x, client: { ...x.client, owner_id: res.ownerId } } : x)));
+    setAssignTo((prev) => ({ ...prev, [p.id]: "" }));
+    setNotice({ id: p.id, text: `Attribué à ${res.ownerName}.`, error: false });
   };
 
   return (
@@ -202,6 +238,7 @@ export function RecouvrementBoard({
                     <div className="text-sm font-bold text-ink">{p.client?.name ?? "?"}</div>
                     <div className="text-xs text-muted">
                       {p.product_label} · {fmtEUR(p.worth)}
+                      {p.client?.owner_id && names[p.client.owner_id] ? ` · ${names[p.client.owner_id]}` : ""}
                     </div>
                   </div>
                   {daysLeft !== null && (
@@ -218,6 +255,37 @@ export function RecouvrementBoard({
 
               {isOpen && (
                 <div className="mt-3 flex flex-col gap-2.5 border-t border-line pt-3 text-xs">
+                  <div className="text-muted">
+                    Collaborateur : <strong className="text-ink">{p.client?.owner_id ? (names[p.client.owner_id] ?? "?") : "?"}</strong>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={assignTo[p.id] ?? ""}
+                        onChange={(e) => setAssignTo((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        className="min-w-[160px] flex-1 rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold"
+                        aria-label="Attribuer à un collaborateur"
+                      >
+                        <option value="">Attribuer à…</option>
+                        {assignable
+                          .filter((a) => a.id !== p.client?.owner_id)
+                          .map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        onClick={() => assign(p)}
+                        disabled={!assignTo[p.id] || busy === p.id}
+                        className="flex items-center gap-1 rounded-md border border-gold px-2.5 py-1.5 text-xs font-bold text-gold-light disabled:opacity-40"
+                      >
+                        <UserCheck size={13} /> Attribuer
+                      </button>
+                    </div>
+                  )}
+
                   <select
                     value={status}
                     disabled={!canEdit}
@@ -285,6 +353,17 @@ export function RecouvrementBoard({
                       className="w-full rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold disabled:opacity-60"
                     />
                   </div>
+
+                  {canEdit && (
+                    <button
+                      onClick={() => markPaid(p)}
+                      disabled={busy === p.id}
+                      className="flex items-center justify-center gap-1.5 rounded-lg bg-[#3f7d5c] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={14} /> Le client a payé : retirer de la liste
+                    </button>
+                  )}
+                  {notice?.id === p.id && <div className={notice.error ? "text-red" : "text-[#3f7d5c]"}>{notice.text}</div>}
                 </div>
               )}
             </div>
