@@ -22,6 +22,7 @@ import {
   Library,
   Receipt,
   PhoneCall,
+  Clock,
 } from "lucide-react";
 
 export interface NavItem {
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Tableau", icon: LayoutDashboard },
   { href: "/prospects", label: "Prospects", icon: Users },
   { href: "/appels", label: "Appels", icon: PhoneCall },
+  { href: "/activite", label: "Activité", icon: Clock },
   { href: "/linkedin", label: "LinkedIn", icon: Send, newcomerHidden: true },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },

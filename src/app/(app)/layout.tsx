@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { Flame } from "lucide-react";
 import { getCurrentPerson } from "@/lib/current-person";
 import { isPreFt2Newcomer } from "@/lib/parcours";
 import { SidebarNav, MobileNav } from "@/components/sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { IdeaCapture } from "@/components/idea-capture";
+import { OnlineList, OnlinePill, PresenceTracker } from "@/components/presence";
 import { signOut } from "./actions";
 import { getImpersonationTargetName, stopImpersonation } from "./admin/impersonation-actions";
 
@@ -58,7 +60,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="min-h-0 flex-1 overflow-y-auto">
           <SidebarNav isAdmin={person.is_admin} isTrial={person.status === "essai"} isNewcomer={isPreFt2Newcomer(person)} />
         </div>
-        <div className="mt-auto border-t border-line pt-4">
+        <div className="mt-auto border-t border-line pt-3">
+          <Link href="/activite" className="mb-3 block max-h-28 overflow-y-auto">
+            <OnlineList meId={person.id} />
+          </Link>
           <div className="mb-2 flex items-center justify-between text-xs text-muted">
             <span>
               {person.name} <span className="text-[#5a6b85]">· {person.rank}</span>
@@ -82,6 +87,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <h1 className="mt-0.5 font-serif text-2xl font-semibold text-ink">CRM</h1>
           </div>
           <div className="flex items-center gap-2">
+            <OnlinePill meId={person.id} />
             <div className="flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1.5">
               <Flame size={16} className="text-gold-light" />
             </div>
@@ -101,6 +107,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <MobileNav isAdmin={person.is_admin} isTrial={person.status === "essai"} isNewcomer={isPreFt2Newcomer(person)} />
       </div>
       <IdeaCapture />
+      <PresenceTracker paused={!!impersonatedName} />
     </div>
   );
 }
