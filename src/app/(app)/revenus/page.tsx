@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createClient } from "@/utils/supabase/server";
 import { RANKS_INFO } from "@/lib/ranks";
@@ -15,7 +14,6 @@ import type { TeamProductionRow, BudgetItem, BudgetEntry } from "@/types/databas
 export default async function RevenusPage() {
   const person = await getCurrentPerson();
   if (!person) return null;
-  if (person.status === "essai") notFound();
 
   const monthLabel = new Date().toLocaleDateString("fr-BE", { month: "long", year: "numeric" });
   const supabase = await createClient();

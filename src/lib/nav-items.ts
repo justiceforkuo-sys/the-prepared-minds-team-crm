@@ -43,7 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/activite", label: "Activité", icon: Clock },
   { href: "/linkedin", label: "LinkedIn", icon: Send, newcomerHidden: true },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
-  { href: "/revenus", label: "Revenus", icon: Wallet, trialHidden: true },
+  { href: "/revenus", label: "Revenus", icon: Wallet },
   { href: "/finances", label: "Finances", icon: PiggyBank },
   { href: "/clients", label: "Clients", icon: Contact },
   { href: "/decomptes", label: "Décomptes", icon: Receipt, trialHidden: true },
