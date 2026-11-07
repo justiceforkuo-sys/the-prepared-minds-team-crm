@@ -247,6 +247,19 @@ function ExpensesSection({
     await supabase.from("expenses").delete().eq("id", id);
   };
 
+  // « Rue Paul Janson — Loyer » s'affiche en deux colonnes (lieu / charge) ; groupé par lieu, l'ordre d'origine est conservé dans chaque groupe
+  const rows = useMemo(
+    () =>
+      expenses
+        .map((e, i) => {
+          const [bloc, ...rest] = e.categorie.split(" — ");
+          return { ...e, bloc: rest.length ? bloc : "", poste: rest.length ? rest.join(" — ") : e.categorie, i };
+        })
+        .sort((a, b) => a.bloc.localeCompare(b.bloc, "fr") || a.i - b.i),
+    [expenses]
+  );
+  const totalMensuel = (type: Expense["type"]) => expenses.filter((e) => e.type === type && e.recurrente).reduce((t, e) => t + e.montant, 0);
+
   return (
     <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
       <div className="mb-2.5 flex items-center justify-between">
@@ -256,25 +269,63 @@ function ExpensesSection({
         </button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {expenses.map((e) => (
-          <div key={e.id} className="flex items-center justify-between gap-2 rounded-lg border border-line bg-card-alt p-2.5">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-ink">{e.categorie}</div>
-              <div className="text-[11px] text-muted">
-                {e.type === "professionnelle" ? "Professionnelle" : "Personnelle"}
-                {e.recurrente ? " · récurrente" : ""} · {fmtDate(e.date)}
-              </div>
-            </div>
-            <div className="flex flex-shrink-0 items-center gap-2">
-              <span className="text-sm font-bold text-ink">{fmtEUR(e.montant)}</span>
-              <button onClick={() => remove(e.id)}>
-                <Trash2 size={13} className="text-red" />
-              </button>
-            </div>
-          </div>
-        ))}
-        {expenses.length === 0 && <div className="text-xs text-muted">Aucune dépense enregistrée.</div>}
+      <div className="overflow-x-auto rounded-xl border border-line">
+        <table className="w-full min-w-[520px] border-collapse text-xs">
+          <thead>
+            <tr className="bg-card-alt text-left text-[10px] font-bold uppercase tracking-wide text-muted">
+              <th className="px-2.5 py-1.5">Lieu / bloc</th>
+              <th className="px-2.5 py-1.5">Charge</th>
+              <th className="px-2.5 py-1.5">Type</th>
+              <th className="px-2.5 py-1.5">Date</th>
+              <th className="px-2.5 py-1.5 text-right">Montant</th>
+              <th className="w-8 px-1 py-1.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.id} className="border-t border-line align-top">
+                <td className="px-2.5 py-1.5 text-muted">{e.bloc}</td>
+                <td className="px-2.5 py-1.5 font-bold text-ink">{e.poste}</td>
+                <td className="px-2.5 py-1.5 text-muted">
+                  {e.type === "professionnelle" ? "Pro" : "Perso"}
+                  {e.recurrente ? " · mensuelle" : ""}
+                </td>
+                <td className="whitespace-nowrap px-2.5 py-1.5 text-muted">{fmtDate(e.date)}</td>
+                <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-bold text-ink">{fmtEUR(e.montant)}</td>
+                <td className="px-1 py-1.5">
+                  <button onClick={() => remove(e.id)} aria-label="Supprimer la charge">
+                    <Trash2 size={13} className="text-red" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {expenses.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-2.5 py-2 text-muted">
+                  Aucune dépense enregistrée.
+                </td>
+              </tr>
+            )}
+          </tbody>
+          {expenses.length > 0 && (
+            <tfoot>
+              {[
+                ["Total mensuel, charges personnelles récurrentes", totalMensuel("personnelle")],
+                ["Total mensuel, charges professionnelles récurrentes", totalMensuel("professionnelle")],
+              ]
+                .filter(([, v]) => Number(v) > 0)
+                .map(([label, v]) => (
+                  <tr key={String(label)} className="border-t border-line bg-card-alt font-bold">
+                    <td colSpan={4} className="px-2.5 py-1.5 text-ink">
+                      {label}
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5 text-right text-gold-light">{fmtEUR(Number(v))}</td>
+                    <td />
+                  </tr>
+                ))}
+            </tfoot>
+          )}
+        </table>
       </div>
 
       {showForm && (
