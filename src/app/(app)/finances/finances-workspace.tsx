@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { DebtsSection, type Debt, type DebtPayment } from "./debts-section";
+import { DailySection, type DailySpend } from "./daily-section";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import {
   computeFinances,
@@ -56,6 +57,8 @@ export function FinancesWorkspace({
   initialGoals,
   initialDebts,
   initialDebtPayments,
+  initialDaily,
+  initialDailyBudget,
 }: {
   personId: string;
   revenusAnnee: number;
@@ -65,6 +68,8 @@ export function FinancesWorkspace({
   initialGoals: SavingsGoal[];
   initialDebts: Debt[];
   initialDebtPayments: DebtPayment[];
+  initialDaily: DailySpend[];
+  initialDailyBudget: number | null;
 }) {
   const supabase = createClient();
   const [expenses, setExpenses] = useState(initialExpenses);
@@ -106,6 +111,8 @@ export function FinancesWorkspace({
           sub={`${fmtEUR(result.revenuNetDisponibleMois)} / mois en moyenne`}
         />
       </div>
+
+      <DailySection personId={personId} initialEntries={initialDaily} initialBudget={initialDailyBudget} />
 
       <ExpensesSection personId={personId} expenses={expenses} setExpenses={setExpenses} supabase={supabase} />
 

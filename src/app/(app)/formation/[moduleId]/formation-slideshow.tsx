@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, Circle, FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import type { FormationModuleData } from "@/lib/formation-modules";
 import type { Rank } from "@/types/database";
+import { MediaAdmin } from "./media-admin";
 
 interface PersonInfo {
   name: string;
@@ -14,16 +15,31 @@ interface PersonInfo {
   email: string | null;
 }
 
+export interface ModuleMedia {
+  id: string;
+  kind: "video" | "pdf";
+  title: string;
+  url: string;
+  sizeBytes: number | null;
+}
+
+/** Part de la vidéo à voir pour valider automatiquement le module. */
+const AUTO_DONE_RATIO = 0.9;
+
 export function FormationSlideshow({
   personId,
   person,
   module,
   initialDone,
+  media,
+  isAdmin,
 }: {
   personId: string;
   person: PersonInfo;
   module: FormationModuleData;
   initialDone: boolean;
+  media: ModuleMedia[];
+  isAdmin: boolean;
 }) {
   const supabase = createClient();
   const [index, setIndex] = useState(0);
@@ -46,8 +62,9 @@ export function FormationSlideshow({
 
   const goTo = (i: number) => setIndex(Math.max(0, Math.min(total - 1, i)));
 
-  const toggleDone = async () => {
-    const next = !done;
+  const toggleDone = () => saveDone(!done);
+
+  const saveDone = async (next: boolean) => {
     setDone(next);
     await supabase.from("formation_progress").upsert(
       {
@@ -78,6 +95,43 @@ export function FormationSlideshow({
       </div>
 
       <h2 className="font-serif text-lg font-semibold text-ink">{module.title}</h2>
+
+      {media.some((m) => m.kind === "video") && <div className="mt-1 mb-1 text-xs text-muted">Le module est validé automatiquement quand tu as vu {Math.round(AUTO_DONE_RATIO * 100)} % de la vidéo.</div>}
+      {media
+        .filter((m) => m.kind === "video")
+        .map((m) => (
+          <div key={m.id} className="mt-2 mb-3 overflow-hidden rounded-2xl border border-line bg-black">
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={m.url}
+              className="aspect-video w-full"
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (!done && v.duration > 0 && v.currentTime / v.duration >= AUTO_DONE_RATIO) void saveDone(true);
+              }}
+            >
+              Ton navigateur ne peut pas lire cette vidéo.
+            </video>
+          </div>
+        ))}
+      {media
+        .filter((m) => m.kind === "pdf")
+        .map((m) => (
+          <a
+            key={m.id}
+            href={m.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-3 flex items-center gap-2.5 rounded-2xl border border-line bg-card p-3.5 text-sm font-bold text-ink"
+          >
+            <FileText size={18} className="flex-shrink-0 text-gold" />
+            <span className="min-w-0 flex-1 truncate">{m.title}</span>
+            <span className="text-xs font-normal text-muted">PDF{m.sizeBytes ? ` · ${(m.sizeBytes / 1048576).toFixed(1).replace(".", ",")} Mo` : ""}</span>
+          </a>
+        ))}
+
       <div className="mt-1 mb-3 text-xs text-muted">
         Diapositive {index + 1} / {total}
       </div>
@@ -117,6 +171,8 @@ export function FormationSlideshow({
           Suivant <ChevronRight size={16} />
         </button>
       </div>
+
+      {isAdmin && <MediaAdmin moduleId={module.id} media={media} />}
     </div>
   );
 }
