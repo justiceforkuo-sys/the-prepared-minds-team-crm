@@ -77,7 +77,8 @@ export default async function FinancesPage() {
       initialFraisPct={pctList}
       initialRevenus={revenusList}
       initialRecus={recusList}
-      initialSources={((sourcesRows as { nom: string }[] | null) ?? []).map((r) => r.nom)}
+      // Colonnes choisies, plus toute colonne qui a déjà des montants : une donnée saisie ne reste jamais cachée
+      initialSources={[...new Set([...((sourcesRows as { nom: string }[] | null) ?? []).map((r) => r.nom), ...recusList.map((r) => r.source)])]}
       initialExpenses={(expenses as Expense[]) ?? []}
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}
       initialSettings={(settings as FinancialSettings | null) ?? defaultSettings}
