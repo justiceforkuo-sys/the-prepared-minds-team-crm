@@ -8,6 +8,7 @@ import { DailySection, type DailySpend } from "./daily-section";
 import { FraisSection, type Frais, type FraisPct } from "./frais-section";
 import { RevenusSection, type Revenu } from "./revenus-section";
 import { RecusSection, type Recu } from "./recus-section";
+import { StatutSection } from "./statut-section";
 import { fmtEUR, fmtDate } from "@/lib/format";
 import {
   computeFinances,
@@ -59,6 +60,7 @@ export function FinancesWorkspace({
   initialFraisPct,
   initialRevenus,
   initialRecus,
+  initialSources,
   initialExpenses,
   initialDeductibleSavings,
   initialSettings,
@@ -75,6 +77,7 @@ export function FinancesWorkspace({
   initialFraisPct: FraisPct[];
   initialRevenus: Revenu[];
   initialRecus: Recu[];
+  initialSources: string[];
   initialExpenses: Expense[];
   initialDeductibleSavings: DeductibleSaving[];
   initialSettings: FinancialSettings;
@@ -89,6 +92,7 @@ export function FinancesWorkspace({
   const [deductibleSavings, setDeductibleSavings] = useState(initialDeductibleSavings);
   const [settings, setSettings] = useState(initialSettings);
   const [goals, setGoals] = useState(initialGoals);
+  const [sources, setSources] = useState(initialSources);
 
   const result = useMemo(
     () => computeFinances({ revenusAnnee, expenses, deductibleSavings, settings, fraisDeductibles: fraisDeductiblesAnnee }),
@@ -99,6 +103,8 @@ export function FinancesWorkspace({
     <div>
       <h2 className="font-serif text-xl font-semibold text-ink">Finances</h2>
       <div className="mt-1 mb-4 text-xs text-muted">Vue d&apos;ensemble {new Date().getFullYear()}.</div>
+
+      <StatutSection personId={personId} initialStatut={initialSettings.statut_pro ?? null} sources={sources} setSources={setSources} />
 
       <div className="mb-4 flex gap-2 rounded-2xl border border-line bg-card p-3.5 text-xs text-muted">
         <AlertTriangle size={16} className="flex-shrink-0 text-gold-light" />
@@ -156,7 +162,7 @@ export function FinancesWorkspace({
 
       <RevenusSection personId={personId} initialRevenus={initialRevenus} depensesMensuelles={result.chargesPersoMensuelles + result.epargneMensuelleTotale} />
 
-      <RecusSection personId={personId} initialRecus={initialRecus} />
+      <RecusSection personId={personId} initialRecus={initialRecus} sources={sources} setSources={setSources} />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">Fonds d&apos;urgence</div>

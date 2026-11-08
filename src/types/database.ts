@@ -412,6 +412,8 @@ export interface FinancialSettings {
   fonds_urgence_actuel: number;
   rendement_epargne_pension: number;
   annees_avant_pension: number;
+  /** Statut professionnel choisi par la personne (null tant qu'elle ne l'a pas indiqué). */
+  statut_pro?: "principal" | "complementaire" | "etudiant" | null;
   updated_at: string;
 }
 

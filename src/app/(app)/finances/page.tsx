@@ -20,7 +20,7 @@ export default async function FinancesPage() {
   sinceDate.setDate(sinceDate.getDate() - 62);
   const since = sinceDate.toISOString().slice(0, 10);
 
-  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }, { data: frais }, { data: fraisPct }, { data: revenus }, { data: recus }] =
+  const [{ data: payouts }, { data: expenses }, { data: deductibleSavings }, { data: settings }, { data: goals }, { data: debts }, { data: debtPayments }, { data: daily }, { data: dailySettings }, { data: frais }, { data: fraisPct }, { data: revenus }, { data: recus }, { data: sourcesRows }] =
     await Promise.all([
       supabase.from("payout_history").select("month, payout").eq("person_id", person.id),
       supabase.from("expenses").select("*").eq("person_id", person.id).order("date", { ascending: false }),
@@ -34,7 +34,8 @@ export default async function FinancesPage() {
       supabase.from("finance_frais").select("*").eq("person_id", person.id).order("spent_on").limit(5000),
       supabase.from("finance_frais_pct").select("annee, categorie, pct, justification").eq("person_id", person.id),
       supabase.from("finance_revenus").select("*").eq("person_id", person.id).order("ordre"),
-      supabase.from("finance_revenus_recus").select("mois, source, montant, note").eq("person_id", person.id).order("mois"),
+      supabase.from("finance_revenus_recus").select("mois, source, montant, note, fiche").eq("person_id", person.id).order("mois"),
+      supabase.from("finance_revenus_sources").select("nom, ordre").eq("person_id", person.id).order("ordre"),
     ]);
 
   const revenusAnnee = ((payouts as PayoutHistoryRow[] | null) ?? [])
@@ -63,6 +64,7 @@ export default async function FinancesPage() {
     fonds_urgence_actuel: 0,
     rendement_epargne_pension: 0.02,
     annees_avant_pension: 20,
+    statut_pro: null,
     updated_at: "",
   };
 
@@ -75,6 +77,7 @@ export default async function FinancesPage() {
       initialFraisPct={pctList}
       initialRevenus={revenusList}
       initialRecus={recusList}
+      initialSources={((sourcesRows as { nom: string }[] | null) ?? []).map((r) => r.nom)}
       initialExpenses={(expenses as Expense[]) ?? []}
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}
       initialSettings={(settings as FinancialSettings | null) ?? defaultSettings}
