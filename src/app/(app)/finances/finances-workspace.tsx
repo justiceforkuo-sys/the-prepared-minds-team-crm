@@ -61,6 +61,7 @@ export function FinancesWorkspace({
   initialRevenus,
   initialRecus,
   initialSources,
+  initialEstim,
   initialExpenses,
   initialDeductibleSavings,
   initialSettings,
@@ -78,6 +79,7 @@ export function FinancesWorkspace({
   initialRevenus: Revenu[];
   initialRecus: Recu[];
   initialSources: string[];
+  initialEstim: string[];
   initialExpenses: Expense[];
   initialDeductibleSavings: DeductibleSaving[];
   initialSettings: FinancialSettings;
@@ -93,10 +95,21 @@ export function FinancesWorkspace({
   const [settings, setSettings] = useState(initialSettings);
   const [goals, setGoals] = useState(initialGoals);
   const [sources, setSources] = useState(initialSources);
+  const [estim, setEstim] = useState(initialEstim);
+  const [recus, setRecus] = useState(initialRecus);
+
+  // Sans décomptes OVB dans le CRM, l'estimation part des revenus reçus des colonnes cochées « compte dans l'estimation »
+  const yearNow = String(new Date().getFullYear());
+  const recusEstim = useMemo(() => {
+    const rows = recus.filter((r) => r.mois.startsWith(yearNow) && estim.includes(r.source) && (r.montant ?? 0) > 0);
+    return { total: rows.reduce((s, r) => s + (r.montant ?? 0), 0), mois: new Set(rows.map((r) => r.mois)).size };
+  }, [recus, estim, yearNow]);
+  const revenusEffectifs = revenusAnnee > 0 ? revenusAnnee : recusEstim.total;
+  const revenusSub = revenusAnnee > 0 ? "d'après tes décomptes" : recusEstim.total > 0 ? `d'après tes revenus reçus (${recusEstim.mois} mois)` : "aucun décompte ni revenu coché";
 
   const result = useMemo(
-    () => computeFinances({ revenusAnnee, expenses, deductibleSavings, settings, fraisDeductibles: fraisDeductiblesAnnee }),
-    [revenusAnnee, fraisDeductiblesAnnee, expenses, deductibleSavings, settings]
+    () => computeFinances({ revenusAnnee: revenusEffectifs, expenses, deductibleSavings, settings, fraisDeductibles: fraisDeductiblesAnnee }),
+    [revenusEffectifs, fraisDeductiblesAnnee, expenses, deductibleSavings, settings]
   );
 
   return (
@@ -104,7 +117,7 @@ export function FinancesWorkspace({
       <h2 className="font-serif text-xl font-semibold text-ink">Finances</h2>
       <div className="mt-1 mb-4 text-xs text-muted">Vue d&apos;ensemble {new Date().getFullYear()}.</div>
 
-      <StatutSection personId={personId} initialStatut={initialSettings.statut_pro ?? null} sources={sources} setSources={setSources} />
+      <StatutSection personId={personId} initialStatut={initialSettings.statut_pro ?? null} sources={sources} setSources={setSources} setEstim={setEstim} />
 
       <div className="mb-4 flex gap-2 rounded-2xl border border-line bg-card p-3.5 text-xs text-muted">
         <AlertTriangle size={16} className="flex-shrink-0 text-gold-light" />
@@ -116,7 +129,7 @@ export function FinancesWorkspace({
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2.5">
-        <KpiTile label={`Revenus ${new Date().getFullYear()}`} value={fmtEUR(result.revenusAnnee)} />
+        <KpiTile label={`Revenus ${new Date().getFullYear()}`} value={fmtEUR(result.revenusAnnee)} sub={revenusSub} />
         <KpiTile label={`Charges pro ${new Date().getFullYear()}`} value={fmtEUR(result.chargesProAnnee)} />
         <KpiTile
           label="Cotisations sociales / an"
@@ -162,7 +175,7 @@ export function FinancesWorkspace({
 
       <RevenusSection personId={personId} initialRevenus={initialRevenus} depensesMensuelles={result.chargesPersoMensuelles + result.epargneMensuelleTotale} />
 
-      <RecusSection personId={personId} initialRecus={initialRecus} sources={sources} setSources={setSources} />
+      <RecusSection personId={personId} recus={recus} setRecus={setRecus} sources={sources} setSources={setSources} estim={estim} setEstim={setEstim} />
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">Fonds d&apos;urgence</div>

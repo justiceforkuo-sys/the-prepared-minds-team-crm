@@ -35,7 +35,7 @@ export default async function FinancesPage() {
       supabase.from("finance_frais_pct").select("annee, categorie, pct, justification").eq("person_id", person.id),
       supabase.from("finance_revenus").select("*").eq("person_id", person.id).order("ordre"),
       supabase.from("finance_revenus_recus").select("mois, source, montant, note, fiche").eq("person_id", person.id).order("mois"),
-      supabase.from("finance_revenus_sources").select("nom, ordre").eq("person_id", person.id).order("ordre"),
+      supabase.from("finance_revenus_sources").select("nom, ordre, independant").eq("person_id", person.id).order("ordre"),
     ]);
 
   const revenusAnnee = ((payouts as PayoutHistoryRow[] | null) ?? [])
@@ -78,6 +78,7 @@ export default async function FinancesPage() {
       initialRevenus={revenusList}
       initialRecus={recusList}
       // Colonnes choisies, plus toute colonne qui a déjà des montants : une donnée saisie ne reste jamais cachée
+      initialEstim={((sourcesRows as { nom: string; independant: boolean }[] | null) ?? []).filter((r) => r.independant).map((r) => r.nom)}
       initialSources={[...new Set([...((sourcesRows as { nom: string }[] | null) ?? []).map((r) => r.nom), ...recusList.map((r) => r.source)])]}
       initialExpenses={(expenses as Expense[]) ?? []}
       initialDeductibleSavings={(deductibleSavings as DeductibleSaving[]) ?? []}

@@ -36,17 +36,23 @@ type Draft = { mois: string; source: string; employeur: string; brut: string; co
 
 export function RecusSection({
   personId,
-  initialRecus,
+  recus,
+  setRecus,
   sources,
   setSources,
+  estim,
+  setEstim,
 }: {
   personId: string;
-  initialRecus: Recu[];
+  recus: Recu[];
+  setRecus: Dispatch<SetStateAction<Recu[]>>;
   sources: string[];
   setSources: Dispatch<SetStateAction<string[]>>;
+  /** Colonnes qui comptent dans l'estimation (commissions d'indépendant, pas un salaire). */
+  estim: string[];
+  setEstim: Dispatch<SetStateAction<string[]>>;
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const [recus, setRecus] = useState(initialRecus);
   const [open, setOpen] = useState(true);
   const currentYear = new Date().getFullYear();
   const years = useMemo(() => [...new Set([currentYear, ...recus.map((r) => Number(r.mois.slice(0, 4)))])].sort((a, b) => b - a), [recus, currentYear]);
@@ -90,6 +96,15 @@ export function RecusSection({
     setMsg(null);
   };
 
+  const toggleEstim = async (nom: string, on: boolean) => {
+    setEstim((cur) => (on ? [...cur, nom] : cur.filter((s) => s !== nom)));
+    const { error } = await supabase.from("finance_revenus_sources").update({ independant: on }).eq("nom", nom).eq("person_id", personId);
+    if (error) {
+      setEstim((cur) => (on ? cur.filter((s) => s !== nom) : [...cur, nom]));
+      setMsg(error.message);
+    } else setMsg(null);
+  };
+
   const renameSource = async (nom: string) => {
     const next = (prompt(`Nouveau nom pour « ${nom} » :`, nom) ?? "").trim();
     if (!next || next === nom) return;
@@ -99,6 +114,7 @@ export function RecusSection({
     const b = await supabase.from("finance_revenus_sources").update({ nom: next }).eq("nom", nom).eq("person_id", personId);
     if (b.error) return setMsg(b.error.message);
     setSources((cur) => cur.map((s) => (s === nom ? next : s)));
+    setEstim((cur) => cur.map((s) => (s === nom ? next : s)));
     setRecus((cur) => cur.map((r) => (r.source === nom ? { ...r, source: next } : r)));
     setMsg(null);
   };
@@ -111,6 +127,7 @@ export function RecusSection({
     const b = await supabase.from("finance_revenus_sources").delete().eq("nom", nom).eq("person_id", personId);
     if (b.error) return setMsg(b.error.message);
     setSources((cur) => cur.filter((s) => s !== nom));
+    setEstim((cur) => cur.filter((s) => s !== nom));
     setRecus((cur) => cur.filter((r) => r.source !== nom));
   };
 
@@ -249,6 +266,10 @@ export function RecusSection({
                               <X size={11} />
                             </button>
                           </span>
+                          <label className="mt-0.5 flex cursor-pointer items-center justify-end gap-1 text-[9px] font-normal normal-case tracking-normal" title="Coche les commissions d'indépendant ; laisse décoché un salaire d'employeur.">
+                            <input type="checkbox" checked={estim.includes(s)} onChange={(e) => void toggleEstim(s, e.target.checked)} />
+                            compte dans l&apos;estimation
+                          </label>
                         </th>
                       ))}
                     </tr>

@@ -20,11 +20,13 @@ export function StatutSection({
   initialStatut,
   sources,
   setSources,
+  setEstim,
 }: {
   personId: string;
   initialStatut: StatutPro | null;
   sources: string[];
   setSources: Dispatch<SetStateAction<string[]>>;
+  setEstim: Dispatch<SetStateAction<string[]>>;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [statut, setStatut] = useState<StatutPro | null>(initialStatut);
@@ -40,8 +42,13 @@ export function StatutSection({
     // Première fois : on propose les colonnes de revenus qui vont avec le statut (modifiables ensuite)
     if (sources.length === 0) {
       const base = STATUTS.find((s) => s.id === next)!.sources;
-      const { error: e2 } = await supabase.from("finance_revenus_sources").insert(base.map((nom, ordre) => ({ person_id: personId, nom, ordre })));
-      if (!e2) setSources(base);
+      // Les commissions comptent dans l'estimation d'impôt ; un salaire ou un job étudiant, non (cases modifiables ensuite)
+      const independant = (nom: string) => /ovb|commission/i.test(nom);
+      const { error: e2 } = await supabase.from("finance_revenus_sources").insert(base.map((nom, ordre) => ({ person_id: personId, nom, ordre, independant: independant(nom) })));
+      if (!e2) {
+        setSources(base);
+        setEstim(base.filter(independant));
+      }
     }
   };
 
