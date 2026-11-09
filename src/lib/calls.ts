@@ -89,7 +89,7 @@ export interface Lecture {
  * peu d'appels → « Augmente le volume » ; beaucoup d'appels mais peu de RDV → « Revois le script ».
  */
 export function lecture(f: Funnel, weeks: number, s: Seuils): Lecture {
-  if (f.appels < s.min_appels) return { kind: "trop_tot", text: `Trop tôt pour conclure : ${f.appels} appel${f.appels > 1 ? "s" : ""} sur 4 semaines (il en faut ${s.min_appels} pour lire tes taux). Continue d'appeler.` };
+  if (f.appels < s.min_appels) return { kind: "trop_tot", text: `Seulement ${f.appels} appel${f.appels > 1 ? "s" : ""} sur 4 semaines : il en faut ${s.min_appels} pour lire tes taux. Continue d'appeler.` };
   const parSemaine = f.appels / Math.max(1, weeks);
   if (parSemaine < s.volume_semaine) return { kind: "volume", text: `Augmente le volume : ${Math.round(parSemaine)} appels par semaine en moyenne, pour un minimum de ${s.volume_semaine}. Le volume d'abord, la qualité ensuite.` };
   const taux = f.joints > 0 ? f.rdv / f.joints : 0;
