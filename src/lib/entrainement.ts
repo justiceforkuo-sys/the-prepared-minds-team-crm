@@ -19,15 +19,15 @@ export const SCENARIOS: Scenario[] = [
     id: "ami-curieux",
     titre: "L'ami curieux",
     niveau: "facile",
-    defi: "Il accepte volontiers, mais son conjoint n'est pas dispo au premier créneau.",
+    defi: "La personne accepte volontiers, mais son conjoint n'est pas dispo au premier créneau.",
     situation:
-      "Tu es sympa et curieux : tu acceptes volontiers de voir le collaborateur. Ton conjoint ne sera PAS disponible au premier créneau que le collaborateur propose ; si il insiste sur la présence du conjoint, tu acceptes un autre créneau. Tu acceptes la présence du formateur sans souci.",
+      "Tu es sympa et curieux(se) : tu acceptes volontiers de voir le collaborateur. Ton conjoint ne sera PAS disponible au premier créneau que le collaborateur propose  ; s'il insiste sur la présence du conjoint, tu acceptes un autre créneau. Tu acceptes la présence du formateur sans souci.",
   },
   {
     id: "formation-en-quoi",
     titre: "« Une formation en quoi ? »",
     niveau: "facile",
-    defi: "Il n'a pas bien compris l'annonce de la formation.",
+    defi: "La personne n'a pas bien compris l'annonce de la formation.",
     situation:
       "Quand le collaborateur parle de sa nouvelle formation, tu réponds : « Je n'ai pas très bien compris. Tu suis une formation en quoi ? ». Une fois que sa réponse est claire, tu acceptes de le voir. Ton conjoint est disponible et tu acceptes le formateur.",
   },
@@ -35,7 +35,7 @@ export const SCENARIOS: Scenario[] = [
     id: "pourquoi-moi",
     titre: "« Pourquoi moi ? »",
     niveau: "normal",
-    defi: "« Je ne m'y connais pas du tout. »",
+    defi: "« Je ne m'y connais pas du tout », dit la personne.",
     situation:
       "Objection à soulever dans tes propres mots : « Mais pourquoi moi ? Je ne m'y connais pas du tout ». Tu acceptes si le collaborateur te rassure clairement sur ton profil et propose un créneau précis. Conjoint et formateur : pas de problème.",
   },
@@ -43,7 +43,7 @@ export const SCENARIOS: Scenario[] = [
     id: "pas-le-temps",
     titre: "« Je n'ai pas le temps »",
     niveau: "normal",
-    defi: "Il est occupé et veut éviter le rendez-vous.",
+    defi: "La personne n'a pas le temps et veut éviter le rendez-vous.",
     situation:
       "Objection à soulever dans tes propres mots : « Je n'ai pas le temps ! ». Tu acceptes si le collaborateur t'explique que c'est court (environ 30 minutes), à un moment qui t'arrange, avec une vraie proposition de dates. Conjoint et formateur : pas de problème.",
   },
@@ -51,7 +51,7 @@ export const SCENARIOS: Scenario[] = [
     id: "deja-client-ovb",
     titre: "Déjà client chez OVB",
     niveau: "normal",
-    defi: "Il a déjà une épargne-pension chez OVB.",
+    defi: "La personne a déjà une épargne-pension chez OVB.",
     situation:
       "Objection à soulever dans tes propres mots : « Je suis déjà client(e) chez OVB en épargne-pension ». Tu acceptes si le collaborateur t'explique que ton avis sur les services l'intéresse pour sa formation. Conjoint et formateur : pas de problème.",
   },
@@ -59,7 +59,7 @@ export const SCENARIOS: Scenario[] = [
     id: "deja-courtier",
     titre: "Déjà un courtier ou tout à la banque",
     niveau: "normal",
-    defi: "Il est déjà conseillé ailleurs.",
+    defi: "La personne est déjà conseillée ailleurs.",
     situation:
       "Objection à soulever dans tes propres mots : « J'ai déjà un courtier qui me conseille » ou « J'ai déjà tout à ma banque ». Tu acceptes si le collaborateur propose une comparaison utile pour sa formation et un créneau précis. Conjoint et formateur : pas de problème.",
   },
@@ -67,7 +67,7 @@ export const SCENARIOS: Scenario[] = [
     id: "veux-vendre",
     titre: "« Tu veux me vendre quelque chose »",
     niveau: "difficile",
-    defi: "Il est méfiant et ferme dès le début.",
+    defi: "La personne est méfiante et ferme dès le début.",
     situation:
       "Tu es méfiant. Dès que le collaborateur parle de rendez-vous, tu dis : « Tu veux me vendre quelque chose, je ne suis pas intéressé ». Tu insistes une fois si la réponse est floue. Tu ne cèdes que si le collaborateur te répond clairement, te demande un service pour sa formation et propose un créneau précis.",
   },
@@ -88,12 +88,12 @@ export interface Profil {
 }
 
 export const PROFILS: Profil[] = [
-  { id: "collegue", label: "un collègue de travail", traits: "tu connais le collaborateur du boulot ; ton direct, un peu pressé par la journée" },
-  { id: "voisin", label: "un voisin", traits: "cordial, curieux, il aime discuter de la vie du quartier" },
-  { id: "camarade", label: "un ancien camarade", traits: "nostalgique et enthousiaste, vous avez fait vos études ensemble" },
-  { id: "bavard", label: "quelqu'un de très bavard", traits: "tu racontes ta vie et tu dérives ; le collaborateur doit te ramener au sujet avec tact" },
-  { id: "presse", label: "quelqu'un de pressé", traits: "tu es au volant ou entre deux réunions, tu réponds court et tu veux conclure vite" },
-  { id: "sceptique", label: "quelqu'un de sceptique", traits: "tu doutes de tout, tu poses des questions précises" },
+  { id: "collegue", label: "collègue de travail", traits: "tu connais le collaborateur du boulot ; ton direct, un peu pressé par la journée" },
+  { id: "voisin", label: "voisin ou voisine", traits: "cordial, curieux, il aime discuter de la vie du quartier" },
+  { id: "camarade", label: "ancien camarade", traits: "nostalgique et enthousiaste, vous avez fait vos études ensemble" },
+  { id: "bavard", label: "personne très bavarde", traits: "tu racontes ta vie et tu dérives ; le collaborateur doit te ramener au sujet avec tact" },
+  { id: "presse", label: "personne pressée", traits: "tu es au volant ou entre deux réunions, tu réponds court et tu veux conclure vite" },
+  { id: "sceptique", label: "personne sceptique", traits: "tu doutes de tout, tu poses des questions précises" },
 ];
 
 export const PRENOMS = ["Karim", "Sophie", "Nadia", "Julien", "Amina", "Thomas", "Laura", "Yanis", "Marie", "David", "Sarah", "Bruno"];

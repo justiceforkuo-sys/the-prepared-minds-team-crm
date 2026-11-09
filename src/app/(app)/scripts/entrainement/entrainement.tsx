@@ -217,7 +217,7 @@ export function Entrainement() {
           )}
         </div>
         <div className="mt-1 text-muted">
-          Tu appelles {session?.prenom}, {profil?.label}. {scenario?.defi}
+          Tu appelles {session?.prenom} ({profil?.label}). {scenario?.defi}
         </div>
       </div>
 
