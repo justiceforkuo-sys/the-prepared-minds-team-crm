@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { PhoneCall } from "lucide-react";
+
 const SCRIPTS = [
   {
     guru: "Eric Worre",
@@ -36,6 +39,13 @@ export default function ScriptsPage() {
     <div>
       <h2 className="font-serif text-xl font-semibold text-ink">Scripts</h2>
       <p className="mb-4 mt-1 text-xs text-muted">Les 5 piliers de méthode, condensés en action.</p>
+      <Link href="/scripts/entrainement" className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 hover:border-gold">
+        <PhoneCall size={20} className="flex-shrink-0 text-gold-light" />
+        <span className="text-xs text-muted">
+          <span className="block text-sm font-bold text-ink">S&apos;entraîner aux appels</span>
+          Claude joue un prospect fictif : tu fixes un rendez-vous, puis tu reçois ton retour étape par étape et une note sur 10.
+        </span>
+      </Link>
       <div className="flex flex-col gap-2.5">
         {SCRIPTS.map((s, i) => (
           <div key={i} className="rounded-2xl border border-line bg-card p-3.5">

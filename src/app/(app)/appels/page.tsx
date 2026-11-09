@@ -156,6 +156,10 @@ export default async function AppelsPage() {
         </p>
       </div>
 
+      <Link href="/scripts/entrainement" className="flex items-center gap-2 rounded-2xl border border-line bg-card px-3.5 py-2.5 text-xs text-muted hover:border-gold">
+        <span className="font-bold text-ink">S&apos;entraîner aux appels</span> : un prospect fictif joué par Claude, avec un retour étape par étape.
+      </Link>
+
       <div className="grid grid-cols-3 gap-2">
         {[
           ["Aujourd'hui", totals.today],
