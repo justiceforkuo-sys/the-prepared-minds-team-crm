@@ -13,6 +13,7 @@ import { RemunerationPanel, type RemuPersonRow } from "./remuneration-panel";
 import { InboundLogPanel, type InboundAdminRow } from "./inbound-log-panel";
 import { TiroirsPanel } from "./tiroirs-panel";
 import { SolutionsEditorsPanel } from "./solutions-editors-panel";
+import { ObjectionsPanel, type Objection } from "./objections-panel";
 import type { Tiroir } from "@/lib/idees";
 import { webhookKey } from "@/lib/webhook-keys";
 import { loadRemuSummary } from "@/lib/remuneration-data";
@@ -87,6 +88,7 @@ export default async function AdminPage() {
   });
   const inboundEndpoint = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://the-prepared-minds-team-crm.vercel.app"}/api/inbound/linkedin?key=${webhookKey("inbound-linkedin")}`;
   const { data: tiroirRows } = await supabase.from("tiroirs").select("*").order("numero");
+  const { data: objectionRows } = await supabase.from("objections").select("id, libelle, mots_clients, reponse_equipe, validee, ordre").order("ordre");
   const inRemu = new Set(remuRows.map((r) => r.id));
   const RANK_ORDER = ["JFAI", "JFAII", "JFAIII", "FA", "FC", "CD", "CR", "CN"];
   const valeurs = ((valeurRows as { rang: string; valeur: number }[] | null) ?? [])
@@ -126,6 +128,10 @@ export default async function AdminPage() {
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
         <TiroirsPanel initial={(tiroirRows as Tiroir[] | null) ?? []} people={(people ?? []).filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <ObjectionsPanel initial={(objectionRows as Objection[] | null) ?? []} meId={person.id} />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
