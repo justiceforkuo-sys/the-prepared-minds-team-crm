@@ -28,10 +28,24 @@ const toLines = (s: string) =>
  * Banque d'objections de l'équipe, modifiable par les administrateurs. Une objection est une information sur le client,
  * pas un mur à abattre. Une réponse reste un brouillon (visible des seuls administrateurs) jusqu'à sa validation.
  */
-export function ObjectionsPanel({ initial, meId }: { initial: Objection[]; meId: string }) {
+export function ObjectionsPanel({ initial, meId, autres }: { initial: Objection[]; meId: string; autres: { mots: string; n: number }[] }) {
   const supabase = createClient();
   const [rows, setRows] = useState([...initial].sort((a, b) => a.ordre - b.ordre));
   const [msg, setMsg] = useState<string | null>(null);
+  const [autresList, setAutresList] = useState(autres);
+
+  const fromAutre = async (mots: string) => {
+    const ordre = rows.reduce((m, r) => Math.max(m, r.ordre), -1) + 1;
+    const { data, error } = await supabase
+      .from("objections")
+      .insert({ libelle: mots.length > 40 ? `${mots.slice(0, 37)}…` : mots, mots_clients: [mots], ordre, creee_par: meId })
+      .select()
+      .single();
+    if (error || !data) return setMsg(error?.message ?? "Création impossible.");
+    setRows((cur) => [...cur, data as Objection]);
+    setAutresList((cur) => cur.filter((a) => a.mots !== mots));
+    setMsg("Objection créée en brouillon : écris la réponse, puis valide-la.");
+  };
 
   const add = async () => {
     const ordre = rows.reduce((m, r) => Math.max(m, r.ordre), -1) + 1;
@@ -74,6 +88,25 @@ export function ObjectionsPanel({ initial, meId }: { initial: Objection[]; meId:
       <button onClick={add} className={`${ghostBtn} mt-2 flex items-center gap-1`}>
         <Plus size={13} /> Ajouter une objection
       </button>
+
+      {autresList.length > 0 && (
+        <div className="mt-3 rounded-xl border border-line bg-card-alt p-2.5 text-xs">
+          <div className="font-bold text-ink">Entendues sous « Autre » ({autresList.length})</div>
+          <p className="mb-1.5 text-muted">Les mots exacts notés par l&apos;équipe après un appel, sans nom. Transforme une formulation fréquente en objection, puis écris la réponse.</p>
+          <div className="flex flex-col gap-1">
+            {autresList.map((a) => (
+              <div key={a.mots} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card px-2 py-1.5">
+                <span className="min-w-0 flex-1 text-ink">
+                  « {a.mots} » {a.n > 1 ? <span className="text-muted">× {a.n}</span> : null}
+                </span>
+                <button onClick={() => fromAutre(a.mots)} className={ghostBtn}>
+                  Créer l&apos;objection
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {msg && <div className="mt-1 text-[11px] text-ink">{msg}</div>}
     </div>
   );

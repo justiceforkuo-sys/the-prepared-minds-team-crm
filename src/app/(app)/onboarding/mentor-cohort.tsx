@@ -53,7 +53,7 @@ function ctxOf(data: Serial, personId: string): Ctx {
     row: data.rows.find((r) => r.person_id === personId)!,
     person: data.persons[personId],
     modules,
-    extras: data.extras[personId] ?? { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0 },
+    extras: data.extras[personId] ?? { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0, appelsDepuisJ5: 0 },
   };
 }
 

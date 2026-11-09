@@ -33,7 +33,7 @@ export function ctxFor(data: ParcoursData, personId: string): Ctx | null {
   if (!row || !person) return null;
   const modules: Ctx["modules"] = {};
   for (const m of data.modules) if (m.user_id === personId) modules[m.module] = m;
-  return { row, person, modules, extras: data.extras[personId] ?? { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0 } };
+  return { row, person, modules, extras: data.extras[personId] ?? { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0, appelsDepuisJ5: 0 } };
 }
 
 /**
@@ -76,7 +76,7 @@ export async function loadParcours(supabase: SupabaseClient): Promise<ParcoursDa
   ]);
 
   const extras: Record<string, Extras> = {};
-  for (const id of ids) extras[id] = { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0 };
+  for (const id of ids) extras[id] = { prospectsSansRelance: 0, recoNonContactees: 0, dvSansRecos: 0, appelsDepuisJ5: 0 };
   for (const r of (noFollow as { owner_id: string }[] | null) ?? []) extras[r.owner_id].prospectsSansRelance += 1;
   for (const r of (recos as { owner_id: string; stage: string; created_at: string; updated_at: string }[] | null) ?? []) {
     const untouched = new Date(r.updated_at).getTime() - new Date(r.created_at).getTime() < 60000;
@@ -84,6 +84,17 @@ export async function loadParcours(supabase: SupabaseClient): Promise<ParcoursDa
   }
   for (const r of (daily as { person_id: string; dv_realises: number; recomm_dv: number }[] | null) ?? []) {
     if (r.dv_realises > 0 && r.recomm_dv < 5 * r.dv_realises) extras[r.person_id].dvSansRecos += 1;
+  }
+
+  // Appels encodés depuis le jour 5 du parcours (J1 = date d'intégration)
+  const starts = new Map(rows.map((r) => [r.person_id, addDays(r.integration_date, 4)]));
+  const earliest = [...starts.values()].sort()[0];
+  if (earliest) {
+    const { data: calls } = await service.from("call_log").select("person_id, called_at").in("person_id", ids).gte("called_at", `${earliest}T00:00:00Z`).limit(20000);
+    for (const c of (calls as { person_id: string; called_at: string }[] | null) ?? []) {
+      const day = new Date(c.called_at).toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+      if (day >= (starts.get(c.person_id) ?? "9999-12-31")) extras[c.person_id].appelsDepuisJ5 += 1;
+    }
   }
 
   // Passage FT2 / JFA II : validé immédiatement dès 1 000 unités (sans attendre la semaine 8)

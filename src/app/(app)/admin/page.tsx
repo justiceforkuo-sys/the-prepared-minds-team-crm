@@ -14,6 +14,8 @@ import { InboundLogPanel, type InboundAdminRow } from "./inbound-log-panel";
 import { TiroirsPanel } from "./tiroirs-panel";
 import { SolutionsEditorsPanel } from "./solutions-editors-panel";
 import { ObjectionsPanel, type Objection } from "./objections-panel";
+import { AppelsSeuilsPanel } from "./appels-seuils-panel";
+import { parseSeuils } from "@/lib/calls";
 import type { Tiroir } from "@/lib/idees";
 import { webhookKey } from "@/lib/webhook-keys";
 import { loadRemuSummary } from "@/lib/remuneration-data";
@@ -89,6 +91,12 @@ export default async function AdminPage() {
   const inboundEndpoint = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://the-prepared-minds-team-crm.vercel.app"}/api/inbound/linkedin?key=${webhookKey("inbound-linkedin")}`;
   const { data: tiroirRows } = await supabase.from("tiroirs").select("*").order("numero");
   const { data: objectionRows } = await supabase.from("objections").select("id, libelle, mots_clients, reponse_equipe, validee, ordre").order("ordre");
+  // Mots exacts entendus sous « Autre » (sans nom de personne), regroupés par formulation
+  const { data: autreRows } = await supabase.from("call_log").select("objection_mots").is("objection_id", null).not("objection_mots", "is", null).order("called_at", { ascending: false }).limit(500);
+  const autreCount = new Map<string, number>();
+  for (const r of (autreRows as { objection_mots: string }[] | null) ?? []) autreCount.set(r.objection_mots.trim(), (autreCount.get(r.objection_mots.trim()) ?? 0) + 1);
+  const autres = [...autreCount.entries()].map(([mots, n]) => ({ mots, n })).sort((a, b) => b.n - a.n);
+  const { data: seuilsRow } = await supabase.from("app_settings").select("value").eq("key", "appels_seuils").maybeSingle();
   const inRemu = new Set(remuRows.map((r) => r.id));
   const RANK_ORDER = ["JFAI", "JFAII", "JFAIII", "FA", "FC", "CD", "CR", "CN"];
   const valeurs = ((valeurRows as { rang: string; valeur: number }[] | null) ?? [])
@@ -131,7 +139,11 @@ export default async function AdminPage() {
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
-        <ObjectionsPanel initial={(objectionRows as Objection[] | null) ?? []} meId={person.id} />
+        <ObjectionsPanel initial={(objectionRows as Objection[] | null) ?? []} meId={person.id} autres={autres} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">
+        <AppelsSeuilsPanel initial={parseSeuils((seuilsRow as { value: unknown } | null)?.value)} meId={person.id} />
       </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3.5">

@@ -119,6 +119,7 @@ export interface Extras {
   prospectsSansRelance: number;
   recoNonContactees: number; // recommandations à contacter depuis plus de 48 h
   dvSansRecos: number; // DV réalisés (aujourd'hui / hier) avec moins de 5 recommandations encodées
+  appelsDepuisJ5: number; // appels encodés depuis le jour 5 du parcours (objectif : 10 sur J5-J7)
 }
 
 export interface Ctx {
@@ -339,6 +340,11 @@ export function computeAlerts(input: AlertInput): Alert[] {
 
   if (n(row.figures_days_week) === 0 && (weekday > 5 || (weekday === 5 && hour >= 20))) {
     push("orange", `${label} : aucun chiffre saisi cette semaine (chiffres du vendredi absents).`);
+  }
+
+  // Bloc 10 : fixer ses premiers DV demande des appels. Après J7, moins de 10 appels encodés depuis J5 = relance du coach.
+  if (day >= 7 && day <= 14 && input.extras.appelsDepuisJ5 < 10) {
+    push("orange", `${label} : J${day}, ${input.extras.appelsDepuisJ5} appel${input.extras.appelsDepuisJ5 > 1 ? "s" : ""} encodé${input.extras.appelsDepuisJ5 > 1 ? "s" : ""} depuis J5 (objectif : 10 sur J5-J7). Fixe une session d'appels avec lui.`);
   }
 
   if (input.extras.dvSansRecos > 0) {
