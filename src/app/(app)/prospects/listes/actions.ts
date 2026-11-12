@@ -60,12 +60,12 @@ const FICHE_TEXT_LIMITS = {
   recommended_by: 120,
   relation: 120,
   etat_civil: 120,
-  travail: 120,
   region: 120,
   remarque: 500,
   commentaire: 3000,
 } as const;
 type FicheTextField = keyof typeof FICHE_TEXT_LIMITS;
+const ACTIVITES = ["travailleur", "chomage", "etudiant"] as const;
 const TYPES_ACTION = ["DV", "DR", "AR"] as const;
 
 export interface ProspectPatch {
@@ -112,6 +112,10 @@ export async function modifierProspectListe(prospectId: string, patch: ProspectP
     if (v === undefined) continue;
     if (typeof v !== "string" || v.length > FICHE_TEXT_LIMITS[f]) return { ok: false, error: "Texte trop long." };
     update[f] = v.trim() || null;
+  }
+  if (patch.travail !== undefined) {
+    if (patch.travail !== "" && !(ACTIVITES as readonly string[]).includes(patch.travail)) return { ok: false, error: "Activité invalide (travailleur, chômage ou étudiant)." };
+    update.travail = patch.travail || null;
   }
   if (patch.type_action !== undefined) {
     if (patch.type_action !== null && !(TYPES_ACTION as readonly string[]).includes(patch.type_action)) return { ok: false, error: "Type invalide (DV, DR ou AR)." };

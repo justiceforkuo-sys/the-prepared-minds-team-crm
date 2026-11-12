@@ -8,15 +8,20 @@ import type { ListeProspect } from "./listes-board";
 
 export const TYPES_ACTION = ["DV", "DR", "AR"] as const;
 const TYPE_COLOR: Record<string, string> = { DV: "#3f7d5c", DR: "#5a6b85", AR: "#c99a3f" };
+export const ACTIVITES = [
+  { id: "travailleur", label: "Travailleur" },
+  { id: "chomage", label: "Chômage" },
+  { id: "etudiant", label: "Étudiant" },
+] as const;
 const RELATIONS = ["Ami", "Famille", "Collègue", "Voisin", "Ancien camarade", "Connaissance", "Client"];
 const ETATS_CIVILS = ["Célibataire", "En couple", "Cohabitant(e)", "Marié(e)", "Divorcé(e)", "Veuf / veuve"];
 const STAGES = ["À contacter", "Contacté", "Répondu", "RDV pris", "Entretien / Dossier", "Perdu"];
 
-type TextField = "recommended_by" | "relation" | "etat_civil" | "travail" | "region" | "remarque" | "commentaire";
+type TextField = "recommended_by" | "relation" | "etat_civil" | "region" | "remarque" | "commentaire";
 
-const cell = "border-b border-line px-1.5 py-1 align-top";
+const cell = "border-b border-line px-1 py-1 align-top";
 const input =
-  "w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-xs text-ink outline-none focus:border-gold focus:bg-card-alt read-only:cursor-default";
+  "w-full min-w-0 truncate rounded border border-transparent bg-transparent px-1 py-1 text-[11px] text-ink outline-none focus:border-gold focus:bg-card-alt read-only:cursor-default";
 
 const digits = (s: string | null) => (s ?? "").replace(/[^\d+]/g, "");
 
@@ -60,14 +65,14 @@ function TableRow({
 
   return (
     <tr className={pending ? "opacity-60" : "hover:bg-card-alt/50"}>
-      <td className={`${cell} min-w-[150px] text-xs font-bold text-ink`}>
-        <div className="px-1.5 py-1">{p.name}</div>
+      <td className={`${cell} text-[11px] font-bold text-ink`}>
+        <div className="break-words px-1 py-1">{p.name}</div>
       </td>
-      <td className={`${cell} min-w-[140px]`}>
-        <div className="flex items-center gap-1 px-1.5 py-1 text-xs">
+      <td className={`${cell}`}>
+        <div className="flex items-center gap-1 px-1 py-1 text-[11px]">
           {p.phone ? (
             <>
-              <a href={`tel:${num}`} className="whitespace-nowrap text-gold-light underline">
+              <a href={`tel:${num}`} className="min-w-0 break-all text-gold-light underline">
                 {p.phone}
               </a>
               <a href={`https://wa.me/${num.replace("+", "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="flex-shrink-0 text-gold-light">
@@ -79,13 +84,27 @@ function TableRow({
           )}
         </div>
       </td>
-      <td className={`${cell} min-w-[120px]`}>{text("recommended_by", "Recommandé par")}</td>
-      <td className={`${cell} min-w-[120px]`}>{text("relation", "Relation", "dl-relations")}</td>
-      <td className={`${cell} min-w-[120px]`}>{text("etat_civil", "État civil", "dl-etats")}</td>
-      <td className={`${cell} min-w-[90px]`}>{text("travail", "Travail")}</td>
-      <td className={`${cell} min-w-[100px]`}>{text("region", "Région")}</td>
-      <td className={`${cell} min-w-[120px]`}>{text("remarque", "Remarque")}</td>
-      <td className={`${cell} min-w-[80px]`}>
+      <td className={`${cell}`}>{text("recommended_by", "Recommandé par")}</td>
+      <td className={`${cell}`}>{text("relation", "Relation", "dl-relations")}</td>
+      <td className={`${cell}`}>{text("etat_civil", "État civil", "dl-etats")}</td>
+      <td className={`${cell}`}>
+        <select
+          value={p.travail ?? ""}
+          disabled={!canEdit}
+          onChange={(e) => save({ travail: e.target.value }, { travail: e.target.value || null })}
+          className={`${input} appearance-none`}
+        >
+          <option value="">—</option>
+          {ACTIVITES.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.label}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className={`${cell}`}>{text("region", "Région")}</td>
+      <td className={`${cell}`}>{text("remarque", "Remarque")}</td>
+      <td className={`${cell}`}>
         <select
           value={p.type_action ?? ""}
           disabled={!canEdit}
@@ -104,8 +123,8 @@ function TableRow({
           ))}
         </select>
       </td>
-      <td className={`${cell} min-w-[200px]`}>{text("commentaire", "Commentaire après contact")}</td>
-      <td className={`${cell} min-w-[125px]`}>
+      <td className={`${cell}`}>{text("commentaire", "Commentaire après contact")}</td>
+      <td className={`${cell}`}>
         <input
           type="date"
           key={`date-${p.contact_date ?? ""}`}
@@ -118,30 +137,30 @@ function TableRow({
             if (v === (p.contact_date ?? null)) return;
             save({ contact_date: v }, { contact_date: v });
           }}
-          className={input}
+          className={`${input} px-0 text-[10px]`}
         />
       </td>
-      <td className={`${cell} min-w-[130px]`}>
+      <td className={`${cell}`}>
         <select
           value={p.stage}
           disabled={!canEdit || pending}
           onChange={(e) => save({ stage: e.target.value }, { stage: e.target.value })}
           className={`${input} appearance-none font-bold`}
         >
-          {STAGES.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          {STAGES.map((st) => (
+            <option key={st} value={st}>
+              {st}
             </option>
           ))}
         </select>
-      </td>
-      <td className={`${cell} min-w-[110px]`}>
         {canEdit && (
-          <CallButton
-            prospectId={p.id}
-            phone={p.phone}
-            onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })}
-          />
+          <div className="mt-1 px-0.5">
+            <CallButton
+              prospectId={p.id}
+              phone={p.phone}
+              onLogged={(stage, nextFollowUp) => onChange(p.id, { stage, next_follow_up: nextFollowUp, calls: p.calls + 1 })}
+            />
+          </div>
         )}
       </td>
     </tr>
@@ -176,12 +195,17 @@ export function ListeTableau({
         ))}
       </datalist>
       {error && <div className="mb-2 rounded-lg border border-[#b3543a] px-3 py-2 text-xs text-[#e0836b]">{error}</div>}
-      <div className="overflow-x-auto rounded-2xl border border-line bg-card">
-        <table className="w-full min-w-[1500px] border-collapse text-left text-xs">
+      <div className="relative overflow-x-auto rounded-2xl border border-line bg-card md:left-1/2 md:w-[min(1000px,calc(100vw-240px))] md:-translate-x-1/2 md:overflow-visible">
+        <table className="w-full min-w-[1000px] table-fixed border-collapse text-left text-xs md:min-w-0">
+          <colgroup>
+            {[10, 11, 8, 8, 8, 8, 7, 8, 5, 10, 9, 8].map((w, i) => (
+              <col key={i} style={{ width: `${w}%` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr className="bg-card-alt text-[10px] uppercase tracking-wide text-muted">
-              {["Nom", "Numéro de téléphone", "Recommandé par", "Relation avec reco", "État civil", "Travail", "Région", "Remarque", "DV / DR / AR", "Commentaires après contact", "Date", "Étape", ""].map((h, i) => (
-                <th key={i} className="border-b border-line px-2 py-2 font-bold">
+              {["Nom", "Téléphone", "Recommandé par", "Relation", "État civil", "Activité", "Région", "Remarque", "DV/DR/AR", "Commentaire", "Date", "Étape"].map((h, i) => (
+                <th key={i} className="border-b border-line px-1 py-2 text-[9px] font-bold">
                   {h}
                 </th>
               ))}

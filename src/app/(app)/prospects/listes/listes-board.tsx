@@ -7,7 +7,7 @@ import { fmtDate } from "@/lib/format";
 import { CallButton } from "@/components/call-button";
 import { RdvReportButton } from "@/components/rdv-report";
 import { modifierProspectListe, partagerListe, retirerPartage } from "./actions";
-import { ListeTableau, TYPES_ACTION } from "./liste-tableau";
+import { ACTIVITES, ListeTableau, TYPES_ACTION } from "./liste-tableau";
 
 type Role = "owner" | "edit" | "read";
 
@@ -234,6 +234,7 @@ export function ListesBoard({ cards, detail, role }: { cards: ListeCard[]; detai
   const [limit, setLimit] = useState(60);
   const [vue, setVue] = useState<"cartes" | "tableau">("cartes");
   const [typeFilter, setTypeFilter] = useState<"" | "DV" | "DR" | "AR">("");
+  const [activiteFilter, setActiviteFilter] = useState("");
   const canEdit = role === "owner" || role === "edit";
 
   const shown = useMemo(() => {
@@ -242,12 +243,14 @@ export function ListesBoard({ cards, detail, role }: { cards: ListeCard[]; detai
       (r) =>
         (stage === "Tous" || r.stage === stage) &&
         (!typeFilter || r.type_action === typeFilter) &&
+        (!activiteFilter || r.travail === activiteFilter) &&
         (!t ||
           r.name.toLowerCase().includes(t) ||
           (r.phone ?? "").replace(/\s/g, "").includes(t.replace(/\s/g, "")) ||
           [r.recommended_by, r.region, r.remarque, r.commentaire].some((v) => (v ?? "").toLowerCase().includes(t))),
     );
-  }, [rows, q, stage, typeFilter]);
+  }, [rows, q, stage, typeFilter, activiteFilter]);
+  const activiteCounts = useMemo(() => rows.reduce<Record<string, number>>((m, r) => (r.travail ? ((m[r.travail] = (m[r.travail] ?? 0) + 1), m) : m), {}), [rows]);
   const typeCounts = useMemo(() => rows.reduce<Record<string, number>>((m, r) => (r.type_action ? ((m[r.type_action] = (m[r.type_action] ?? 0) + 1), m) : m), {}), [rows]);
   const counts = useMemo(() => rows.reduce<Record<string, number>>((m, r) => ((m[r.stage] = (m[r.stage] ?? 0) + 1), m), {}), [rows]);
 
@@ -329,6 +332,16 @@ export function ListesBoard({ cards, detail, role }: { cards: ListeCard[]; detai
             className={`rounded-lg border px-3 py-1.5 font-bold ${typeFilter === t ? "border-gold bg-line text-gold-light" : "border-line bg-card-alt text-muted"}`}
           >
             {t} · {typeCounts[t] ?? 0}
+          </button>
+        ))}
+        <span className="mx-1 text-muted">|</span>
+        {ACTIVITES.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => (setActiviteFilter(activiteFilter === a.id ? "" : a.id), setLimit(60))}
+            className={`rounded-lg border px-3 py-1.5 font-bold ${activiteFilter === a.id ? "border-gold bg-line text-gold-light" : "border-line bg-card-alt text-muted"}`}
+          >
+            {a.label} · {activiteCounts[a.id] ?? 0}
           </button>
         ))}
       </div>
