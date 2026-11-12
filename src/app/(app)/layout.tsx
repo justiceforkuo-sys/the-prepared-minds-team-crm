@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between px-4 pb-2 pt-5 md:hidden">
           <div>
             <div className="text-[10px] font-semibold tracking-[2px] text-muted">
