@@ -72,7 +72,7 @@ function TableRow({
         <div className="flex items-center gap-1 px-1 py-1 text-[11px]">
           {p.phone ? (
             <>
-              <a href={`tel:${num}`} className="min-w-0 break-all text-gold-light underline">
+              <a href={`tel:${num}`} className="whitespace-nowrap text-[10px] text-gold-light underline">
                 {p.phone}
               </a>
               <a href={`https://wa.me/${num.replace("+", "")}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="flex-shrink-0 text-gold-light">
@@ -195,10 +195,10 @@ export function ListeTableau({
         ))}
       </datalist>
       {error && <div className="mb-2 rounded-lg border border-[#b3543a] px-3 py-2 text-xs text-[#e0836b]">{error}</div>}
-      <div className="relative overflow-x-auto rounded-2xl border border-line bg-card md:left-1/2 md:w-[min(1000px,calc(100vw-240px))] md:-translate-x-1/2 md:overflow-visible">
+      <div className="relative overflow-x-auto rounded-2xl border border-line bg-card md:left-1/2 md:w-[min(1000px,calc(100vw-240px))] md:-translate-x-1/2 md:overflow-hidden">
         <table className="w-full min-w-[1000px] table-fixed border-collapse text-left text-xs md:min-w-0">
           <colgroup>
-            {[10, 11, 8, 8, 8, 8, 7, 8, 5, 10, 9, 8].map((w, i) => (
+            {[9, 12, 8, 7, 7, 8, 7, 7, 5, 10, 9, 11].map((w, i) => (
               <col key={i} style={{ width: `${w}%` }} />
             ))}
           </colgroup>
