@@ -44,7 +44,7 @@ export default async function ListesPage({ searchParams }: { searchParams: Promi
     for (let from = 0; ; from += 1000) {
       const { data } = await svc
         .from("prospects")
-        .select("id, name, phone, stage, notes, next_follow_up")
+        .select("id, name, phone, stage, notes, next_follow_up, recommended_by, relation, etat_civil, travail, region, remarque, type_action, commentaire, contact_date")
         .eq("list_id", chosen.id)
         .order("name")
         .range(from, from + 999);

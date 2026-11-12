@@ -7,6 +7,7 @@ import { fmtDate } from "@/lib/format";
 import { CallButton } from "@/components/call-button";
 import { RdvReportButton } from "@/components/rdv-report";
 import { modifierProspectListe, partagerListe, retirerPartage } from "./actions";
+import { ListeTableau, TYPES_ACTION } from "./liste-tableau";
 
 type Role = "owner" | "edit" | "read";
 
@@ -26,6 +27,15 @@ export interface ListeProspect {
   notes: string | null;
   next_follow_up: string | null;
   calls: number;
+  recommended_by: string | null;
+  relation: string | null;
+  etat_civil: string | null;
+  travail: string | null;
+  region: string | null;
+  remarque: string | null;
+  type_action: "DV" | "DR" | "AR" | null;
+  commentaire: string | null;
+  contact_date: string | null;
 }
 export interface ShareRow {
   personId: string;
@@ -222,12 +232,23 @@ export function ListesBoard({ cards, detail, role }: { cards: ListeCard[]; detai
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("Tous");
   const [limit, setLimit] = useState(60);
+  const [vue, setVue] = useState<"cartes" | "tableau">("cartes");
+  const [typeFilter, setTypeFilter] = useState<"" | "DV" | "DR" | "AR">("");
   const canEdit = role === "owner" || role === "edit";
 
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return rows.filter((r) => (stage === "Tous" || r.stage === stage) && (!t || r.name.toLowerCase().includes(t) || (r.phone ?? "").replace(/\s/g, "").includes(t.replace(/\s/g, ""))));
-  }, [rows, q, stage]);
+    return rows.filter(
+      (r) =>
+        (stage === "Tous" || r.stage === stage) &&
+        (!typeFilter || r.type_action === typeFilter) &&
+        (!t ||
+          r.name.toLowerCase().includes(t) ||
+          (r.phone ?? "").replace(/\s/g, "").includes(t.replace(/\s/g, "")) ||
+          [r.recommended_by, r.region, r.remarque, r.commentaire].some((v) => (v ?? "").toLowerCase().includes(t))),
+    );
+  }, [rows, q, stage, typeFilter]);
+  const typeCounts = useMemo(() => rows.reduce<Record<string, number>>((m, r) => (r.type_action ? ((m[r.type_action] = (m[r.type_action] ?? 0) + 1), m) : m), {}), [rows]);
   const counts = useMemo(() => rows.reduce<Record<string, number>>((m, r) => ((m[r.stage] = (m[r.stage] ?? 0) + 1), m), {}), [rows]);
 
   const onChange = (id: string, patch: Partial<ListeProspect>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -290,10 +311,34 @@ export function ListesBoard({ cards, detail, role }: { cards: ListeCard[]; detai
         </select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        {shown.slice(0, limit).map((p) => (
-          <Row key={p.id} p={p} canEdit={canEdit} onChange={onChange} />
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+        {([["cartes", "Cartes"], ["tableau", "Tableau"]] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setVue(id)}
+            className={`rounded-lg border px-3 py-1.5 font-bold ${vue === id ? "border-gold bg-line text-gold-light" : "border-line bg-card-alt text-muted"}`}
+          >
+            {label}
+          </button>
         ))}
+        <span className="mx-1 text-muted">|</span>
+        {TYPES_ACTION.map((t) => (
+          <button
+            key={t}
+            onClick={() => (setTypeFilter(typeFilter === t ? "" : t), setLimit(60))}
+            className={`rounded-lg border px-3 py-1.5 font-bold ${typeFilter === t ? "border-gold bg-line text-gold-light" : "border-line bg-card-alt text-muted"}`}
+          >
+            {t} · {typeCounts[t] ?? 0}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        {vue === "tableau" ? (
+          <ListeTableau rows={shown.slice(0, limit)} canEdit={canEdit} onChange={onChange} />
+        ) : (
+          shown.slice(0, limit).map((p) => <Row key={p.id} p={p} canEdit={canEdit} onChange={onChange} />)
+        )}
         {shown.length === 0 && <div className="text-xs text-muted">Aucun contact ne correspond.</div>}
         {shown.length > limit && (
           <button onClick={() => setLimit((l) => l + 60)} className={ghostBtn}>

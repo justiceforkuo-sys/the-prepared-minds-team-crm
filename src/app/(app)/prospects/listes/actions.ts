@@ -56,13 +56,34 @@ export async function retirerPartage(listId: string, personId: string): Promise<
   return { ok: true };
 }
 
+const FICHE_TEXT_LIMITS = {
+  recommended_by: 120,
+  relation: 120,
+  etat_civil: 120,
+  travail: 120,
+  region: 120,
+  remarque: 500,
+  commentaire: 3000,
+} as const;
+type FicheTextField = keyof typeof FICHE_TEXT_LIMITS;
+const TYPES_ACTION = ["DV", "DR", "AR"] as const;
+
 export interface ProspectPatch {
   stage?: string;
   notes?: string;
   next_follow_up?: string | null;
+  recommended_by?: string;
+  relation?: string;
+  etat_civil?: string;
+  travail?: string;
+  region?: string;
+  remarque?: string;
+  commentaire?: string;
+  type_action?: "DV" | "DR" | "AR" | null;
+  contact_date?: string | null;
 }
 
-/** Met à jour l'étape, la note ou la date de relance d'un prospect d'une liste (propriétaire, ou partage en modification). */
+/** Met à jour l'étape, la note, la date de relance ou les colonnes de la feuille de recommandations d'un prospect d'une liste (propriétaire, ou partage en modification). */
 export async function modifierProspectListe(prospectId: string, patch: ProspectPatch): Promise<ListeResult> {
   const c = await context();
   if (!c) return { ok: false, error: "Non connecté." };
@@ -85,6 +106,20 @@ export async function modifierProspectListe(prospectId: string, patch: ProspectP
   if (patch.next_follow_up !== undefined) {
     if (patch.next_follow_up !== null && (!DATE.test(patch.next_follow_up) || patch.next_follow_up < "2020-01-01" || patch.next_follow_up > "2100-12-31")) return { ok: false, error: "Date invalide." };
     update.next_follow_up = patch.next_follow_up;
+  }
+  for (const f of Object.keys(FICHE_TEXT_LIMITS) as FicheTextField[]) {
+    const v = patch[f];
+    if (v === undefined) continue;
+    if (typeof v !== "string" || v.length > FICHE_TEXT_LIMITS[f]) return { ok: false, error: "Texte trop long." };
+    update[f] = v.trim() || null;
+  }
+  if (patch.type_action !== undefined) {
+    if (patch.type_action !== null && !(TYPES_ACTION as readonly string[]).includes(patch.type_action)) return { ok: false, error: "Type invalide (DV, DR ou AR)." };
+    update.type_action = patch.type_action;
+  }
+  if (patch.contact_date !== undefined) {
+    if (patch.contact_date !== null && (!DATE.test(patch.contact_date) || patch.contact_date < "2020-01-01" || patch.contact_date > "2100-12-31")) return { ok: false, error: "Date invalide." };
+    update.contact_date = patch.contact_date;
   }
   if (Object.keys(update).length === 0) return { ok: true };
   update.updated_at = new Date().toISOString();
