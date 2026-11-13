@@ -57,6 +57,7 @@ export async function launchOnboarding(applicationId: string, linkToPersonId?: s
           reports_to: sponsorId,
           slug,
           status: "essai",
+          rapport_hebdo: true,
         })
         .select("id")
         .single();

@@ -31,7 +31,7 @@ export function contexte(p: Pick<PersonneRapport, "rank" | "integration_date">, 
 /** Chiffres de la période [from, to] (dates de Bruxelles, bornes comprises) et situation actuelle. */
 export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, from: string, to: string): Promise<Faits> {
   const earlier = `${addDays(from, -1)}T00:00:00Z`;
-  const [calls, ents, da, daAll, act, pros, forma, fsma, pol, entTotal] = await Promise.all([
+  const [calls, ents, da, daAll, act, pros, forma, fsma, pol, entTotal, reg] = await Promise.all([
     svc.from("call_log").select("called_at, outcome").eq("person_id", p.id).gte("called_at", earlier).limit(20000),
     svc.from("entrainement_seances").select("note, created_at").eq("person_id", p.id).gte("created_at", earlier).limit(2000),
     svc.from("daily_activity").select("date, dv_planifies, dv_realises, recomm_dv").eq("person_id", p.id).gte("date", from).lte("date", to),
@@ -42,6 +42,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
     svc.from("modules_fsma").select("module").eq("user_id", p.id).eq("statut", "reussi"),
     svc.from("clients").select("client_policies(units)").eq("owner_id", p.id),
     svc.from("entrainement_seances").select("id", { count: "exact", head: true }).eq("person_id", p.id),
+    svc.from("people").select("statut_reglementaire, agrement_statut").eq("id", p.id).maybeSingle(),
   ]);
   const inWin = (iso: string) => {
     const d = jourBxl(iso);
@@ -76,6 +77,11 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
     dvRealTotal: ((daAll.data as { dv_realises: number }[] | null) ?? []).reduce((s, r) => s + (Number(r.dv_realises) || 0), 0),
     jour,
     plusDe6Mois,
+    cadre: !["JFAI", "JFAII"].includes(p.rank),
+    agree: (() => {
+      const r = reg.data as { statut_reglementaire: string; agrement_statut: string } | null;
+      return r?.statut_reglementaire === "agree_fsma" || r?.agrement_statut === "obtenu" || r?.agrement_statut === "depose";
+    })(),
   };
 }
 
@@ -84,14 +90,15 @@ export function genererTaches(f: Faits): Tache[] {
   const jour = f.jour ?? 999;
   const t: Tache[] = [];
   t.push({ id: "chiffres", kind: "chiffres", label: "Saisir tes chiffres du jour au moins 4 jours sur 5", cible: 4, ou: "page Aujourd'hui, « Mes chiffres du jour »" });
-  if (jour < 14 && f.prospects + f.enListes < 100) {
+  if (!f.cadre && jour < 14 && f.prospects + f.enListes < 100) {
     t.push({ id: "liste100", kind: "liste100", label: "Construire ta liste de 100 personnes", cible: 100, ou: "Prospects" });
   }
   if (f.prospects > 0 || jour >= 2) {
     t.push({ id: "relances", kind: "relances", label: "Mettre une date de relance sur chacun de tes prospects", cible: 0, ou: "Prospects" });
   }
   // 3 séances par semaine pendant le premier mois, et tant que la personne n'a pas fait 10 séances au total
-  const seances = jour <= 28 || (f.entrainementsTotal ?? 0) < 10 ? 3 : 1;
+  // (les cadres : une séance par semaine pour garder le geste)
+  const seances = f.cadre ? 1 : jour <= 28 || (f.entrainementsTotal ?? 0) < 10 ? 3 : 1;
   t.push({ id: "entrainement", kind: "entrainement", label: `Faire ${seances} séance${seances > 1 ? "s" : ""} d'entraînement aux appels`, cible: seances, ou: "Scripts, « S'entraîner aux appels »" });
   if (jour >= 5) {
     const appels = jour < 14 ? 30 : 50;
@@ -101,10 +108,10 @@ export function genererTaches(f: Faits): Tache[] {
   if (f.dvRealTotal > 0) {
     t.push({ id: "recos", kind: "recos", label: "Prendre au moins 5 recommandations par DV réalisé", cible: 5, ou: "Prospects, onglet « Recommandations »" });
   }
-  if (f.starterTotal < FORMATION_MODULES.length) {
+  if (!f.cadre && f.starterTotal < FORMATION_MODULES.length) {
     t.push({ id: "starter", kind: "starter", label: "Terminer un module de plus du Starter Pack (vidéos et diapositives en entier)", cible: f.starterTotal + 1, ou: "Starter Pack" });
   }
-  if (f.plusDe6Mois && f.fsmaTotal < NB_MODULES_FSMA) {
+  if (f.plusDe6Mois && !f.agree && f.fsmaTotal < NB_MODULES_FSMA) {
     t.push({ id: "fsma", kind: "fsma", label: "Valider un module FSMA de plus", cible: f.fsmaTotal + 1, ou: "Onboarding, « Mon parcours »" });
   }
   return t;

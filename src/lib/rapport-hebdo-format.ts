@@ -44,6 +44,10 @@ export interface Faits {
   jour: number | null;
   plusDe6Mois: boolean;
   baseline?: boolean;
+  /** JFA III et plus (coachs, administrateurs) : tâches adaptées. */
+  cadre?: boolean;
+  /** Dossier d'agrément FSMA déposé ou agrément obtenu : plus de tâche FSMA. */
+  agree?: boolean;
 }
 
 export interface Redaction {

@@ -59,7 +59,7 @@ export async function genererSemaine(): Promise<RapportResult> {
   const c = await contexte();
   if (!c) return { ok: false, error: "Non connecté." };
   if (!c.me.is_admin) return { ok: false, error: "Réservé aux administrateurs." };
-  const res = await genererTous(c.svc, aujourdhuiBxl(), true);
+  const res = await genererTous(c.svc, aujourdhuiBxl(), true, c.me.id);
   revalidatePath("/rapports");
   const err = res.erreurs.length ? ` Erreurs : ${res.erreurs.join(" ; ")}.` : "";
   return { ok: true, message: `${res.crees} rapport${res.crees > 1 ? "s" : ""} préparé${res.crees > 1 ? "s" : ""} (à valider), ${res.existants} déjà existant${res.existants > 1 ? "s" : ""}.${err}` };

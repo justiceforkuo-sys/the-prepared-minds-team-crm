@@ -72,13 +72,13 @@ export async function genererPour(svc: SupabaseClient, p: PersonneRapport, semai
 }
 
 /** Prépare les rapports de toutes les personnes suivies (people.rapport_hebdo). */
-export async function genererTous(svc: SupabaseClient, semaine: string, forcerValidation = false): Promise<{ crees: number; existants: number; erreurs: string[]; parNiveau: Record<number, number> }> {
+export async function genererTous(svc: SupabaseClient, semaine: string, forcerValidation = false, publierDirectPour?: string): Promise<{ crees: number; existants: number; erreurs: string[]; parNiveau: Record<number, number> }> {
   const { data } = await svc.from("people").select("id, name, email, rank, integration_date, reports_to").eq("active", true).eq("rapport_hebdo", true).order("name");
   const personnes = (data as PersonneRapport[] | null) ?? [];
   const out = { crees: 0, existants: 0, erreurs: [] as string[], parNiveau: {} as Record<number, number> };
   for (let i = 0; i < personnes.length; i += 4) {
     const lot = personnes.slice(i, i + 4);
-    const res = await Promise.all(lot.map((p) => genererPour(svc, p, semaine, forcerValidation).then((r) => ({ p, r }), (e: unknown) => ({ p, e }))));
+    const res = await Promise.all(lot.map((p) => genererPour(svc, p, semaine, forcerValidation && p.id !== publierDirectPour).then((r) => ({ p, r }), (e: unknown) => ({ p, e }))));
     for (const x of res) {
       if ("e" in x) out.erreurs.push(`${x.p.name} : ${x.e instanceof Error ? x.e.message : "erreur"}`);
       else if (x.r.etat === "existe") out.existants++;

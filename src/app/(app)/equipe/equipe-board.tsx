@@ -50,7 +50,7 @@ export function EquipeBoard({
     const slug = await generateUniqueSlugFor(supabase, name.trim());
     const { data } = await supabase
       .from("people")
-      .insert({ name: name.trim(), rank, email: email.trim() || null, reports_to: me.id, slug })
+      .insert({ name: name.trim(), rank, email: email.trim() || null, reports_to: me.id, slug, rapport_hebdo: true })
       .select()
       .single();
     if (data) setDownline((prev) => [...prev, data as Person].sort((a, b) => a.name.localeCompare(b.name)));
