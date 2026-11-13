@@ -23,6 +23,7 @@ import {
   Receipt,
   PhoneCall,
   Clock,
+  ClipboardCheck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -53,6 +54,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/structure", label: "Structure", icon: Table2, trialHidden: true },
   { href: "/recrutement", label: "Recrutement", icon: UserPlus, trialHidden: true },
   { href: "/onboarding", label: "Onboarding", icon: Rocket },
+  { href: "/rapports", label: "Mon rapport", icon: ClipboardCheck },
   { href: "/formation", label: "Starter Pack", icon: GraduationCap },
   { href: "/scripts", label: "Scripts", icon: BookOpen },
   { href: "/solutions", label: "Solutions", icon: Library },
