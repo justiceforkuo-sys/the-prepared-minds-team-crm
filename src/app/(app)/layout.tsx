@@ -5,6 +5,7 @@ import { isPreFt2Newcomer } from "@/lib/parcours";
 import { SidebarNav, MobileNav } from "@/components/sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { IdeaCapture } from "@/components/idea-capture";
+import { ChatDock } from "@/components/chat-dock";
 import { OnlineList, OnlinePill, PresenceTracker } from "@/components/presence";
 import { signOut } from "./actions";
 import { getImpersonationTargetName, stopImpersonation } from "./admin/impersonation-actions";
@@ -107,6 +108,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <MobileNav isAdmin={person.is_admin} isTrial={person.status === "essai"} isNewcomer={isPreFt2Newcomer(person)} />
       </div>
       <IdeaCapture />
+      {!impersonatedName && <ChatDock meId={person.id} isAdmin={person.is_admin} />}
       <PresenceTracker paused={!!impersonatedName} />
     </div>
   );

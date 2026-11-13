@@ -67,7 +67,7 @@ export function PresenceTracker({ paused = false }: { paused?: boolean }) {
   return null;
 }
 
-function useOnline(): Online[] {
+export function useOnline(): Online[] {
   return useSyncExternalStore(subscribe, () => online, () => EMPTY);
 }
 
