@@ -106,6 +106,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
       .filter((e) => PHASES_ONBOARDING.includes(e.phase))
       .sort((a, b) => PHASES_ONBOARDING.indexOf(a.phase) - PHASES_ONBOARDING.indexOf(b.phase) || a.ordre - b.ordre);
     const liste: EtapeRapport[] = [];
+    let anciennes = 0;
     etapesFaites = [];
     for (const e of etapes) {
       if (e.necessite_agrement && !agree) continue;
@@ -116,11 +117,16 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
         continue;
       }
       const dans7j = e.jour_debut !== null && e.jour_debut <= jour + 7;
+      const fin = e.jour_fin ?? e.jour_debut;
+      if (st === "en_retard" && fin !== null && jour - fin > 14) {
+        anciennes++; // trop ancienne pour être une tâche : à faire valider par le mentor
+        continue;
+      }
       if (st === "en_retard" || st === "en_cours" || (st === "a_venir" && dans7j)) {
-        liste.push({ id: e.id, titre: e.titre, jours: e.jour_debut === null ? "" : `J${e.jour_debut}${e.jour_fin && e.jour_fin !== e.jour_debut ? `-${e.jour_fin}` : ""}`, etat: st, label: auto?.label ?? null });
+        liste.push({ id: e.id, titre: e.titre, jours: e.jour_debut === null ? "" : `J${e.jour_debut}${e.jour_fin && e.jour_fin !== e.jour_debut ? `-${e.jour_fin}` : ""}`, fin: fin ?? null, etat: st, label: auto?.label ?? null });
       }
     }
-    onboarding = { jour, etapes: liste.slice(0, 8) };
+    onboarding = { jour, etapes: liste.slice(0, 8), anciennes };
   }
 
   return {

@@ -17,6 +17,8 @@ export interface EtapeRapport {
   id: string;
   titre: string;
   jours: string;
+  /** Dernier jour de l'étape (pour savoir depuis quand elle est en retard). */
+  fin: number | null;
   etat: "valide" | "fait" | "en_retard" | "en_cours" | "a_venir";
   label: string | null;
 }
@@ -61,7 +63,7 @@ export interface Faits {
   /** Dossier d'agrément FSMA déposé ou agrément obtenu : plus de tâche FSMA. */
   agree?: boolean;
   /** Où en est la personne dans son onboarding (parcours actif seulement). */
-  onboarding?: { jour: number; etapes: EtapeRapport[] };
+  onboarding?: { jour: number; etapes: EtapeRapport[]; /** étapes en retard depuis plus de 14 jours, à faire valider par le mentor */ anciennes: number };
   /** Étapes du parcours déjà faites ou validées à la date du rapport. */
   etapesFaites?: string[];
 }
@@ -181,6 +183,12 @@ export function construireMessage(m: MessageInput): { text: string; html: string
     }
     for (const e of m.faits.onboarding.etapes) {
       const ligne = `${e.titre}${e.jours ? ` (${e.jours})` : ""} : ${ETAT_ETAPE_LABEL[e.etat]}${e.label ? ` · ${e.label}` : ""}`;
+      t.push(`- ${ligne}`);
+      h.push(`<li>${esc(ligne)}</li>`);
+    }
+    if (m.faits.onboarding.anciennes > 0) {
+      const n = m.faits.onboarding.anciennes;
+      const ligne = `${n} étape${n > 1 ? "s" : ""} plus ancienne${n > 1 ? "s" : ""} non validée${n > 1 ? "s" : ""} : à faire valider par ton mentor.`;
       t.push(`- ${ligne}`);
       h.push(`<li>${esc(ligne)}</li>`);
     }

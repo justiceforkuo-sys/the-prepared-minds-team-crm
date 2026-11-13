@@ -96,6 +96,11 @@ function Corps({ r, prenom }: { r: RapportRow; prenom: string }) {
                 {e.label ? ` · ${e.label}` : ""}
               </li>
             ))}
+            {(f.onboarding.anciennes ?? 0) > 0 && (
+              <li>
+                {f.onboarding.anciennes} étape{f.onboarding.anciennes > 1 ? "s" : ""} plus ancienne{f.onboarding.anciennes > 1 ? "s" : ""} non validée{f.onboarding.anciennes > 1 ? "s" : ""} : à faire valider par ton mentor.
+              </li>
+            )}
           </ul>
         </div>
       )}
