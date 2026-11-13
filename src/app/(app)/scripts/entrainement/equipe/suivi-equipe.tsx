@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { SeanceLigne } from "../actions";
-import { SeancesListe, fmtSeanceDate, noteColor } from "../seances-liste";
+import { fmtSeanceDate, noteColor } from "@/lib/entrainement-format";
+import { SeancesListe } from "../seances-liste";
 
 export interface SuiviPersonne {
   id: string;

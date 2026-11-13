@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createServiceClient } from "@/utils/supabase/service";
 import { Entrainement } from "./entrainement";
-import { SeancesListe, noteColor } from "./seances-liste";
+import { noteColor } from "@/lib/entrainement-format";
+import { SeancesListe } from "./seances-liste";
 import type { SeanceLigne } from "./actions";
 
 // Le prospect fictif répond via Claude : on laisse jusqu'à 60 s à chaque réplique ou retour.

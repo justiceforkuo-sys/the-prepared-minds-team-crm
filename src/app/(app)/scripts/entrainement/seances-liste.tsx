@@ -1,18 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { fmtSeanceDate, noteColor } from "@/lib/entrainement-format";
 import { ouvrirSeance, type SeanceDetail, type SeanceLigne } from "./actions";
 
 const SCORE_COLOR = { 0: "#b3543a", 1: "#c99a3f", 2: "#1f8158" } as const;
 const SCORE_LABEL = { 0: "À retravailler", 1: "En partie", 2: "Bien" } as const;
-
-export function noteColor(n: number) {
-  return n >= 8 ? "#1f8158" : n >= 5 ? "#c99a3f" : "#b3543a";
-}
-
-export function fmtSeanceDate(iso: string) {
-  return new Date(iso).toLocaleString("fr-BE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" });
-}
 
 function Detail({ s }: { s: SeanceDetail }) {
   const r = s.retour;
