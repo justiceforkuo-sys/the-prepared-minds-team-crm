@@ -31,7 +31,7 @@ export function contexte(p: Pick<PersonneRapport, "rank" | "integration_date">, 
 /** Chiffres de la période [from, to] (dates de Bruxelles, bornes comprises) et situation actuelle. */
 export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, from: string, to: string): Promise<Faits> {
   const earlier = `${addDays(from, -1)}T00:00:00Z`;
-  const [calls, ents, da, daAll, act, pros, forma, fsma, pol] = await Promise.all([
+  const [calls, ents, da, daAll, act, pros, forma, fsma, pol, entTotal] = await Promise.all([
     svc.from("call_log").select("called_at, outcome").eq("person_id", p.id).gte("called_at", earlier).limit(20000),
     svc.from("entrainement_seances").select("note, created_at").eq("person_id", p.id).gte("created_at", earlier).limit(2000),
     svc.from("daily_activity").select("date, dv_planifies, dv_realises, recomm_dv").eq("person_id", p.id).gte("date", from).lte("date", to),
@@ -41,6 +41,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
     svc.from("formation_progress").select("module_id").eq("person_id", p.id).eq("done", true),
     svc.from("modules_fsma").select("module").eq("user_id", p.id).eq("statut", "reussi"),
     svc.from("clients").select("client_policies(units)").eq("owner_id", p.id),
+    svc.from("entrainement_seances").select("id", { count: "exact", head: true }).eq("person_id", p.id),
   ]);
   const inWin = (iso: string) => {
     const d = jourBxl(iso);
@@ -71,6 +72,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
     starterTotal: ((forma.data as unknown[] | null) ?? []).length,
     fsmaTotal: ((fsma.data as unknown[] | null) ?? []).length,
     unites: units,
+    entrainementsTotal: entTotal.count ?? 0,
     dvRealTotal: ((daAll.data as { dv_realises: number }[] | null) ?? []).reduce((s, r) => s + (Number(r.dv_realises) || 0), 0),
     jour,
     plusDe6Mois,
@@ -88,7 +90,8 @@ export function genererTaches(f: Faits): Tache[] {
   if (f.prospects > 0 || jour >= 2) {
     t.push({ id: "relances", kind: "relances", label: "Mettre une date de relance sur chacun de tes prospects", cible: 0, ou: "Prospects" });
   }
-  const seances = jour <= 28 ? 3 : 1;
+  // 3 séances par semaine pendant le premier mois, et tant que la personne n'a pas fait 10 séances au total
+  const seances = jour <= 28 || (f.entrainementsTotal ?? 0) < 10 ? 3 : 1;
   t.push({ id: "entrainement", kind: "entrainement", label: `Faire ${seances} séance${seances > 1 ? "s" : ""} d'entraînement aux appels`, cible: seances, ou: "Scripts, « S'entraîner aux appels »" });
   if (jour >= 5) {
     const appels = jour < 14 ? 30 : 50;

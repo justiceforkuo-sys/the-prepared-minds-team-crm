@@ -40,6 +40,7 @@ export interface Faits {
   fsmaTotal: number;
   unites: number;
   dvRealTotal: number;
+  entrainementsTotal: number;
   jour: number | null;
   plusDe6Mois: boolean;
   baseline?: boolean;
