@@ -1,6 +1,6 @@
 // Rapports du vendredi : types et mise en forme (sans accès base de données, utilisable côté navigateur et côté serveur).
 
-export type TacheKind = "chiffres" | "relances" | "liste100" | "appels" | "entrainement" | "dv_plan" | "recos" | "starter" | "fsma";
+export type TacheKind = "chiffres" | "relances" | "liste100" | "appels" | "entrainement" | "dv_plan" | "recos" | "starter" | "fsma" | "etape";
 
 export interface Tache {
   id: string;
@@ -9,7 +9,19 @@ export interface Tache {
   cible: number;
   /** Où le faire dans le CRM. */
   ou: string;
+  /** Pour une tâche d'onboarding : l'étape du parcours concernée. */
+  etapeId?: string;
 }
+
+export interface EtapeRapport {
+  id: string;
+  titre: string;
+  jours: string;
+  etat: "valide" | "fait" | "en_retard" | "en_cours" | "a_venir";
+  label: string | null;
+}
+
+export const ETAT_ETAPE_LABEL: Record<EtapeRapport["etat"], string> = { valide: "Validé", fait: "Fait", en_retard: "En retard", en_cours: "En cours", a_venir: "À venir" };
 
 export interface Ligne {
   id: string;
@@ -48,6 +60,10 @@ export interface Faits {
   cadre?: boolean;
   /** Dossier d'agrément FSMA déposé ou agrément obtenu : plus de tâche FSMA. */
   agree?: boolean;
+  /** Où en est la personne dans son onboarding (parcours actif seulement). */
+  onboarding?: { jour: number; etapes: EtapeRapport[] };
+  /** Étapes du parcours déjà faites ou validées à la date du rapport. */
+  etapesFaites?: string[];
 }
 
 export interface Redaction {
@@ -155,6 +171,22 @@ export function construireMessage(m: MessageInput): { text: string; html: string
   }
   t.push("");
   h.push("</ul>");
+
+  if (m.faits.onboarding) {
+    t.push(`TON ONBOARDING (jour ${m.faits.onboarding.jour})`);
+    h.push(`<p><b>TON ONBOARDING</b> (jour ${m.faits.onboarding.jour})</p><ul>`);
+    if (m.faits.onboarding.etapes.length === 0) {
+      t.push("- Toutes les étapes en cours sont faites ou validées.");
+      h.push("<li>Toutes les étapes en cours sont faites ou validées.</li>");
+    }
+    for (const e of m.faits.onboarding.etapes) {
+      const ligne = `${e.titre}${e.jours ? ` (${e.jours})` : ""} : ${ETAT_ETAPE_LABEL[e.etat]}${e.label ? ` · ${e.label}` : ""}`;
+      t.push(`- ${ligne}`);
+      h.push(`<li>${esc(ligne)}</li>`);
+    }
+    t.push("");
+    h.push("</ul>");
+  }
 
   t.push("À FAIRE CETTE SEMAINE");
   h.push("<p><b>À FAIRE CETTE SEMAINE</b></p><ol>");

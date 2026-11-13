@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check, ClipboardCopy, X } from "lucide-react";
-import { NIVEAU_COLOR, NIVEAU_LABEL, construireMessage, fmtJourLong, prenomDe, type Ligne, type Niveau } from "@/lib/rapport-hebdo-format";
+import { ETAT_ETAPE_LABEL, NIVEAU_COLOR, NIVEAU_LABEL, construireMessage, fmtJourLong, prenomDe, type Ligne, type Niveau } from "@/lib/rapport-hebdo-format";
 import type { RapportRow } from "@/lib/rapport-hebdo-gen";
 import { basculerSuivi, envoyerTestRapport, genererSemaine, ignorerRapport, publierRapport } from "./actions";
 
@@ -83,6 +83,22 @@ function Corps({ r, prenom }: { r: RapportRow; prenom: string }) {
           <li>Temps dans le CRM : {f.minutes} min</li>
         </ul>
       </div>
+
+      {f.onboarding && (
+        <div>
+          <div className="mb-1 font-bold text-ink">Ton onboarding (jour {f.onboarding.jour})</div>
+          <ul className="list-disc pl-4 text-muted">
+            {f.onboarding.etapes.length === 0 && <li>Toutes les étapes en cours sont faites ou validées.</li>}
+            {f.onboarding.etapes.map((e) => (
+              <li key={e.id}>
+                {e.titre}
+                {e.jours ? ` (${e.jours})` : ""} : <span className={e.etat === "en_retard" ? "font-bold text-[#e0836b]" : "text-ink"}>{ETAT_ETAPE_LABEL[e.etat]}</span>
+                {e.label ? ` · ${e.label}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div>
         <div className="mb-1 font-bold text-ink">À faire cette semaine</div>
