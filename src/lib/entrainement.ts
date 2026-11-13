@@ -1,6 +1,6 @@
 // Entraînement aux appels téléphoniques : scénarios, profils de prospect et grille de retour.
 // Tout vient du module 6 « L'appel téléphonique » (les 5 étapes de l'appel et l'argumentation). Les prospects sont fictifs :
-// aucun nom de vrai client, aucun enregistrement de la séance.
+// aucun nom de vrai client. Les séances terminées sont enregistrées (visibles par la hiérarchie).
 
 export type Niveau = "facile" | "normal" | "difficile";
 

@@ -24,6 +24,7 @@ export function Entrainement() {
   const [saisie, setSaisie] = useState("");
   const [fin, setFin] = useState(false);
   const [retour, setRetour] = useState<Retour | null>(null);
+  const [enregistre, setEnregistre] = useState<boolean | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [voix, setVoix] = useState(false);
   const [pending, start] = useTransition();
@@ -73,13 +74,14 @@ export function Entrainement() {
   };
 
   const terminer = () => {
-    if (!scenario || pending) return;
+    if (!scenario || !session || pending) return;
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setErreur(null);
     start(async () => {
-      const res = await evaluerSeance(scenario.id, echanges);
+      const res = await evaluerSeance(scenario.id, session.profilId, session.prenom, echanges);
       if (!res.ok) return setErreur(res.error);
       setRetour(res.retour);
+      setEnregistre(res.enregistre);
       setPhase("retour");
     });
   };
@@ -132,7 +134,7 @@ export function Entrainement() {
           </div>
         ))}
         <p className="text-[11px] text-muted">
-          Le prospect est fictif : aucun vrai nom, aucune donnée de client. Ta séance n&apos;est pas enregistrée : elle disparaît quand tu quittes la page.
+          Le prospect est fictif : aucun vrai nom, aucune donnée de client. <strong className="text-ink">Ta séance est enregistrée</strong> (conversation, note et retour) : tu la retrouves dans « Mes séances », et ton coach et ta hiérarchie peuvent la relire pour t&apos;aider à progresser.
         </p>
       </div>
     );
@@ -146,6 +148,9 @@ export function Entrainement() {
           <div className="text-[11px] font-bold uppercase tracking-wide text-muted">{scenario.titre}</div>
           <div className="mt-1 font-serif text-4xl font-semibold text-gold-light">{retour.note} / 10</div>
           <div className="mt-1 text-xs text-muted">{retour.rdvObtenu ? "Rendez-vous fixé : bravo." : "Pas de rendez-vous précis fixé cette fois."}</div>
+          <div className="mt-1 text-[11px] text-muted">
+            {enregistre === false ? "La séance n'a pas pu être enregistrée : garde une capture d'écran de ce retour." : "Séance enregistrée dans « Mes séances »."}
+          </div>
         </div>
 
         {retour.motsARisque.length > 0 && (
