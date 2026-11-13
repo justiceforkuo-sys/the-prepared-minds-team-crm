@@ -75,6 +75,17 @@ export function sujetDe(niveau: Niveau, semaine: string, baseline: boolean): str
   return `DERNIER RAPPEL : ton rapport du ${j}, un rendez-vous est nécessaire`;
 }
 
+export const SLOGAN = "La chance accorde ses faveurs aux esprits avertis.";
+
+/** Habillage officiel de l'email : bandeau Prepared Minds Team autour du rapport. */
+export function habillerEmail(corps: string): string {
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#222;max-width:640px;margin:0 auto;">
+<div style="background:#0f1b33;color:#e8c872;padding:14px 18px;border-radius:10px 10px 0 0;"><b style="font-size:16px;">Prepared Minds Team</b><br><span style="font-size:12px;color:#cfd6e4;">Rapport hebdomadaire officiel</span></div>
+<div style="border:1px solid #e3e6ec;border-top:none;padding:18px;border-radius:0 0 10px 10px;">
+${corps}
+</div></div>`;
+}
+
 export function prenomDe(name: string): string {
   const n = name.includes(",") ? name.split(",")[1] : name;
   return n.trim().split(/\s+/)[0] || name;
@@ -150,7 +161,7 @@ export function construireMessage(m: MessageInput): { text: string; html: string
   t.push("");
   h.push("</ol>");
 
-  t.push(m.redaction.cloture, "", "Justice", "", "Rapport préparé par le CRM. Tu le retrouves dans le CRM, menu « Mon rapport ».");
-  h.push(`<p>${esc(m.redaction.cloture)}</p>`, "<p>Justice</p>", `<p style="color:#777;font-size:12px;">Rapport préparé par le CRM. Tu le retrouves dans le CRM, menu « Mon rapport ».</p>`);
+  t.push(m.redaction.cloture, "", "Justice", "", `« ${SLOGAN} »`, "", "Rapport officiel préparé par le CRM. Tu le retrouves dans le CRM, menu « Mon rapport ». Tu peux répondre directement à cet email.");
+  h.push(`<p>${esc(m.redaction.cloture)}</p>`, "<p>Justice</p>", `<p><i>« ${SLOGAN} »</i></p>`, `<p style="color:#777;font-size:12px;">Rapport officiel préparé par le CRM. Tu le retrouves dans le CRM, menu « Mon rapport ». Tu peux répondre directement à cet email.</p>`);
   return { text: t.join("\n"), html: h.join("\n") };
 }

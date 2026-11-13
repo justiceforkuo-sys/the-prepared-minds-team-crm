@@ -32,7 +32,7 @@ export default async function RapportsPage() {
   // Équipe : administrateur = tout le monde, coach = sa cascade
   const scope = await equipeDe(svc, me.id);
   const { data: people } = await svc.from("people").select("id, name, rank, rapport_hebdo, active").eq("active", true).order("name");
-  const suivis = ((people as { id: string; name: string; rank: string; rapport_hebdo: boolean }[] | null) ?? []).filter((x) => x.id !== me.id && (me.is_admin || scope.has(x.id)) && x.rapport_hebdo);
+  const suivis = ((people as { id: string; name: string; rank: string; rapport_hebdo: boolean }[] | null) ?? []).filter((x) => x.id !== me.id && (me.is_admin || scope.has(x.id)) && (x.rapport_hebdo || me.is_admin));
   let equipe: EquipeLigne[] | null = null;
   if (me.is_admin || scope.size > 0) {
     const ids = suivis.map((x) => x.id);
@@ -44,6 +44,7 @@ export default async function RapportsPage() {
       personId: x.id,
       name: x.name,
       rank: x.rank,
+      suivi: x.rapport_hebdo,
       aValider: rows.filter((r) => r.person_id === x.id && r.statut === "a_valider"),
       dernier: rows.find((r) => r.person_id === x.id && r.statut === "envoye") ?? null,
     }));

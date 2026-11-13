@@ -64,3 +64,29 @@ export async function genererSemaine(): Promise<RapportResult> {
   const err = res.erreurs.length ? ` Erreurs : ${res.erreurs.join(" ; ")}.` : "";
   return { ok: true, message: `${res.crees} rapport${res.crees > 1 ? "s" : ""} préparé${res.crees > 1 ? "s" : ""} (à valider), ${res.existants} déjà existant${res.existants > 1 ? "s" : ""}.${err}` };
 }
+
+/** Envoie à l'administrateur (à son adresse seulement) le dernier rapport d'une personne, pour voir l'email tel qu'il sera reçu. */
+export async function envoyerTestRapport(personId: string): Promise<RapportResult> {
+  const c = await contexte();
+  if (!c) return { ok: false, error: "Non connecté." };
+  if (!c.me.is_admin) return { ok: false, error: "Réservé aux administrateurs." };
+  if (!UUID.test(personId)) return { ok: false, error: "Personne invalide." };
+  if (!c.me.email) return { ok: false, error: "Ta fiche n'a pas d'adresse email." };
+  const { data } = await c.svc.from("rapports_hebdo").select("*").eq("person_id", personId).neq("statut", "ignore").order("semaine", { ascending: false }).limit(1);
+  const r = ((data as RapportRow[] | null) ?? [])[0];
+  if (!r) return { ok: false, error: "Aucun rapport pour cette personne." };
+  const res = await envoyerRapportEmail(c.svc, r, { versEmail: c.me.email }).catch((e: unknown) => ({ sent: false, reason: e instanceof Error ? e.message : "erreur" }));
+  return res.sent ? { ok: true, message: `Email de test envoyé à ${c.me.email}.` } : { ok: false, error: `Email non envoyé : ${res.reason}` };
+}
+
+/** Suspend ou rétablit le rapport du vendredi d'une personne (vacances, maladie, arrêt) : administrateur seulement. */
+export async function basculerSuivi(personId: string, actif: boolean): Promise<RapportResult> {
+  const c = await contexte();
+  if (!c) return { ok: false, error: "Non connecté." };
+  if (!c.me.is_admin) return { ok: false, error: "Réservé aux administrateurs." };
+  if (!UUID.test(personId) || personId === c.me.id) return { ok: false, error: "Personne invalide." };
+  const { error } = await c.svc.from("people").update({ rapport_hebdo: !!actif }).eq("id", personId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/rapports");
+  return { ok: true, message: actif ? "Rapport du vendredi rétabli." : "Rapport du vendredi suspendu." };
+}

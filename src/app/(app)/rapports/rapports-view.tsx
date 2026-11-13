@@ -4,12 +4,13 @@ import { useState, useTransition } from "react";
 import { Check, ClipboardCopy, X } from "lucide-react";
 import { NIVEAU_COLOR, NIVEAU_LABEL, construireMessage, fmtJourLong, prenomDe, type Ligne, type Niveau } from "@/lib/rapport-hebdo-format";
 import type { RapportRow } from "@/lib/rapport-hebdo-gen";
-import { genererSemaine, ignorerRapport, publierRapport } from "./actions";
+import { basculerSuivi, envoyerTestRapport, genererSemaine, ignorerRapport, publierRapport } from "./actions";
 
 export interface EquipeLigne {
   personId: string;
   name: string;
   rank: string;
+  suivi: boolean;
   aValider: RapportRow[];
   dernier: RapportRow | null;
 }
@@ -96,6 +97,7 @@ function Corps({ r, prenom }: { r: RapportRow; prenom: string }) {
 
       <p className="text-ink">{r.redaction.cloture}</p>
       <p className="text-ink">Justice</p>
+      <p className="italic text-muted">« La chance accorde ses faveurs aux esprits avertis. »</p>
     </div>
   );
 }
@@ -188,6 +190,62 @@ function AValider({ ligne, r }: { ligne: EquipeLigne; r: RapportRow }) {
   );
 }
 
+function LigneSuivi({ l, isAdmin, ouvert, onToggle }: { l: EquipeLigne; isAdmin: boolean; ouvert: boolean; onToggle: () => void }) {
+  const [suivi, setSuivi] = useState(l.suivi);
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <div className={`rounded-xl border border-line bg-card p-2.5 text-xs ${suivi ? "" : "opacity-60"}`}>
+      <button onClick={onToggle} className="flex w-full flex-wrap items-center justify-between gap-2 text-left">
+        <span className="min-w-0">
+          <span className="block font-bold text-ink">{l.name}</span>
+          <span className="text-muted">
+            {!suivi
+              ? "Rapport du vendredi suspendu"
+              : l.dernier
+                ? `Dernier rapport publié : ${fmtJourLong(l.dernier.semaine)}${l.dernier.taux !== null ? ` · ${Math.round(l.dernier.taux * 100)} % des tâches faites` : ""}${l.dernier.serie > 0 ? ` · ${l.dernier.serie} semaine${l.dernier.serie > 1 ? "s" : ""} de suite sous 50 %` : ""}`
+                : "Aucun rapport publié"}
+          </span>
+        </span>
+        {suivi && l.dernier && <Badge niveau={l.dernier.niveau} baseline={!!l.dernier.faits.baseline} />}
+      </button>
+      {isAdmin && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const res = await basculerSuivi(l.personId, !suivi);
+                setMsg(res.ok ? res.message : res.error);
+                if (res.ok) setSuivi(!suivi);
+              })
+            }
+            className={ghostBtn}
+          >
+            {suivi ? "Suspendre son rapport (vacances, maladie…)" : "Rétablir son rapport"}
+          </button>
+          {l.dernier && (
+            <button
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  const res = await envoyerTestRapport(l.personId);
+                  setMsg(res.ok ? res.message : res.error);
+                })
+              }
+              className={ghostBtn}
+            >
+              M&apos;envoyer cet email en test
+            </button>
+          )}
+        </div>
+      )}
+      {msg && <div className="mt-1 text-[11px] text-ink">{msg}</div>}
+      {ouvert && suivi && l.dernier && <Corps r={l.dernier} prenom={l.name} />}
+    </div>
+  );
+}
+
 export function RapportsView({ prenom, mesRapports, progres, equipe, isAdmin, today }: { prenom: string; mesRapports: RapportRow[]; progres: Ligne[] | null; equipe: EquipeLigne[] | null; isAdmin: boolean; today: string }) {
   const [onglet, setOnglet] = useState<"moi" | "equipe">(equipe && mesRapports.length === 0 ? "equipe" : "moi");
   const [pending, start] = useTransition();
@@ -268,16 +326,7 @@ export function RapportsView({ prenom, mesRapports, progres, equipe, isAdmin, to
             <div className="mb-2 text-sm font-bold text-ink">Suivi de l&apos;équipe</div>
             <div className="flex flex-col gap-1.5">
               {equipe.map((l) => (
-                <div key={l.personId} className="rounded-xl border border-line bg-card p-2.5 text-xs">
-                  <button onClick={() => setOuvert(ouvert === l.personId ? null : l.personId)} className="flex w-full flex-wrap items-center justify-between gap-2 text-left">
-                    <span className="min-w-0">
-                      <span className="block font-bold text-ink">{l.name}</span>
-                      <span className="text-muted">{l.dernier ? `Dernier rapport publié : ${fmtJourLong(l.dernier.semaine)}${l.dernier.taux !== null ? ` · ${Math.round(l.dernier.taux * 100)} % des tâches faites` : ""}${l.dernier.serie > 0 ? ` · ${l.dernier.serie} semaine${l.dernier.serie > 1 ? "s" : ""} de suite sous 50 %` : ""}` : "Aucun rapport publié"}</span>
-                    </span>
-                    {l.dernier && <Badge niveau={l.dernier.niveau} baseline={!!l.dernier.faits.baseline} />}
-                  </button>
-                  {ouvert === l.personId && l.dernier && <Corps r={l.dernier} prenom={l.name} />}
-                </div>
+                <LigneSuivi key={l.personId} l={l} isAdmin={isAdmin} ouvert={ouvert === l.personId} onToggle={() => setOuvert(ouvert === l.personId ? null : l.personId)} />
               ))}
               {equipe.length === 0 && <div className="text-xs text-muted">Aucun collaborateur suivi dans ton équipe.</div>}
             </div>
