@@ -1,4 +1,4 @@
-// Guide d'utilisation du CRM : version du 16 novembre 2026 (ajout de l'entraînement aux recommandations). Attention : cette copie est plus à jour que le document claude.ai « Guide d'utilisation du CRM Bâtisseur » (rev. 34, 7 novembre) : ne pas la régénérer depuis le document sans l'avoir mis à jour d'abord.
+// Guide d'utilisation du CRM : version du 16 novembre 2026 (ajout de l'entraînement aux recommandations). Le document claude.ai « Guide d'utilisation du CRM Bâtisseur » a été resynchronisé avec ce contenu le 17 novembre 2026.
 // Pour la mettre à jour : modifier ce fichier (ou le document, puis l'exporter en Markdown et régénérer ce fichier).
 export const GUIDE_VERSION = "16 novembre 2026";
 
