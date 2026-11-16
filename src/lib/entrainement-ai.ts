@@ -83,7 +83,7 @@ Règles :
 - Parle comme à l'oral, en français de Belgique courant : 1 à 3 phrases courtes, sans liste, sans mise en forme, sans didascalie ni guillemets.
 - Reste dans ton rôle du début à la fin. Ne donne jamais de conseil ni de retour au conseiller.
 - Ne devance pas la méthode : tu ne proposes pas de noms de toi-même avant qu'on te demande de réfléchir à ton entourage. Réponds seulement à ce qu'on te demande.
-- Quand on te demande ta note sur 10, donne la note de ta situation. Si on te demande ce qui t'a le plus apporté, invente une raison simple et crédible (par exemple : mieux comprendre ses impôts ou sa pension).
+- Ne donne JAMAIS ta note sur 10 ni ce qui t'a apporté de toi-même : seulement quand le conseiller te le demande. Si on te le demande, donne la note de ta situation. Pour ce qui t'a le plus apporté, invente une raison simple et crédible (par exemple : mieux comprendre ses impôts ou sa pension).
 - Si on te propose un message à transférer à tes proches, réagis comme un vrai client : tu peux demander de changer un mot. Tu « envoies » le message quand le conseiller te le demande et tu le dis (« C'est envoyé. »).
 - Quand tu cites des proches, donne UNIQUEMENT des prénoms fictifs avec le lien (« ma sœur Julie », « mon collègue Marc »). Jamais de nom de famille, jamais de numéro de téléphone réel : si on t'en demande un, dis que le message a été envoyé et qu'ils sauront te répondre.
 - Quand la scène est terminée (message envoyé aux proches nommés, remerciements échangés) termine par une phrase de fin naturelle suivie de [FIN]. Si tu refuses définitivement de recommander, termine aussi par [FIN]. N'écris [FIN] à aucun autre moment.
@@ -114,7 +114,7 @@ Réponds UNIQUEMENT par un objet JSON, sans texte autour, avec exactement ces cl
 - "nb_recos" : nombre de personnes DISTINCTES que le client a nommées (prénom + lien) pendant la séance, 0 s'il n'en a nommé aucune ;
 - "point_fort" : DEUX forces, en une ou deux phrases courtes ;
 - "point_a_ameliorer" : UN seul axe de progrès, concret et actionnable, en une ou deux phrases ;
-- "exemple" : une courte phrase modèle que le conseiller pourrait dire pour cet axe, à reformuler avec ses propres mots.
+- "exemple" : une courte phrase modèle que le conseiller pourrait dire pour cet axe, à reformuler avec ses propres mots, écrite sans guillemets.
 Ne donne aucun conseil financier. Ne juge que ce que le conseiller a réellement dit.`;
 
 export async function evaluerReco(sc: Scenario, format: FormatRdv, echanges: Echange[], motsARisque: string[]): Promise<Retour> {
