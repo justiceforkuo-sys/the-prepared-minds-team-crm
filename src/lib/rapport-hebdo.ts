@@ -47,7 +47,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
     svc.from("modules_fsma").select("user_id, module, statut, reussi_at, note").eq("user_id", p.id),
     svc.from("clients").select("client_policies(units, created_at)").eq("owner_id", p.id),
     svc.from("entrainement_seances").select("id", { count: "exact", head: true }).eq("person_id", p.id),
-    svc.from("people").select("id, vision, rank, statut_reglementaire, agrement_statut, agrement_depose_at, agrement_fsma_at, ft2_at, autonome_at, parcours_statut").eq("id", p.id).maybeSingle(),
+    svc.from("people").select("id, vision, rank, statut_reglementaire, agrement_statut, agrement_depose_at, agrement_fsma_at, ft2_at, autonome_at, parcours_statut, date_demarrage").eq("id", p.id).maybeSingle(),
     svc.from("parcours_etapes").select("*").eq("actif", true).order("ordre"),
     svc.from("parcours_progression").select("*").eq("user_id", p.id),
   ]);
@@ -66,7 +66,7 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
   const policies = ((pol.data as { client_policies: { units: number; created_at: string }[] }[] | null) ?? []).flatMap((c) => c.client_policies);
   const units = policies.reduce((s, x) => s + Number(x.units), 0);
   const moduleRows = (fsmaRes.data as ModuleRow[] | null) ?? [];
-  const reg = regRes.data as (PersonParcours & { parcours_statut: string }) | null;
+  const reg = regRes.data as (PersonParcours & { parcours_statut: string; date_demarrage: string | null }) | null;
   const { jour, plusDe6Mois } = contexte(p, to);
   const sansRelance = own.filter((r) => !r.next_follow_up && !CLOSED.includes(r.stage)).length;
 
@@ -86,7 +86,8 @@ export async function collecterFaits(svc: SupabaseClient, p: PersonneRapport, fr
       mentor_name: null,
       integration_date: idate,
       day_n: jour,
-      units: policies.filter((x) => x.created_at.slice(0, 10) >= idate).reduce((s, x) => s + Number(x.units), 0),
+      // Unités comptées depuis le démarrage réel si la personne a commencé avant son intégration (parcours antérieur)
+      units: policies.filter((x) => x.created_at.slice(0, 10) >= (reg.date_demarrage && reg.date_demarrage < idate ? reg.date_demarrage : idate)).reduce((s, x) => s + Number(x.units), 0),
       units_7d: 0,
       dv_plan_total: sumI("dv_planifies"),
       dv_real_total: sumI("dv_realises"),
