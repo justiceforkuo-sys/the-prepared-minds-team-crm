@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PhoneCall } from "lucide-react";
+import { Handshake, PhoneCall } from "lucide-react";
 
 const SCRIPTS = [
   {
@@ -44,6 +44,13 @@ export default function ScriptsPage() {
         <span className="text-xs text-muted">
           <span className="block text-sm font-bold text-ink">S&apos;entraîner aux appels</span>
           Claude joue un prospect fictif : tu fixes un rendez-vous, puis tu reçois ton retour étape par étape et une note sur 10.
+        </span>
+      </Link>
+      <Link href="/scripts/entrainement?mode=reco" className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 hover:border-gold">
+        <Handshake size={20} className="flex-shrink-0 text-gold-light" />
+        <span className="text-xs text-muted">
+          <span className="block text-sm font-bold text-ink">S&apos;entraîner aux recommandations</span>
+          Claude joue un client en fin de rendez-vous : tu déroules la méthode en 7 étapes, puis tu reçois ton retour et une note sur 10.
         </span>
       </Link>
       <div className="flex flex-col gap-2.5">

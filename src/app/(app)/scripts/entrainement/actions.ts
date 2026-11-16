@@ -4,8 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createServiceClient } from "@/utils/supabase/service";
 import { fsmaFlags } from "@/lib/linkedin/templates";
-import { evaluerAppel, repliqueProspect } from "@/lib/entrainement-ai";
+import { evaluerAppel, evaluerReco, repliqueClientReco, repliqueProspect } from "@/lib/entrainement-ai";
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Retour } from "@/lib/entrainement";
+import { FORMATS, SCENARIOS_RECO } from "@/lib/entrainement-reco";
 
 export type ReplyResult = { ok: true; texte: string; fin: boolean } | { ok: false; error: string };
 export type RetourResult = { ok: true; retour: Retour; enregistre: boolean } | { ok: false; error: string };
@@ -91,6 +92,60 @@ export async function evaluerSeance(scenarioId: string, profilId: string, prenom
     prenom,
     note,
     rdv_obtenu: !!retour.rdvObtenu,
+    echanges,
+    retour,
+  });
+  return { ok: true, retour, enregistre: !error };
+}
+
+/** Réplique du client fictif (entraînement aux recommandations). Rien n'est enregistré. */
+export async function repondreClientReco(scenarioId: string, prenom: string, format: string, echanges: Echange[]): Promise<ReplyResult> {
+  const me = await getCurrentPerson();
+  if (!me) return { ok: false, error: "Session expirée." };
+  const sc = SCENARIOS_RECO.find((s) => s.id === scenarioId);
+  const fmt = FORMATS.find((f) => f.id === format);
+  if (!sc || !fmt || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
+  const err = controler(echanges);
+  if (err) return { ok: false, error: err };
+  if (echanges[echanges.length - 1].role !== "collab") return { ok: false, error: "Données invalides." };
+  try {
+    const r = await repliqueClientReco(sc, prenom, fmt.id, echanges);
+    return { ok: true, texte: r.texte, fin: r.fin };
+  } catch {
+    return { ok: false, error: "Le client ne répond pas : réessaie dans un instant." };
+  }
+}
+
+/** Retour de la séance de recommandations (grille de la formation, note sur 10, un axe de progrès). La séance est enregistrée (visible par la hiérarchie). */
+export async function evaluerSeanceReco(scenarioId: string, prenom: string, format: string, echanges: Echange[]): Promise<RetourResult> {
+  const me = await getCurrentPerson();
+  if (!me) return { ok: false, error: "Session expirée." };
+  const sc = SCENARIOS_RECO.find((s) => s.id === scenarioId);
+  const fmt = FORMATS.find((f) => f.id === format);
+  if (!sc || !fmt || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
+  const err = controler(echanges);
+  if (err) return { ok: false, error: err };
+  if (echanges.filter((e) => e.role === "collab").length < 2) return { ok: false, error: "Parle un peu plus avant de demander le retour." };
+
+  const motsARisque = [...new Set(echanges.filter((e) => e.role === "collab").flatMap((e) => fsmaFlags(e.text)))];
+  let retour: Retour;
+  try {
+    retour = await evaluerReco(sc, fmt.id, echanges, motsARisque);
+  } catch {
+    return { ok: false, error: "Le retour n'a pas pu être préparé : réessaie." };
+  }
+
+  const svc = createServiceClient() as unknown as SupabaseClient;
+  const note = Math.max(0, Math.min(10, Math.round(Number(retour.note) || 0)));
+  const { error } = await svc.from("entrainement_seances").insert({
+    person_id: me.id,
+    scenario_id: sc.id,
+    scenario_titre: `Reco · ${sc.titre}`,
+    niveau: sc.niveau,
+    profil_label: fmt.label.toLowerCase(),
+    prenom,
+    note,
+    rdv_obtenu: false,
     echanges,
     retour,
   });

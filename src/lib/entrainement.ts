@@ -151,6 +151,8 @@ export interface Retour {
   pointAAmeliorer: string;
   exemple: string;
   motsARisque: string[];
+  /** Entraînement aux recommandations : nombre de personnes distinctes nommées par le client fictif (absent pour les appels). */
+  nbRecos?: number;
 }
 
 export const MAX_ECHANGES = 30;

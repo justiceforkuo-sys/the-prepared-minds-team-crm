@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertTriangle, PhoneOff, RotateCcw, Send, Volume2 } from "lucide-react";
 import { VoiceTextarea } from "@/components/voice-textarea";
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Niveau, type Retour, type Scenario } from "@/lib/entrainement";
-import { evaluerSeance, repondreProspect } from "./actions";
+import { FORMATS, OUVERTURE_RECO, SCENARIOS_RECO, type FormatRdv } from "@/lib/entrainement-reco";
+import { evaluerSeance, evaluerSeanceReco, repondreClientReco, repondreProspect } from "./actions";
 
 const NIVEAU_COLOR: Record<Niveau, string> = { facile: "#1f8158", normal: "#c99a3f", difficile: "#b3543a" };
 const NIVEAU_LABEL: Record<Niveau, string> = { facile: "Facile", normal: "Normal", difficile: "Difficile" };
@@ -15,7 +16,10 @@ const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 
 type Phase = "choix" | "appel" | "retour";
 
-export function Entrainement() {
+export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
+  const reco = mode === "reco";
+  const scenarios = reco ? SCENARIOS_RECO : SCENARIOS;
+  const [format, setFormat] = useState<FormatRdv>("ligne");
   const [phase, setPhase] = useState<Phase>("choix");
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [profilId, setProfilId] = useState<string>("hasard");
@@ -43,16 +47,17 @@ export function Entrainement() {
   };
 
   const demarrer = (sc: Scenario) => {
-    const p = profilId === "hasard" ? pick(PROFILS).id : profilId;
+    const p = reco ? "client" : profilId === "hasard" ? pick(PROFILS).id : profilId;
+    const ouverture = reco ? OUVERTURE_RECO : "Allô ?";
     setScenario(sc);
     setSession({ profilId: p, prenom: pick(PRENOMS) });
-    setEchanges([{ role: "prospect", text: "Allô ?" }]);
+    setEchanges([{ role: "prospect", text: ouverture }]);
     setSaisie("");
     setFin(false);
     setRetour(null);
     setErreur(null);
     setPhase("appel");
-    if (voix) setTimeout(() => parler("Allô ?"), 100);
+    if (voix) setTimeout(() => parler(ouverture), 100);
   };
 
   const envoyer = () => {
@@ -65,7 +70,7 @@ export function Entrainement() {
     setSaisie("");
     setErreur(null);
     start(async () => {
-      const res = await repondreProspect(scenario.id, session.profilId, session.prenom, suite);
+      const res = reco ? await repondreClientReco(scenario.id, session.prenom, format, suite) : await repondreProspect(scenario.id, session.profilId, session.prenom, suite);
       if (!res.ok) return setErreur(res.error);
       setEchanges([...suite, { role: "prospect", text: res.texte }]);
       parler(res.texte);
@@ -78,7 +83,7 @@ export function Entrainement() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setErreur(null);
     start(async () => {
-      const res = await evaluerSeance(scenario.id, session.profilId, session.prenom, echanges);
+      const res = reco ? await evaluerSeanceReco(scenario.id, session.prenom, format, echanges) : await evaluerSeance(scenario.id, session.profilId, session.prenom, echanges);
       if (!res.ok) return setErreur(res.error);
       setRetour(res.retour);
       setEnregistre(res.enregistre);
@@ -102,19 +107,32 @@ export function Entrainement() {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          {reco ? (
+            <label className="flex items-center gap-1.5 text-muted">
+              Format du rendez-vous
+              <select value={format} onChange={(e) => setFormat(e.target.value as FormatRdv)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
+                {FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="flex items-center gap-1.5 text-muted">
+              Qui tu appelles
+              <select value={profilId} onChange={(e) => setProfilId(e.target.value)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
+                <option value="hasard">Au hasard</option>
+                {PROFILS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="flex items-center gap-1.5 text-muted">
-            Qui tu appelles
-            <select value={profilId} onChange={(e) => setProfilId(e.target.value)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
-              <option value="hasard">Au hasard</option>
-              {PROFILS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5 text-muted">
-            <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} /> Entendre le prospect à voix haute
+            <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} /> Entendre {reco ? "le client" : "le prospect"} à voix haute
           </label>
         </div>
 
@@ -124,7 +142,7 @@ export function Entrainement() {
               {NIVEAU_LABEL[n]}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              {SCENARIOS.filter((s) => s.niveau === n).map((s) => (
+              {scenarios.filter((s) => s.niveau === n).map((s) => (
                 <button key={s.id} onClick={() => demarrer(s)} className="rounded-2xl border border-line bg-card p-3.5 text-left hover:border-gold">
                   <div className="text-sm font-bold text-ink">{s.titre}</div>
                   <div className="mt-0.5 text-xs text-muted">{s.defi}</div>
@@ -134,8 +152,9 @@ export function Entrainement() {
           </div>
         ))}
         <p className="text-[11px] text-muted">
-          Le prospect est fictif : aucun vrai nom, aucune donnée de client. <strong className="text-ink">Ta séance est enregistrée</strong> (conversation, note et retour) : tu la retrouves dans « Mes séances », et ton coach et ta hiérarchie peuvent la relire pour t&apos;aider à progresser.
+          {reco ? "Le client est fictif" : "Le prospect est fictif"} : aucun vrai nom, aucune donnée de client. <strong className="text-ink">Ta séance est enregistrée</strong> (conversation, note et retour) : tu la retrouves dans « Mes séances », et ton coach et ta hiérarchie peuvent la relire pour t&apos;aider à progresser.
         </p>
+        {reco && <p className="text-[11px] text-muted">Méthode : d&apos;après la formation « La prise de recommandations » de Futurs Leaders.</p>}
       </div>
     );
   }
@@ -147,7 +166,15 @@ export function Entrainement() {
         <div className="rounded-2xl border border-line bg-card p-4 text-center">
           <div className="text-[11px] font-bold uppercase tracking-wide text-muted">{scenario.titre}</div>
           <div className="mt-1 font-serif text-4xl font-semibold text-gold-light">{retour.note} / 10</div>
-          <div className="mt-1 text-xs text-muted">{retour.rdvObtenu ? "Rendez-vous fixé : bravo." : "Pas de rendez-vous précis fixé cette fois."}</div>
+          <div className="mt-1 text-xs text-muted">
+            {reco
+              ? retour.nbRecos
+                ? `${retour.nbRecos} recommandation${retour.nbRecos > 1 ? "s" : ""} obtenue${retour.nbRecos > 1 ? "s" : ""} (objectif : 5 par rendez-vous).`
+                : "Aucune recommandation obtenue cette fois."
+              : retour.rdvObtenu
+                ? "Rendez-vous fixé : bravo."
+                : "Pas de rendez-vous précis fixé cette fois."}
+          </div>
           <div className="mt-1 text-[11px] text-muted">
             {enregistre === false ? "La séance n'a pas pu être enregistrée : garde une capture d'écran de ce retour." : "Séance enregistrée dans « Mes séances »."}
           </div>
@@ -222,7 +249,10 @@ export function Entrainement() {
           )}
         </div>
         <div className="mt-1 text-muted">
-          Tu appelles {session?.prenom} ({profil?.label}). {scenario?.defi}
+          {reco
+            ? `Tu es en fin de rendez-vous avec ${session?.prenom} (${format === "ligne" ? "en ligne" : "en présentiel"}). `
+            : `Tu appelles ${session?.prenom} (${profil?.label}). `}
+          {scenario?.defi}
         </div>
       </div>
 
@@ -237,18 +267,29 @@ export function Entrainement() {
         <div ref={fond} />
       </div>
 
-      {fin && <div className="rounded-xl border border-line bg-card p-2.5 text-xs text-ink">L&apos;appel est terminé. Demande ton retour.</div>}
+      {fin && <div className="rounded-xl border border-line bg-card p-2.5 text-xs text-ink">{reco ? "La séance est terminée." : "L'appel est terminé."} Demande ton retour.</div>}
 
       {!fin && (
         <div className="flex flex-col gap-2">
-          <VoiceTextarea value={saisie} onChange={setSaisie} rows={3} placeholder={nbCollab === 0 ? "Décroche-lui : « Allo ! C'est … à l'appareil, bonjour ! »" : "Ta réponse (au clavier ou au micro)"} />
+          <VoiceTextarea
+            value={saisie}
+            onChange={setSaisie}
+            rows={3}
+            placeholder={
+              nbCollab === 0
+                ? reco
+                  ? "Rappelle le préaccord posé au début du rendez-vous…"
+                  : "Décroche-lui : « Allo ! C'est … à l'appareil, bonjour ! »"
+                : "Ta réponse (au clavier ou au micro)"
+            }
+          />
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={envoyer} disabled={pending || !saisie.trim()} className="flex items-center gap-1.5 rounded-lg bg-gold px-3.5 py-2 text-sm font-bold text-night disabled:opacity-50">
               <Send size={14} /> Envoyer
             </button>
             <label className="flex items-center gap-1.5 text-xs text-muted">
               <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} />
-              <Volume2 size={13} /> Voix du prospect
+              <Volume2 size={13} /> Voix du {reco ? "client" : "prospect"}
             </label>
           </div>
         </div>
@@ -256,7 +297,7 @@ export function Entrainement() {
 
       <div className="flex flex-wrap gap-2">
         <button onClick={terminer} disabled={pending || nbCollab < 2} className="flex items-center gap-1.5 rounded-lg border border-gold px-3.5 py-2 text-sm font-bold text-gold-light disabled:opacity-50">
-          <PhoneOff size={14} /> {pending ? "Un instant…" : "Terminer l'appel et voir le retour"}
+          <PhoneOff size={14} /> {pending ? "Un instant…" : reco ? "Terminer la séance et voir le retour" : "Terminer l'appel et voir le retour"}
         </button>
         <button onClick={() => recommencer(false)} className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted">
           Abandonner

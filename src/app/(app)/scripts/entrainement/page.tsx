@@ -11,7 +11,9 @@ import type { SeanceLigne } from "./actions";
 // Le prospect fictif répond via Claude : on laisse jusqu'à 60 s à chaque réplique ou retour.
 export const maxDuration = 60;
 
-export default async function EntrainementPage() {
+export default async function EntrainementPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  const { mode: modeParam } = await searchParams;
+  const reco = modeParam === "reco";
   const me = await getCurrentPerson();
   if (!me) return null;
   const svc = createServiceClient() as unknown as SupabaseClient;
@@ -35,17 +37,27 @@ export default async function EntrainementPage() {
         <ArrowLeft size={16} /> Scripts
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-serif text-xl font-semibold text-ink">S&apos;entraîner aux appels</h2>
+        <h2 className="font-serif text-xl font-semibold text-ink">{reco ? "S'entraîner aux recommandations" : "S'entraîner aux appels"}</h2>
         {suit && (
           <Link href="/scripts/entrainement/equipe" className="flex items-center gap-1.5 rounded-full border border-gold px-3 py-1.5 text-xs font-bold text-gold-light">
             <Users size={13} /> Suivi de l&apos;équipe
           </Link>
         )}
       </div>
-      <p className="mb-4 mt-1 text-xs text-muted">
-        Claude joue un prospect fictif. Tu fixes un rendez-vous comme au téléphone (au clavier ou à la voix), puis tu reçois un retour étape par étape, une note sur 10 et un point à améliorer.
+      <div className="mt-2 flex gap-2 text-xs font-bold">
+        <Link href="/scripts/entrainement" className={`rounded-full border px-3 py-1.5 ${reco ? "border-line text-muted" : "border-gold bg-gold text-night"}`}>
+          Appels
+        </Link>
+        <Link href="/scripts/entrainement?mode=reco" className={`rounded-full border px-3 py-1.5 ${reco ? "border-gold bg-gold text-night" : "border-line text-muted"}`}>
+          Recommandations
+        </Link>
+      </div>
+      <p className="mb-4 mt-2 text-xs text-muted">
+        {reco
+          ? "Claude joue un client fictif à la fin d'un rendez-vous. Tu déroules la méthode en 7 étapes (préaccord, feedback, process, message, geste, cercle par cercle, prévenir), puis tu reçois un retour étape par étape, une note sur 10 et un axe de progrès."
+          : "Claude joue un prospect fictif. Tu fixes un rendez-vous comme au téléphone (au clavier ou à la voix), puis tu reçois un retour étape par étape, une note sur 10 et un point à améliorer."}
       </p>
-      <Entrainement />
+      <Entrainement key={reco ? "reco" : "appel"} mode={reco ? "reco" : "appel"} />
 
       <div className="mt-8">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">

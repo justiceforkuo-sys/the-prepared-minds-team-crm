@@ -23,6 +23,11 @@ function Detail({ s }: { s: SeanceDetail }) {
           </span>
         ))}
       </div>
+      {typeof r.nbRecos === "number" && (
+        <div className="text-ink">
+          Recommandations obtenues : <strong>{r.nbRecos}</strong> (objectif : 5 par rendez-vous)
+        </div>
+      )}
       {r.motsARisque.length > 0 && <div className="text-ink">Mots à risque employés : <strong>{r.motsARisque.join(", ")}</strong></div>}
       <div>
         <div className="font-bold text-ink">Ce qui a bien marché</div>
