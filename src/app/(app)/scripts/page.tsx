@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Handshake, PhoneCall } from "lucide-react";
+import { Building2, Handshake, PhoneCall } from "lucide-react";
 
 const SCRIPTS = [
   {
@@ -51,6 +51,13 @@ export default function ScriptsPage() {
         <span className="text-xs text-muted">
           <span className="block text-sm font-bold text-ink">S&apos;entraîner aux recommandations</span>
           Claude joue un client en fin de rendez-vous : tu déroules la méthode en 7 étapes, puis tu reçois ton retour et une note sur 10.
+        </span>
+      </Link>
+      <Link href="/scripts/partenaires" className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 hover:border-gold">
+        <Building2 size={20} className="flex-shrink-0 text-gold-light" />
+        <span className="text-xs text-muted">
+          <span className="block text-sm font-bold text-ink">Appels aux structures partenaires</span>
+          Bureaux de tarification, agences de placement : fil rouge, phrases clés, entraînement et suivi de ta chasse.
         </span>
       </Link>
       <div className="flex flex-col gap-2.5">

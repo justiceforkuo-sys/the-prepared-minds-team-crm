@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertTriangle, PhoneOff, RotateCcw, Send, Volume2 } from "lucide-react";
 import { VoiceTextarea } from "@/components/voice-textarea";
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Niveau, type Retour, type Scenario } from "@/lib/entrainement";
 import { FORMATS, OUVERTURE_RECO, SCENARIOS_RECO, type FormatRdv } from "@/lib/entrainement-reco";
-import { evaluerSeance, evaluerSeanceReco, repondreClientReco, repondreProspect } from "./actions";
+import { OUVERTURE_PARTENAIRE, SCENARIOS_PARTENAIRE } from "@/lib/entrainement-partenaires";
+import { evaluerSeance, evaluerSeancePartenaire, evaluerSeanceReco, repondreClientReco, repondrePartenaire, repondreProspect } from "./actions";
 
 const NIVEAU_COLOR: Record<Niveau, string> = { facile: "#1f8158", normal: "#c99a3f", difficile: "#b3543a" };
 const NIVEAU_LABEL: Record<Niveau, string> = { facile: "Facile", normal: "Normal", difficile: "Difficile" };
@@ -16,9 +18,12 @@ const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 
 type Phase = "choix" | "appel" | "retour";
 
-export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
+export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "partenaire" }) {
   const reco = mode === "reco";
-  const scenarios = reco ? SCENARIOS_RECO : SCENARIOS;
+  const partenaire = mode === "partenaire";
+  const scenarios = reco ? SCENARIOS_RECO : partenaire ? SCENARIOS_PARTENAIRE : SCENARIOS;
+  /** Qui joue Claude : sert aux libellés. */
+  const interlocuteur = reco ? "le client" : partenaire ? "l'interlocuteur" : "le prospect";
   const [format, setFormat] = useState<FormatRdv>("ligne");
   const [phase, setPhase] = useState<Phase>("choix");
   const [scenario, setScenario] = useState<Scenario | null>(null);
@@ -47,8 +52,8 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
   };
 
   const demarrer = (sc: Scenario) => {
-    const p = reco ? "client" : profilId === "hasard" ? pick(PROFILS).id : profilId;
-    const ouverture = reco ? OUVERTURE_RECO : "Allô ?";
+    const p = reco ? "client" : partenaire ? "partenaire" : profilId === "hasard" ? pick(PROFILS).id : profilId;
+    const ouverture = reco ? OUVERTURE_RECO : partenaire ? OUVERTURE_PARTENAIRE : "Allô ?";
     setScenario(sc);
     setSession({ profilId: p, prenom: pick(PRENOMS) });
     setEchanges([{ role: "prospect", text: ouverture }]);
@@ -70,7 +75,11 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
     setSaisie("");
     setErreur(null);
     start(async () => {
-      const res = reco ? await repondreClientReco(scenario.id, session.prenom, format, suite) : await repondreProspect(scenario.id, session.profilId, session.prenom, suite);
+      const res = reco
+        ? await repondreClientReco(scenario.id, session.prenom, format, suite)
+        : partenaire
+          ? await repondrePartenaire(scenario.id, session.prenom, suite)
+          : await repondreProspect(scenario.id, session.profilId, session.prenom, suite);
       if (!res.ok) return setErreur(res.error);
       setEchanges([...suite, { role: "prospect", text: res.texte }]);
       parler(res.texte);
@@ -83,7 +92,11 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setErreur(null);
     start(async () => {
-      const res = reco ? await evaluerSeanceReco(scenario.id, session.prenom, format, echanges) : await evaluerSeance(scenario.id, session.profilId, session.prenom, echanges);
+      const res = reco
+        ? await evaluerSeanceReco(scenario.id, session.prenom, format, echanges)
+        : partenaire
+          ? await evaluerSeancePartenaire(scenario.id, session.prenom, echanges)
+          : await evaluerSeance(scenario.id, session.profilId, session.prenom, echanges);
       if (!res.ok) return setErreur(res.error);
       setRetour(res.retour);
       setEnregistre(res.enregistre);
@@ -118,7 +131,7 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
                 ))}
               </select>
             </label>
-          ) : (
+          ) : partenaire ? null : (
             <label className="flex items-center gap-1.5 text-muted">
               Qui tu appelles
               <select value={profilId} onChange={(e) => setProfilId(e.target.value)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
@@ -132,7 +145,7 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
             </label>
           )}
           <label className="flex items-center gap-1.5 text-muted">
-            <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} /> Entendre {reco ? "le client" : "le prospect"} à voix haute
+            <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} /> Entendre {interlocuteur} à voix haute
           </label>
         </div>
 
@@ -152,9 +165,14 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
           </div>
         ))}
         <p className="text-[11px] text-muted">
-          {reco ? "Le client est fictif" : "Le prospect est fictif"} : aucun vrai nom, aucune donnée de client. <strong className="text-ink">Ta séance est enregistrée</strong> (conversation, note et retour) : tu la retrouves dans « Mes séances », et ton coach et ta hiérarchie peuvent la relire pour t&apos;aider à progresser.
+          {reco ? "Le client est fictif" : partenaire ? "L'interlocuteur est fictif" : "Le prospect est fictif"} : aucun vrai nom, aucune donnée de client. <strong className="text-ink">Ta séance est enregistrée</strong> (conversation, note et retour) : tu la retrouves dans « Mes séances », et ton coach et ta hiérarchie peuvent la relire pour t&apos;aider à progresser.
         </p>
         {reco && <p className="text-[11px] text-muted">Méthode : d&apos;après la formation « La prise de recommandations » de Futurs Leaders.</p>}
+        {partenaire && (
+          <p className="text-[11px] text-muted">
+            Méthode : le fil rouge et les phrases clés sont sur la page <Link href="/scripts/partenaires" className="text-gold-light underline">Appels aux structures partenaires</Link>.
+          </p>
+        )}
       </div>
     );
   }
@@ -251,7 +269,9 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
         <div className="mt-1 text-muted">
           {reco
             ? `Tu es en fin de rendez-vous avec ${session?.prenom} (${format === "ligne" ? "en ligne" : "en présentiel"}). `
-            : `Tu appelles ${session?.prenom} (${profil?.label}). `}
+            : partenaire
+              ? `Tu appelles ${session?.prenom}, responsable d'une structure qui travaille avec des soignants indépendants. `
+              : `Tu appelles ${session?.prenom} (${profil?.label}). `}
           {scenario?.defi}
         </div>
       </div>
@@ -279,7 +299,9 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
               nbCollab === 0
                 ? reco
                   ? "Rappelle le préaccord posé au début du rendez-vous…"
-                  : "Décroche-lui : « Allo ! C'est … à l'appareil, bonjour ! »"
+                  : partenaire
+                    ? "Présente-toi : « Bonjour, [prénom nom], de Prepared Minds Team… »"
+                    : "Décroche-lui : « Allo ! C'est … à l'appareil, bonjour ! »"
                 : "Ta réponse (au clavier ou au micro)"
             }
           />
@@ -289,7 +311,7 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" }) {
             </button>
             <label className="flex items-center gap-1.5 text-xs text-muted">
               <input type="checkbox" checked={voix} onChange={(e) => setVoix(e.target.checked)} />
-              <Volume2 size={13} /> Voix du {reco ? "client" : "prospect"}
+              <Volume2 size={13} /> Voix {reco ? "du client" : partenaire ? "de l'interlocuteur" : "du prospect"}
             </label>
           </div>
         </div>

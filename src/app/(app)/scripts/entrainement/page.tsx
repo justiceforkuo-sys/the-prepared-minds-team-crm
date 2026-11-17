@@ -14,6 +14,8 @@ export const maxDuration = 60;
 export default async function EntrainementPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const { mode: modeParam } = await searchParams;
   const reco = modeParam === "reco";
+  const partenaire = modeParam === "partenaire";
+  const mode = reco ? "reco" : partenaire ? "partenaire" : "appel";
   const me = await getCurrentPerson();
   if (!me) return null;
   const svc = createServiceClient() as unknown as SupabaseClient;
@@ -37,27 +39,34 @@ export default async function EntrainementPage({ searchParams }: { searchParams:
         <ArrowLeft size={16} /> Scripts
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-serif text-xl font-semibold text-ink">{reco ? "S'entraîner aux recommandations" : "S'entraîner aux appels"}</h2>
+        <h2 className="font-serif text-xl font-semibold text-ink">{reco ? "S'entraîner aux recommandations" : partenaire ? "S'entraîner aux appels partenaires" : "S'entraîner aux appels"}</h2>
         {suit && (
           <Link href="/scripts/entrainement/equipe" className="flex items-center gap-1.5 rounded-full border border-gold px-3 py-1.5 text-xs font-bold text-gold-light">
             <Users size={13} /> Suivi de l&apos;équipe
           </Link>
         )}
       </div>
-      <div className="mt-2 flex gap-2 text-xs font-bold">
-        <Link href="/scripts/entrainement" className={`rounded-full border px-3 py-1.5 ${reco ? "border-line text-muted" : "border-gold bg-gold text-night"}`}>
-          Appels
-        </Link>
-        <Link href="/scripts/entrainement?mode=reco" className={`rounded-full border px-3 py-1.5 ${reco ? "border-gold bg-gold text-night" : "border-line text-muted"}`}>
-          Recommandations
-        </Link>
+      <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
+        {(
+          [
+            { id: "appel", label: "Appels", href: "/scripts/entrainement" },
+            { id: "reco", label: "Recommandations", href: "/scripts/entrainement?mode=reco" },
+            { id: "partenaire", label: "Partenaires", href: "/scripts/entrainement?mode=partenaire" },
+          ] as const
+        ).map((t) => (
+          <Link key={t.id} href={t.href} className={`rounded-full border px-3 py-1.5 ${mode === t.id ? "border-gold bg-gold text-night" : "border-line text-muted"}`}>
+            {t.label}
+          </Link>
+        ))}
       </div>
       <p className="mb-4 mt-2 text-xs text-muted">
         {reco
           ? "Claude joue un client fictif à la fin d'un rendez-vous. Tu déroules la méthode en 7 étapes (préaccord, feedback, process, message, geste, cercle par cercle, prévenir), puis tu reçois un retour étape par étape, une note sur 10 et un axe de progrès."
-          : "Claude joue un prospect fictif. Tu fixes un rendez-vous comme au téléphone (au clavier ou à la voix), puis tu reçois un retour étape par étape, une note sur 10 et un point à améliorer."}
+          : partenaire
+            ? "Claude joue le responsable fictif d'une structure qui travaille avec des infirmiers et aides-soignants indépendants (bureau de tarification, agence de placement…). Tu déroules le fil rouge (MonINFI, malade, bilan, accord, mardi-jeudi) pour décrocher un rendez-vous, puis tu reçois ton retour et une note sur 10."
+            : "Claude joue un prospect fictif. Tu fixes un rendez-vous comme au téléphone (au clavier ou à la voix), puis tu reçois un retour étape par étape, une note sur 10 et un point à améliorer."}
       </p>
-      <Entrainement key={reco ? "reco" : "appel"} mode={reco ? "reco" : "appel"} />
+      <Entrainement key={mode} mode={mode} />
 
       <div className="mt-8">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">

@@ -4,9 +4,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
 import { createServiceClient } from "@/utils/supabase/service";
 import { fsmaFlags } from "@/lib/linkedin/templates";
-import { evaluerAppel, evaluerReco, repliqueClientReco, repliqueProspect } from "@/lib/entrainement-ai";
+import { evaluerAppel, evaluerPartenaire, evaluerReco, repliquePartenaire, repliqueClientReco, repliqueProspect } from "@/lib/entrainement-ai";
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Retour } from "@/lib/entrainement";
 import { FORMATS, SCENARIOS_RECO } from "@/lib/entrainement-reco";
+import { SCENARIOS_PARTENAIRE } from "@/lib/entrainement-partenaires";
 
 export type ReplyResult = { ok: true; texte: string; fin: boolean } | { ok: false; error: string };
 export type RetourResult = { ok: true; retour: Retour; enregistre: boolean } | { ok: false; error: string };
@@ -146,6 +147,58 @@ export async function evaluerSeanceReco(scenarioId: string, prenom: string, form
     prenom,
     note,
     rdv_obtenu: false,
+    echanges,
+    retour,
+  });
+  return { ok: true, retour, enregistre: !error };
+}
+
+/** Réplique de l'interlocuteur fictif d'une structure partenaire. Rien n'est enregistré. */
+export async function repondrePartenaire(scenarioId: string, prenom: string, echanges: Echange[]): Promise<ReplyResult> {
+  const me = await getCurrentPerson();
+  if (!me) return { ok: false, error: "Session expirée." };
+  const sc = SCENARIOS_PARTENAIRE.find((s) => s.id === scenarioId);
+  if (!sc || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
+  const err = controler(echanges);
+  if (err) return { ok: false, error: err };
+  if (echanges[echanges.length - 1].role !== "collab") return { ok: false, error: "Données invalides." };
+  try {
+    const r = await repliquePartenaire(sc, prenom, echanges);
+    return { ok: true, texte: r.texte, fin: r.fin };
+  } catch {
+    return { ok: false, error: "L'interlocuteur ne répond pas : réessaie dans un instant." };
+  }
+}
+
+/** Retour de l'appel à une structure partenaire (fil rouge de l'équipe, note sur 10, un point à améliorer). La séance est enregistrée (visible par la hiérarchie). */
+export async function evaluerSeancePartenaire(scenarioId: string, prenom: string, echanges: Echange[]): Promise<RetourResult> {
+  const me = await getCurrentPerson();
+  if (!me) return { ok: false, error: "Session expirée." };
+  const sc = SCENARIOS_PARTENAIRE.find((s) => s.id === scenarioId);
+  if (!sc || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
+  const err = controler(echanges);
+  if (err) return { ok: false, error: err };
+  if (echanges.filter((e) => e.role === "collab").length < 2) return { ok: false, error: "Parle un peu plus avant de demander le retour." };
+
+  const motsARisque = [...new Set(echanges.filter((e) => e.role === "collab").flatMap((e) => fsmaFlags(e.text)))];
+  let retour: Retour;
+  try {
+    retour = await evaluerPartenaire(sc, echanges, motsARisque);
+  } catch {
+    return { ok: false, error: "Le retour n'a pas pu être préparé : réessaie." };
+  }
+
+  const svc = createServiceClient() as unknown as SupabaseClient;
+  const note = Math.max(0, Math.min(10, Math.round(Number(retour.note) || 0)));
+  const { error } = await svc.from("entrainement_seances").insert({
+    person_id: me.id,
+    scenario_id: sc.id,
+    scenario_titre: `Partenaire · ${sc.titre}`,
+    niveau: sc.niveau,
+    profil_label: "structure partenaire",
+    prenom,
+    note,
+    rdv_obtenu: !!retour.rdvObtenu,
     echanges,
     retour,
   });
