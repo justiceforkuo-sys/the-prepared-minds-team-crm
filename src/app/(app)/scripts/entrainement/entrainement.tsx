@@ -187,7 +187,7 @@ export function Entrainement({ mode = "appel", typeInitial }: { mode?: "appel" |
         {reco && <p className="text-[11px] text-muted">Méthode : d&apos;après la formation « La prise de recommandations » de Futurs Leaders.</p>}
         {partenaire && (
           <p className="text-[11px] text-muted">
-            Méthode : le fil rouge et les phrases clés sont sur la page <Link href="/scripts/partenaires" className="text-gold-light underline">Appels aux structures partenaires</Link>.
+            Méthode : le fil rouge et les phrases clés sont sur la page <Link href="/scripts/partenaires" className="text-gold-light underline">Appels aux partenaires</Link>.
           </p>
         )}
       </div>
