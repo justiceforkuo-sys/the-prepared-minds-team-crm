@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getCurrentPerson } from "@/lib/current-person";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 import { AlertTriangle, ArrowLeft, Building2, PhoneCall } from "lucide-react";
 import { A_EVITER, MOTS_CLES, TYPES_STRUCTURE } from "@/lib/entrainement-partenaires";
 import { APRES_APPEL, FAMILLES_OBJECTIONS, PRINCIPES_COMMUNS, REGLES_OR, SCRIPTS_PARTENAIRES, SCRIPT_PAR_TYPE, type ObjectionPartenaire } from "@/lib/scripts-partenaires";
@@ -31,6 +34,8 @@ function Tableau({ lignes }: { lignes: (ObjectionPartenaire & { testee?: boolean
 }
 
 export default async function PartenairesPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+  const me = await getCurrentPerson();
+  if (!me || !peutUtiliserPartenaires(me)) notFound();
   const { type: typeParam } = await searchParams;
   const script = SCRIPT_PAR_TYPE.get(typeParam ?? "") ?? SCRIPTS_PARTENAIRES[0];
   const etapes = [

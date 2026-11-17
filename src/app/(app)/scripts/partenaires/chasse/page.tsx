@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 import { createServiceClient } from "@/utils/supabase/service";
 import { STATUTS_CHASSE } from "@/lib/entrainement-partenaires";
 import { ChasseBoard, type ChasseLigne } from "./chasse-board";
@@ -27,6 +29,7 @@ function rdvEnBruxelles(iso: string | null): { local: string; affiche: string } 
 export default async function ChassePage() {
   const me = await getCurrentPerson();
   if (!me) return null;
+  if (!peutUtiliserPartenaires(me)) notFound();
   const svc = createServiceClient() as unknown as SupabaseClient;
 
   // Personnes suivies : sa cascade (tous niveaux) ; un administrateur suit tout le monde.

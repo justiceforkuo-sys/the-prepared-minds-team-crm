@@ -8,6 +8,7 @@ import { evaluerAppel, evaluerPartenaire, evaluerReco, repliquePartenaire, repli
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Retour } from "@/lib/entrainement";
 import { FORMATS, SCENARIOS_RECO } from "@/lib/entrainement-reco";
 import { SCENARIOS_PARTENAIRE } from "@/lib/entrainement-partenaires";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 
 export type ReplyResult = { ok: true; texte: string; fin: boolean } | { ok: false; error: string };
 export type RetourResult = { ok: true; retour: Retour; enregistre: boolean } | { ok: false; error: string };
@@ -157,6 +158,7 @@ export async function evaluerSeanceReco(scenarioId: string, prenom: string, form
 export async function repondrePartenaire(scenarioId: string, prenom: string, echanges: Echange[]): Promise<ReplyResult> {
   const me = await getCurrentPerson();
   if (!me) return { ok: false, error: "Session expirée." };
+  if (!peutUtiliserPartenaires(me)) return { ok: false, error: "Cette fonction n'est pas encore ouverte." };
   const sc = SCENARIOS_PARTENAIRE.find((s) => s.id === scenarioId);
   if (!sc || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
   const err = controler(echanges);
@@ -174,6 +176,7 @@ export async function repondrePartenaire(scenarioId: string, prenom: string, ech
 export async function evaluerSeancePartenaire(scenarioId: string, prenom: string, echanges: Echange[]): Promise<RetourResult> {
   const me = await getCurrentPerson();
   if (!me) return { ok: false, error: "Session expirée." };
+  if (!peutUtiliserPartenaires(me)) return { ok: false, error: "Cette fonction n'est pas encore ouverte." };
   const sc = SCENARIOS_PARTENAIRE.find((s) => s.id === scenarioId);
   if (!sc || !PRENOMS.includes(prenom)) return { ok: false, error: "Données invalides." };
   const err = controler(echanges);

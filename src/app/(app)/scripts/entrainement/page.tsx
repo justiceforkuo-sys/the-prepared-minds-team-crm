@@ -7,6 +7,7 @@ import { Entrainement } from "./entrainement";
 import { noteColor } from "@/lib/entrainement-format";
 import { SeancesListe } from "./seances-liste";
 import type { SeanceLigne } from "./actions";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 
 // Le prospect fictif répond via Claude : on laisse jusqu'à 60 s à chaque réplique ou retour.
 export const maxDuration = 60;
@@ -14,10 +15,11 @@ export const maxDuration = 60;
 export default async function EntrainementPage({ searchParams }: { searchParams: Promise<{ mode?: string; type?: string }> }) {
   const { mode: modeParam, type: typeParam } = await searchParams;
   const reco = modeParam === "reco";
-  const partenaire = modeParam === "partenaire";
-  const mode = reco ? "reco" : partenaire ? "partenaire" : "appel";
   const me = await getCurrentPerson();
   if (!me) return null;
+  const accesPartenaires = peutUtiliserPartenaires(me);
+  const partenaire = modeParam === "partenaire" && accesPartenaires;
+  const mode = reco ? "reco" : partenaire ? "partenaire" : "appel";
   const svc = createServiceClient() as unknown as SupabaseClient;
 
   const { data } = await svc
@@ -51,8 +53,8 @@ export default async function EntrainementPage({ searchParams }: { searchParams:
           [
             { id: "appel", label: "Appels", href: "/scripts/entrainement" },
             { id: "reco", label: "Recommandations", href: "/scripts/entrainement?mode=reco" },
-            { id: "partenaire", label: "Partenaires", href: "/scripts/entrainement?mode=partenaire" },
-          ] as const
+            ...(accesPartenaires ? [{ id: "partenaire", label: "Partenaires", href: "/scripts/entrainement?mode=partenaire" }] : []),
+          ] as { id: string; label: string; href: string }[]
         ).map((t) => (
           <Link key={t.id} href={t.href} className={`rounded-full border px-3 py-1.5 ${mode === t.id ? "border-gold bg-gold text-night" : "border-line text-muted"}`}>
             {t.label}

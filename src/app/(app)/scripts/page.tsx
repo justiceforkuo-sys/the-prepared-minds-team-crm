@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Building2, Handshake, PhoneCall } from "lucide-react";
+import { getCurrentPerson } from "@/lib/current-person";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 
 const SCRIPTS = [
   {
@@ -34,7 +36,9 @@ const SCRIPTS = [
   },
 ];
 
-export default function ScriptsPage() {
+export default async function ScriptsPage() {
+  const me = await getCurrentPerson();
+  const partenaires = !!me && peutUtiliserPartenaires(me);
   return (
     <div>
       <h2 className="font-serif text-xl font-semibold text-ink">Scripts</h2>
@@ -53,6 +57,7 @@ export default function ScriptsPage() {
           Claude joue un client en fin de rendez-vous : tu déroules la méthode en 7 étapes, puis tu reçois ton retour et une note sur 10.
         </span>
       </Link>
+      {partenaires && (
       <Link href="/scripts/partenaires" className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 hover:border-gold">
         <Building2 size={20} className="flex-shrink-0 text-gold-light" />
         <span className="text-xs text-muted">
@@ -60,6 +65,7 @@ export default function ScriptsPage() {
           Comptables, maisons de repos, tarification, notaires, kinés… : un script par type, objections, entraînement et suivi de ta chasse.
         </span>
       </Link>
+      )}
       <div className="flex flex-col gap-2.5">
         {SCRIPTS.map((s, i) => (
           <div key={i} className="rounded-2xl border border-line bg-card p-3.5">

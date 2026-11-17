@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentPerson } from "@/lib/current-person";
+import { peutUtiliserPartenaires } from "@/lib/partenaires-acces";
 import { createServiceClient } from "@/utils/supabase/service";
 import { FORMATS_RDV_CHASSE, STATUTS_CHASSE, TYPES_STRUCTURE } from "@/lib/entrainement-partenaires";
 
@@ -98,6 +99,7 @@ function ligne(c: ChasseChamps) {
 export async function ajouterStructure(nom: string, type: string, zone: string): Promise<ChasseResult> {
   const me = await getCurrentPerson();
   if (!me) return { ok: false, error: "Session expirée." };
+  if (!peutUtiliserPartenaires(me)) return { ok: false, error: "Cette fonction n'est pas encore ouverte." };
   if (!nom.trim()) return { ok: false, error: "Donne le nom de la structure." };
   if (!TYPES.includes(type)) return { ok: false, error: "Données invalides." };
   const svc = createServiceClient() as unknown as SupabaseClient;
@@ -111,6 +113,7 @@ export async function ajouterStructure(nom: string, type: string, zone: string):
 export async function enregistrerStructure(id: string, c: ChasseChamps): Promise<ChasseResult> {
   const me = await getCurrentPerson();
   if (!me) return { ok: false, error: "Session expirée." };
+  if (!peutUtiliserPartenaires(me)) return { ok: false, error: "Cette fonction n'est pas encore ouverte." };
   if (!UUID.test(id)) return { ok: false, error: "Données invalides." };
   const err = valider(c);
   if (err) return { ok: false, error: err };
@@ -131,6 +134,7 @@ export async function enregistrerStructure(id: string, c: ChasseChamps): Promise
 export async function supprimerStructure(id: string): Promise<ChasseResult> {
   const me = await getCurrentPerson();
   if (!me) return { ok: false, error: "Session expirée." };
+  if (!peutUtiliserPartenaires(me)) return { ok: false, error: "Cette fonction n'est pas encore ouverte." };
   if (!UUID.test(id)) return { ok: false, error: "Données invalides." };
   const svc = createServiceClient() as unknown as SupabaseClient;
   const { error } = await svc.from("partenaires_chasse").delete().eq("id", id).eq("owner_id", me.id);
