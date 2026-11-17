@@ -216,18 +216,24 @@ export const STATUTS_CHASSE = [
   { id: "rdv_fixe", label: "Rendez-vous fixé", couleur: "#2f6fb3" },
   { id: "rencontre", label: "Rencontré", couleur: "#7a5ab5" },
   { id: "partenaire", label: "Partenaire", couleur: "#1f8158" },
-  { id: "sans_suite", label: "Sans suite", couleur: "#b3543a" },
+  { id: "sans_suite", label: "Pas intéressé", couleur: "#b3543a" },
   { id: "ecarte", label: "Écarté", couleur: "#5a6b85" },
 ] as const;
 
 export type StatutChasse = (typeof STATUTS_CHASSE)[number]["id"];
 
+/** Types de partenaires de la chasse (un onglet chacun) et la consigne affichée en tête de liste. */
 export const TYPES_STRUCTURE = [
-  { id: "tarification", label: "Bureau de tarification" },
-  { id: "placement", label: "Agence de placement" },
-  { id: "federation", label: "Fédération / association" },
-  { id: "demarrage", label: "Aide au démarrage" },
-  { id: "autre", label: "Autre" },
+  { id: "comptable", label: "Comptables", consigne: "Ne pas promettre de commission avant validation OVB Willemot (déontologie ITAA)." },
+  { id: "maison_repos", label: "Maisons de repos", consigne: "Cible : le directeur. Angle : garder son personnel (atelier + bilans offerts au personnel). Les résidents ne sont pas la cible." },
+  { id: "tarification", label: "Tarification & soins", consigne: "Liège et environs d'abord, puis Wallonie. Bureaux de tarification, agences de placement et équipes de soins à domicile." },
+  { id: "courtier_credit", label: "Courtiers crédit", consigne: "Beaucoup vendent aussi de l'assurance : vérifier au 1er appel s'ils sont concurrents. Profinance est déjà partenaire." },
+  { id: "agent_immo", label: "Agents immobiliers", consigne: "Liège ville. Commencer par les agences qui ont un téléphone." },
+  { id: "notaire", label: "Notaires", consigne: "Impartialité : ne jamais leur demander de « recommander ». Commencer par ton réseau. Source : CNAL (Chambre des notaires de Liège)." },
+  { id: "kine", label: "Kinés", consigne: "Liège ville. Priorité aux cabinets de groupe. Téléphones à trouver." },
+  { id: "federation", label: "Fédérations", consigne: "Peu d'acteurs : le seul vrai filon est d'obtenir UNE formation. Il faut d'abord un programme d'une page validé par OVB Willemot." },
+  { id: "secretariat_social", label: "Secrétariats sociaux", consigne: "Viser les bureaux régionaux : les grands groupes ont souvent leurs propres partenaires." },
+  { id: "autre", label: "Autre", consigne: "" },
 ] as const;
 
 export type TypeStructure = (typeof TYPES_STRUCTURE)[number]["id"];

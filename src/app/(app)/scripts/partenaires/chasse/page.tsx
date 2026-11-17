@@ -47,8 +47,11 @@ export default async function ChassePage() {
 
   const { data, error } = await svc
     .from("partenaires_chasse")
-    .select("id, owner_id, nom, type, zone, statut, contact_nom, contact_tel, contact_email, rdv_at, rdv_format, rdv_lieu, confirmation_envoyee, dernier_appel, nb_appels, notes")
+    .select("id, owner_id, nom, type, zone, adresse, statut, priorite, remarque, contact_nom, contact_tel, tel_a_verifier, contact_email, contact_web, rdv_at, rdv_format, rdv_lieu, confirmation_envoyee, dernier_appel, nb_appels, prochaine_etape, relance_le, notes")
+    .limit(5000)
     .in("owner_id", [me.id, ...suivies.map((p) => p.id)]);
+
+  const aujourdhui = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Brussels" }).format(new Date());
 
   const entete = (
     <>
@@ -90,9 +93,9 @@ export default async function ChassePage() {
     <div>
       {entete}
       <p className="mb-3 mt-1 text-xs text-muted">
-        Une ligne par structure qui travaille avec des infirmiers et aides-soignants indépendants. Coordonnées professionnelles uniquement (jamais d&apos;infirmier ni de client). Ta hiérarchie peut relire ta liste. Une commission ou un avantage pour une structure se fait valider par OVB Willemot (conformité FSMA) avant d&apos;en parler.
+        Comptables, maisons de repos, tarification, courtiers, notaires… : une ligne par structure ou professionnel à transformer en partenaire. Coordonnées professionnelles uniquement (jamais d&apos;infirmier ni de client). Ta hiérarchie peut relire ta liste. Une commission ou un avantage pour une structure se fait valider par OVB Willemot (conformité FSMA) avant d&apos;en parler.
       </p>
-      <ChasseBoard lignes={miennes} />
+      <ChasseBoard lignes={miennes} aujourdhui={aujourdhui} />
 
       {equipe.length > 0 && (
         <div className="mt-8">
