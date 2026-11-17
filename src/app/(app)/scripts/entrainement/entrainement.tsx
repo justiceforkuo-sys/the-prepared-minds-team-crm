@@ -6,7 +6,7 @@ import { AlertTriangle, PhoneOff, RotateCcw, Send, Volume2 } from "lucide-react"
 import { VoiceTextarea } from "@/components/voice-textarea";
 import { MAX_CARACTERES, MAX_ECHANGES, PRENOMS, PROFILS, SCENARIOS, type Echange, type Niveau, type Retour, type Scenario } from "@/lib/entrainement";
 import { FORMATS, OUVERTURE_RECO, SCENARIOS_RECO, type FormatRdv } from "@/lib/entrainement-reco";
-import { OUVERTURE_PARTENAIRE, SCENARIOS_PARTENAIRE } from "@/lib/entrainement-partenaires";
+import { OUVERTURE_PARTENAIRE, ROLE_PARTENAIRE, SCENARIOS_PARTENAIRE, TYPES_STRUCTURE, type ScenarioPartenaire } from "@/lib/entrainement-partenaires";
 import { evaluerSeance, evaluerSeancePartenaire, evaluerSeanceReco, repondreClientReco, repondrePartenaire, repondreProspect } from "./actions";
 
 const NIVEAU_COLOR: Record<Niveau, string> = { facile: "#1f8158", normal: "#c99a3f", difficile: "#b3543a" };
@@ -18,10 +18,12 @@ const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 
 type Phase = "choix" | "appel" | "retour";
 
-export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "partenaire" }) {
+export function Entrainement({ mode = "appel", typeInitial }: { mode?: "appel" | "reco" | "partenaire"; typeInitial?: string }) {
   const reco = mode === "reco";
   const partenaire = mode === "partenaire";
-  const scenarios = reco ? SCENARIOS_RECO : partenaire ? SCENARIOS_PARTENAIRE : SCENARIOS;
+  const typesAvecScenarios = TYPES_STRUCTURE.filter((t) => SCENARIOS_PARTENAIRE.some((s) => s.type === t.id));
+  const [typeFiltre, setTypeFiltre] = useState<string>(typesAvecScenarios.some((t) => t.id === typeInitial) ? (typeInitial as string) : "tous");
+  const scenarios = reco ? SCENARIOS_RECO : partenaire ? SCENARIOS_PARTENAIRE.filter((s) => typeFiltre === "tous" || s.type === typeFiltre) : SCENARIOS;
   /** Qui joue Claude : sert aux libellés. */
   const interlocuteur = reco ? "le client" : partenaire ? "l'interlocuteur" : "le prospect";
   const [format, setFormat] = useState<FormatRdv>("ligne");
@@ -114,6 +116,9 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "pa
 
   const profil = PROFILS.find((p) => p.id === session?.profilId);
   const nbCollab = echanges.filter((e) => e.role === "collab").length;
+  /** Part de parole (en mots) du collaborateur : la règle des appels partenaires est « il parle 70 %, toi 30 % ». */
+  const motsDe = (r: Echange["role"]) => echanges.filter((e) => e.role === r).reduce((t, e) => t + e.text.split(/\s+/).filter(Boolean).length, 0);
+  const partToi = motsDe("collab") + motsDe("prospect") > 0 ? Math.round((motsDe("collab") / (motsDe("collab") + motsDe("prospect"))) * 100) : null;
 
   // ---------------------------------------------------------------- choix
   if (phase === "choix") {
@@ -131,7 +136,19 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "pa
                 ))}
               </select>
             </label>
-          ) : partenaire ? null : (
+          ) : partenaire ? (
+            <label className="flex items-center gap-1.5 text-muted">
+              Type de partenaire
+              <select value={typeFiltre} onChange={(e) => setTypeFiltre(e.target.value)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
+                <option value="tous">Tous les types</option>
+                {typesAvecScenarios.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
             <label className="flex items-center gap-1.5 text-muted">
               Qui tu appelles
               <select value={profilId} onChange={(e) => setProfilId(e.target.value)} className="rounded-md border border-line bg-card-alt px-2 py-1.5 text-xs text-ink outline-none focus:border-gold">
@@ -197,6 +214,13 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "pa
             {enregistre === false ? "La séance n'a pas pu être enregistrée : garde une capture d'écran de ce retour." : "Séance enregistrée dans « Mes séances »."}
           </div>
         </div>
+
+        {partenaire && partToi !== null && (
+          <div className="rounded-xl border border-line bg-card p-3 text-xs text-ink">
+            Temps de parole (en mots) : toi <strong style={{ color: partToi <= 45 ? "#1f8158" : "#b3543a" }}>{partToi} %</strong>, lui {100 - partToi} %. Objectif : environ 30 % pour toi.
+            {partToi > 45 && " Pose une question puis tais-toi : laisse-le raconter, tu rebondiras sur son histoire."}
+          </div>
+        )}
 
         {retour.motsARisque.length > 0 && (
           <div className="flex items-start gap-2 rounded-xl border border-line bg-card p-3 text-xs text-ink">
@@ -270,7 +294,7 @@ export function Entrainement({ mode = "appel" }: { mode?: "appel" | "reco" | "pa
           {reco
             ? `Tu es en fin de rendez-vous avec ${session?.prenom} (${format === "ligne" ? "en ligne" : "en présentiel"}). `
             : partenaire
-              ? `Tu appelles ${session?.prenom}, responsable d'une structure qui travaille avec des soignants indépendants. `
+              ? `Tu appelles ${session?.prenom}, ${ROLE_PARTENAIRE[(scenario as ScenarioPartenaire | null)?.type ?? "autre"]}. `
               : `Tu appelles ${session?.prenom} (${profil?.label}). `}
           {scenario?.defi}
         </div>

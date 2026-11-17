@@ -1,6 +1,6 @@
 import { CRITERES, METHODE, type Echange, type Profil, type Retour, type Scenario } from "@/lib/entrainement";
 import { METHODE_RECO, critereReco, type FormatRdv } from "@/lib/entrainement-reco";
-import { CRITERES_PARTENAIRE, METHODE_PARTENAIRE } from "@/lib/entrainement-partenaires";
+import { CRITERES_PARTENAIRE, ROLE_PARTENAIRE, methodePartenaire, type ScenarioPartenaire } from "@/lib/entrainement-partenaires";
 
 // Jeu de rôle et retour de l'entraînement aux appels : Claude joue un prospect fictif, puis évalue l'appel d'après la méthode
 // de l'équipe. La clé API reste côté serveur (ANTHROPIC_API_KEY). Rien n'est stocké : la séance n'existe que dans le navigateur.
@@ -153,22 +153,22 @@ export async function evaluerReco(sc: Scenario, format: FormatRdv, echanges: Ech
   };
 }
 
-const systemPartenaire = (sc: Scenario, prenom: string) => `Tu joues un INTERLOCUTEUR FICTIF au téléphone pour entraîner un conseiller débutant d'une équipe de conseil financier en Belgique à appeler des structures qui travaillent avec des infirmiers et aides-soignants indépendants (bureaux de tarification, agences de placement, fédérations). Tu n'es PAS un assistant : tu es la personne qui décroche.
+const systemPartenaire = (sc: ScenarioPartenaire, prenom: string) => `Tu joues un INTERLOCUTEUR FICTIF au téléphone pour entraîner un conseiller débutant d'une équipe de conseil financier en Belgique à appeler des partenaires potentiels (comptables, maisons de repos, bureaux de tarification, courtiers, agents immobiliers, notaires, kinés, fédérations, secrétariats sociaux). Tu n'es PAS un assistant : tu es la personne qui décroche.
 
-Ton personnage : ${prenom}, responsable de la structure. Tu vouvoies le conseiller (c'est un appel professionnel, il ne te connaît pas). Niveau : ${sc.niveau}, ${NIVEAU[sc.niveau]}.
+Ton personnage : ${prenom}, ${ROLE_PARTENAIRE[sc.type]}. Tu vouvoies le conseiller (c'est un appel professionnel, il ne te connaît pas). Niveau : ${sc.niveau}, ${NIVEAU[sc.niveau]}.
 Situation de l'appel : ${sc.situation}
 
 Règles :
 - Parle comme à l'oral, en français de Belgique courant : 1 à 3 phrases courtes, sans liste, sans mise en forme, sans didascalie ni guillemets.
 - Reste dans ton rôle du début à la fin. Ne donne jamais de conseil ni de retour au conseiller.
 - Tu ne connais pas le conseiller : réponds à ce qu'il te demande, soulève tes freins au moment naturel, dans tes propres mots, pas tous d'un coup. Ne cède pas à une réponse faible ; cède quand la réponse est claire, honnête et que le conseiller propose des créneaux précis.
-- Tu ne donnes JAMAIS de coordonnées d'infirmiers ni de liste. Tu n'inventes aucun vrai nom de structure : si on te demande le nom de ta structure, reste vague (« notre bureau »). Si on te demande ton nom de famille, donne un nom fictif courant (par exemple Dupuis, Lambert, Renard). Rue fictive à Liège ou en province de Liège ; e-mail prenom.nom@exemple.be ; pas de numéro de téléphone.
+- Tu ne donnes JAMAIS de coordonnées d'infirmiers, de clients ou de membres, ni de liste. Tu n'inventes aucun vrai nom de structure : si on te demande le nom de ta structure, reste vague (« notre bureau »). Si on te demande ton nom de famille, donne un nom fictif courant (par exemple Dupuis, Lambert, Renard). Rue fictive à Liège ou en province de Liège ; e-mail prenom.nom@exemple.be ; pas de numéro de téléphone.
 - Si le conseiller te promet une commission ou un avantage pour ta structure, ou dit que « les clients ne paient rien », ou plaisante sur le fait de te facturer, réagis comme une vraie personne méfiante : tu t'étonnes, tu demandes des précisions.
 - Quand le rendez-vous est bien clôturé (jour, heure, lieu ou e-mail récapitulés), termine par une phrase de fin naturelle suivie de [FIN]. Si l'appel tourne court (tu refuses définitivement), termine aussi par [FIN]. N'écris [FIN] à aucun autre moment.
 - Ne parle jamais de rendement, de placement ou de produit financier précis.`;
 
 /** Réplique de l'interlocuteur fictif d'une structure partenaire. Le premier échange (OUVERTURE_PARTENAIRE) est joué côté navigateur. */
-export async function repliquePartenaire(sc: Scenario, prenom: string, echanges: Echange[]): Promise<{ texte: string; fin: boolean }> {
+export async function repliquePartenaire(sc: ScenarioPartenaire, prenom: string, echanges: Echange[]): Promise<{ texte: string; fin: boolean }> {
   const messages: Msg[] = [{ role: "user", content: "(Le téléphone sonne. Tu décroches.)" }];
   for (const e of echanges) messages.push({ role: e.role === "collab" ? "user" : "assistant", content: e.text });
   const brut = await appeler(systemPartenaire(sc, prenom), messages, 1200);
@@ -177,9 +177,9 @@ export async function repliquePartenaire(sc: Scenario, prenom: string, echanges:
   return { texte: texte || "Oui, je vous écoute.", fin };
 }
 
-const systemEvaluationPartenaire = (sc: Scenario) => `Tu es le coach d'une équipe de conseil financier en Belgique. Tu évalues un appel d'entraînement entre un conseiller débutant (« Conseiller ») et l'interlocuteur fictif d'une structure partenaire (« Interlocuteur »), d'après le fil rouge de l'équipe ci-dessous. Sois exigeant mais encourageant, concret et bref, en français, en tutoyant le conseiller.
+const systemEvaluationPartenaire = (sc: ScenarioPartenaire) => `Tu es le coach d'une équipe de conseil financier en Belgique. Tu évalues un appel d'entraînement entre un conseiller débutant (« Conseiller ») et l'interlocuteur fictif d'un partenaire potentiel (« Interlocuteur »), d'après le fil rouge de l'équipe ci-dessous. Sois exigeant mais encourageant, concret et bref, en français, en tutoyant le conseiller.
 
-${METHODE_PARTENAIRE}
+${methodePartenaire(sc.type)}
 
 Scénario joué : « ${sc.titre} » (${sc.niveau}). Défi : ${sc.defi}
 
@@ -195,7 +195,7 @@ Réponds UNIQUEMENT par un objet JSON, sans texte autour, avec exactement ces cl
 - "exemple" : une courte phrase modèle que le conseiller pourrait dire pour ce point, à reformuler avec ses propres mots, écrite sans guillemets.
 Ne donne aucun conseil financier. Ne juge que ce que le conseiller a réellement dit.`;
 
-export async function evaluerPartenaire(sc: Scenario, echanges: Echange[], motsARisque: string[]): Promise<Retour> {
+export async function evaluerPartenaire(sc: ScenarioPartenaire, echanges: Echange[], motsARisque: string[]): Promise<Retour> {
   const transcription = echanges.map((e) => `${e.role === "collab" ? "Conseiller" : "Interlocuteur"} : ${e.text}`).join("\n");
   const brut = await appeler(systemEvaluationPartenaire(sc), [{ role: "user", content: `Transcription de l'appel :\n"""\n${transcription}\n"""` }], 4000);
   const a = brut.indexOf("{");

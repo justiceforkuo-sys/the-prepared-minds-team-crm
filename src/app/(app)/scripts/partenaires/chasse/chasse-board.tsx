@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { AlertTriangle, Phone, Plus, Search, Trash2 } from "lucide-react";
 import { FORMATS_RDV_CHASSE, STATUTS_CHASSE, TYPES_STRUCTURE } from "@/lib/entrainement-partenaires";
+import { mailConfirmation } from "@/lib/scripts-partenaires";
 import { ajouterStructure, enregistrerStructure, supprimerStructure, type ChasseChamps } from "./actions";
 
 export interface ChasseLigne {
@@ -80,8 +81,10 @@ function lienTel(tel: string | null): string | null {
   return premier.length >= 8 ? `tel:${premier}` : null;
 }
 
-function Fiche({ l, aujourdhui, onDone }: { l: ChasseLigne; aujourdhui: string; onDone: () => void }) {
+function Fiche({ l, aujourdhui, moi, onDone }: { l: ChasseLigne; aujourdhui: string; moi: { nom: string; tel: string | null }; onDone: () => void }) {
   const [f, setF] = useState<ChasseChamps>(enChamps(l));
+  const [mail, setMail] = useState<{ objet: string; corps: string } | null>(null);
+  const [copie, setCopie] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const set = <K extends keyof ChasseChamps>(k: K, v: ChasseChamps[K]) => setF((x) => ({ ...x, [k]: v }));
@@ -242,6 +245,51 @@ function Fiche({ l, aujourdhui, onDone }: { l: ChasseLigne; aujourdhui: string; 
           <input type="number" min={0} max={999} className={champ} value={f.nb_appels} onChange={(e) => set("nb_appels", Number(e.target.value))} />
         </label>
       </div>
+      {f.rdv_at && (
+        <div className="rounded-xl border border-line bg-card-alt p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-bold text-ink">Mail de confirmation (à envoyer dans l&apos;heure)</span>
+            <button
+              onClick={() => {
+                setMail(mailConfirmation({ type: f.type, contact: f.contact_nom || null, rdvLocal: f.rdv_at, format: f.rdv_format, lieu: f.rdv_lieu, moi }));
+                setCopie(false);
+              }}
+              className="rounded-full border border-gold px-2.5 py-1 text-[11px] font-bold text-gold-light hover:bg-gold hover:text-night"
+            >
+              {mail ? "Régénérer" : "Préparer le mail"}
+            </button>
+          </div>
+          {mail && (
+            <div className="mt-2 flex flex-col gap-1.5">
+              <input className={champ} value={mail.objet} onChange={(e) => setMail({ ...mail, objet: e.target.value })} aria-label="Objet du mail" />
+              <textarea className={champ} rows={9} value={mail.corps} onChange={(e) => setMail({ ...mail, corps: e.target.value })} aria-label="Corps du mail" />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`Objet : ${mail.objet}
+
+${mail.corps}`);
+                      setCopie(true);
+                    } catch {
+                      setCopie(false);
+                    }
+                  }}
+                  className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink"
+                >
+                  {copie ? "Copié" : "Copier"}
+                </button>
+                {f.contact_email && (
+                  <a href={`mailto:${f.contact_email}?subject=${encodeURIComponent(mail.objet)}&body=${encodeURIComponent(mail.corps)}`} className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink">
+                    Ouvrir dans ma messagerie
+                  </a>
+                )}
+                <span className="text-[11px] text-muted">Relis avant d&apos;envoyer : le CRM n&apos;envoie rien tout seul.</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <label className="flex flex-col gap-1 text-muted">
         Notes d&apos;appel (ce qui a été dit, l&apos;histoire racontée, la suite)
         <textarea className={champ} rows={4} value={f.notes} onChange={(e) => set("notes", e.target.value)} maxLength={3000} />
@@ -262,7 +310,7 @@ function Fiche({ l, aujourdhui, onDone }: { l: ChasseLigne; aujourdhui: string; 
   );
 }
 
-export function ChasseBoard({ lignes, aujourdhui }: { lignes: ChasseLigne[]; aujourdhui: string }) {
+export function ChasseBoard({ lignes, aujourdhui, moi }: { lignes: ChasseLigne[]; aujourdhui: string; moi: { nom: string; tel: string | null } }) {
   const typesPresents = TYPES_STRUCTURE.filter((t) => lignes.some((l) => l.type === t.id));
   const [type, setType] = useState<string>(typesPresents[0]?.id ?? "tous");
   const [ouverte, setOuverte] = useState<string | null>(null);
@@ -443,7 +491,7 @@ export function ChasseBoard({ lignes, aujourdhui }: { lignes: ChasseLigne[]; auj
                 </span>
               </div>
               {l.remarque && ouverte !== l.id && <div className="mt-1 text-[11px] text-muted">{l.remarque}</div>}
-              {ouverte === l.id && <Fiche l={l} aujourdhui={aujourdhui} onDone={() => setOuverte(null)} />}
+              {ouverte === l.id && <Fiche l={l} aujourdhui={aujourdhui} moi={moi} onDone={() => setOuverte(null)} />}
             </div>
           );
         })}

@@ -1,19 +1,26 @@
-// Entraînement aux appels « structures partenaires » : bureaux de tarification, agences de placement, fédérations de
-// soignants indépendants. Contenu repris de la séance d'entraînement du 17 novembre 2026 (fil rouge de l'appel, 7 profils
-// d'interlocuteurs, phrases clés). Les interlocuteurs sont fictifs : aucun vrai nom de structure ni de personne, aucun numéro.
-// Les séances terminées sont enregistrées dans la même table que les autres entraînements
-// (entrainement_seances, scenario_id préfixé « part- »).
+// Entraînement aux appels « partenaires » : comptables, maisons de repos, bureaux de tarification, courtiers en crédit, agents
+// immobiliers, notaires, kinés, fédérations, secrétariats sociaux. Contenu repris de la séance d'entraînement du 17 novembre 2026
+// et du document « Scripts partenaires » (voir scripts-partenaires.ts). Les interlocuteurs sont fictifs : aucun vrai nom de
+// structure ni de personne, aucun numéro. Les séances terminées sont enregistrées dans la même table que les autres
+// entraînements (entrainement_seances, scenario_id préfixé « part- »).
 
 import type { Critere, Scenario } from "@/lib/entrainement";
+import { FAMILLES_OBJECTIONS, SCRIPT_PAR_TYPE } from "@/lib/scripts-partenaires";
 
 export const PREFIXE_PARTENAIRE = "part-";
 
 /** Première réplique de l'interlocuteur (jouée côté navigateur). */
 export const OUVERTURE_PARTENAIRE = "Bonjour, j'écoute.";
 
-export const SCENARIOS_PARTENAIRE: Scenario[] = [
+export interface ScenarioPartenaire extends Scenario {
+  type: TypeStructure;
+}
+
+export const SCENARIOS_PARTENAIRE: ScenarioPartenaire[] = [
+  // --- Tarification et soins ---------------------------------------------------------------------------------------
   {
     id: "part-curieuse",
+    type: "tarification",
     titre: "La curieuse",
     niveau: "facile",
     defi: "« Vous vendez quoi exactement ? » puis « Envoyez-moi un mail » : ne lâche pas le rendez-vous.",
@@ -22,6 +29,7 @@ export const SCENARIOS_PARTENAIRE: Scenario[] = [
   },
   {
     id: "part-debordee",
+    type: "tarification",
     titre: "Le débordé",
     niveau: "normal",
     defi: "« Rappelez-moi la semaine prochaine » : obtiens tes deux minutes maintenant.",
@@ -30,6 +38,7 @@ export const SCENARIOS_PARTENAIRE: Scenario[] = [
   },
   {
     id: "part-questions",
+    type: "tarification",
     titre: "La questionneuse",
     niveau: "normal",
     defi: "Elle pose beaucoup de questions et refuse de donner des coordonnées : l'accord des soignants d'abord.",
@@ -38,14 +47,16 @@ export const SCENARIOS_PARTENAIRE: Scenario[] = [
   },
   {
     id: "part-directe",
+    type: "tarification",
     titre: "Le direct et pressé",
     niveau: "normal",
     defi: "« Liège, c'est loin », « Vous êtes seul ? » : réponds net, propose tout d'un coup.",
     situation:
-      "Tu diriges un bureau de tarification, tu es direct et pressé. Tu dis « Liège, c'est loin », puis « Vous êtes seul ? », puis « Je ne veux pas qu'ils aient l'impression que je les vends ». Tu acceptes si le conseiller répond court, rassure sur le fait que ce sont les infirmiers qui choisissent, parle d'une équipe de sept personnes à temps plein, demande ton nom de famille et propose en une phrase : jour X ou jour Y, en visio ou au bureau.",
+      "Tu diriges un bureau de tarification, tu es direct et pressé. Tu dis « Liège, c'est loin », puis « Vous êtes seul ? », puis « Je ne veux pas qu'ils aient l'impression que je les vends ». Tu acceptes si le conseiller répond court, rassure sur le fait que ce sont les infirmiers qui choisissent, dit la vérité sur sa situation (équipe, temps plein ou non), demande ton nom de famille et propose en une phrase : jour X ou jour Y, en visio ou au bureau.",
   },
   {
     id: "part-deja-aide",
+    type: "tarification",
     titre: "« On les aide déjà »",
     niveau: "normal",
     defi: "Elle aide déjà ses infirmiers à démarrer et ne donnera pas de liste : place le mot « accord ».",
@@ -54,6 +65,7 @@ export const SCENARIOS_PARTENAIRE: Scenario[] = [
   },
   {
     id: "part-mefiante",
+    type: "tarification",
     titre: "La méfiante pressée",
     niveau: "difficile",
     defi: "« Vous êtes courtier ? », « On a déjà un courtier », « Vous touchez combien ? » : sois honnête et net.",
@@ -62,150 +74,206 @@ export const SCENARIOS_PARTENAIRE: Scenario[] = [
   },
   {
     id: "part-echaudee",
+    type: "tarification",
     titre: "L'échaudée",
     niveau: "difficile",
     defi: "Un assureur a déjà vendu des contrats inutiles à ses infirmiers : retourne la méfiance.",
     situation:
       "Tu diriges un bureau de tarification et tu es méfiant après une mauvaise expérience : un assureur a vendu à tes infirmiers des contrats inutiles. Tu demandes « Qu'est-ce qui me garantit que vous ne ferez pas pareil ? ». Tu ne cèdes que si le conseiller assume la méfiance, dit qu'il protège avant de vendre et que, si l'infirmier n'a besoin de rien, il le lui dit, propose de commencer par deux ou trois infirmiers pour que tu juges sur pièce, et reste honnête sur son statut (sans promesse en l'air). Tu ne te laisses pas impressionner par un jargon réglementaire. Tu acceptes alors un rendez-vous en visio.",
   },
+  // --- Comptables --------------------------------------------------------------------------------------------------
+  {
+    id: "part-compta-conseil",
+    type: "comptable",
+    titre: "« On fait déjà le conseil fiscal »",
+    niveau: "normal",
+    defi: "Il craint qu'on marche sur son métier : montre la complémentarité.",
+    situation:
+      "Tu diriges un cabinet comptable. Tu dis « On fait déjà le conseil fiscal », puis « Nos clients ont déjà leur banque ». Tu acceptes si le conseiller dit qu'il ne touche pas à ton métier (tu calcules l'impôt, lui met en place les contrats), que le bilan vérifie si tes clients sont vraiment couverts (souvent il y a des trous sur l'incapacité), que tu reçois un compte rendu si le client le souhaite et que rien ne se fait dans ton dos, puis propose deux créneaux.",
+  },
+  {
+    id: "part-compta-resp",
+    type: "comptable",
+    titre: "« Je n'engage pas ma responsabilité »",
+    niveau: "difficile",
+    defi: "Il redoute pour sa responsabilité et demande ce qu'on lui reverse : reste transparent sans rien promettre.",
+    situation:
+      "Tu diriges une fiduciaire et tu es prudent sur la déontologie. Tu dis « Je ne veux pas engager ma responsabilité », puis « Vous me reversez quoi ? ». Tu acceptes si le conseiller explique que tu n'engages rien (tu transmets son contact, le client décide seul), dit sous quelle société il travaille sans se vanter d'un statut qu'il n'aurait pas, répond sur la rémunération en renvoyant la discussion au rendez-vous, en toute transparence, SANS annoncer de montant ni promettre d'avantage. S'il promet une commission, tu t'étonnes et tu mets un frein.",
+  },
+  // --- Maisons de repos --------------------------------------------------------------------------------------------
+  {
+    id: "part-mr-demarchage",
+    type: "maison_repos",
+    titre: "« Pas de démarchage chez nous »",
+    niveau: "normal",
+    defi: "Le directeur refuse tout démarchage et craint de perdre du temps de son personnel.",
+    situation:
+      "Tu diriges une maison de repos. Tu dis « Je ne veux pas de démarchage dans ma maison », puis « Mon personnel n'a pas le temps ». Tu acceptes si le conseiller parle d'information et non de vente, dit qu'il ne contacte que ceux qui le demandent, précise que l'atelier de 45 minutes se cale sur un changement d'équipe ou une pause et que les bilans se font hors des heures de travail, que cela ne coûte rien et que les résidents ne sont pas concernés, puis propose deux créneaux.",
+  },
+  {
+    id: "part-mr-siege",
+    type: "maison_repos",
+    titre: "« Il faut passer par le siège »",
+    niveau: "difficile",
+    defi: "Il n'est pas décideur et a déjà une assurance groupe : obtiens le bon contact.",
+    situation:
+      "Tu diriges une maison de repos qui fait partie d'un groupe. Tu dis « On a déjà une assurance groupe », puis « Il faut passer par le groupe, par le siège ». Tu acceptes un petit rendez-vous si le conseiller explique que l'atelier aide ton personnel à comprendre ce que l'assurance groupe couvre et ne couvre pas, demande qui contacter au siège et s'il peut dire qu'il vient de ta part, et propose deux créneaux. Tu ne donnes pas de nom au siège avant qu'il te l'ait demandé poliment.",
+  },
+  // --- Courtiers en crédit -----------------------------------------------------------------------------------------
+  {
+    id: "part-courtier-dossiers",
+    type: "courtier_credit",
+    titre: "« Je ne veux pas ralentir mes dossiers »",
+    niveau: "normal",
+    defi: "Il craint un frein sur ses dossiers et pense que la banque impose déjà l'assurance.",
+    situation:
+      "Tu es courtier en crédit hypothécaire. Tu dis « La banque impose déjà son assurance », puis « Je ne veux pas ralentir mes dossiers ». Tu acceptes si le conseiller dit qu'il ne touche pas au crédit, que son rôle est le revenu de remplacement pendant un arrêt de travail, que le bilan se fait en parallèle en une heure sans bloquer le dossier, puis propose deux créneaux. S'il parle de revenu « garanti », tu relèves le mot.",
+  },
+  {
+    id: "part-courtier-concurrent",
+    type: "courtier_credit",
+    titre: "Le courtier qui vend aussi de l'assurance",
+    niveau: "difficile",
+    defi: "Il a déjà un assureur partenaire et se méfie d'un concurrent : montre ta spécialité.",
+    situation:
+      "Tu es courtier en crédit et tu vends aussi de l'assurance. Tu dis « J'ai déjà un assureur partenaire », puis tu demandes sèchement qui il est et ce qu'il veut. Tu acceptes seulement si le conseiller reste honnête, demande si ton assureur couvre les indépendants et les soignants (sa spécialité), dit qu'il peut prendre ceux-là sans te concurrencer sur le reste, évite tout engagement d'échange de clients sans l'avoir fait valider, et propose deux créneaux.",
+  },
+  // --- Agents immobiliers ------------------------------------------------------------------------------------------
+  {
+    id: "part-immo",
+    type: "agent_immo",
+    titre: "L'agent immobilier pressé",
+    niveau: "normal",
+    defi: "« J'ai déjà un courtier », « Mes acheteurs n'ont pas le temps », « Qu'est-ce que j'y gagne ? ».",
+    situation:
+      "Tu diriges une agence immobilière à Liège. Tu dis « J'ai déjà un courtier en crédit », puis « Mes acheteurs n'ont pas le temps », puis « Qu'est-ce que j'y gagne ? ». Tu acceptes si le conseiller dit qu'il ne remplace pas ton courtier (il prépare l'acheteur avant et le protège après), propose une heure en visio le soir, répond que tu y gagnes des ventes qui aboutissent sans promettre de commission, et propose deux créneaux.",
+  },
+  // --- Notaires ----------------------------------------------------------------------------------------------------
+  {
+    id: "part-notaire-temps",
+    type: "notaire",
+    titre: "Le notaire occupé",
+    niveau: "normal",
+    defi: "« La planification successorale, c'est mon métier » et « pas le temps pour les commerciaux ».",
+    situation:
+      "Tu es notaire dans une étude de Liège. Tu dis « On n'a pas le temps de recevoir des commerciaux », puis « La planification successorale, c'est mon métier ». Tu acceptes un rendez-vous de 20 minutes si le conseiller dit qu'il ne s'occupe que du volet assurance (capital décès, bénéficiaires, frais de succession), que tout le juridique reste chez toi, qu'il vient à l'étude, et propose deux créneaux.",
+  },
+  {
+    id: "part-notaire-impartial",
+    type: "notaire",
+    titre: "Le notaire impartial",
+    niveau: "difficile",
+    defi: "« Je dois rester impartial » : ne demande jamais de recommander.",
+    situation:
+      "Tu es notaire, très attaché à ton impartialité. Tu dis « Je dois rester impartial » dès que le conseiller parle de rendez-vous. Si le conseiller te demande de le recommander ou te parle de commission, tu coupes net et tu refuses. Tu acceptes seulement s'il précise qu'il ne demande aucune recommandation, seulement de laisser sa carte à disposition, que le client choisit seul, qu'il est un relais d'information, et propose deux créneaux.",
+  },
+  // --- Kinés -------------------------------------------------------------------------------------------------------
+  {
+    id: "part-kine",
+    type: "kine",
+    titre: "Le kiné débordé",
+    niveau: "normal",
+    defi: "« On a déjà la PLCI », « chacun gère ses affaires », « on est débordés ».",
+    situation:
+      "Tu gères un cabinet de kinésithérapie de groupe à Liège. Tu dis « On a déjà la PLCI via l'INAMI », puis « Chacun gère ses affaires dans le cabinet », puis « On est débordés de patients ». Tu acceptes si le conseiller dit que la PLCI, c'est la pension, que le bilan regarde ce qui se passe pendant un arrêt (revenu de remplacement), qu'il le propose seulement à ceux qui le souhaitent, qu'une heure en visio le soir suffit, puis propose deux créneaux.",
+  },
+  // --- Fédérations -------------------------------------------------------------------------------------------------
+  {
+    id: "part-fede-commercial",
+    type: "federation",
+    titre: "« Pas de commercial dans nos formations »",
+    niveau: "difficile",
+    defi: "Elle a déjà des partenaires et refuse la vente : propose une formation sans vente.",
+    situation:
+      "Tu es responsable des formations d'une fédération de soignants indépendants. Tu dis « On a déjà des partenaires », puis « On ne fait pas de commercial dans nos formations », puis « Il faut passer par le conseil d'administration ». Tu acceptes si le conseiller dit qu'il vient en plus sur un sujet précis (la protection de l'indépendant), qu'il applique zéro vente pendant la formation et que tu peux relire le contenu avant, propose d'envoyer une page de présentation à soumettre au conseil et demande quand il se réunit, puis propose deux créneaux.",
+  },
+  // --- Secrétariats sociaux ----------------------------------------------------------------------------------------
+  {
+    id: "part-secso",
+    type: "secretariat_social",
+    titre: "Le bureau du secrétariat social",
+    niveau: "normal",
+    defi: "« Nous avons déjà un partenaire », « c'est le siège qui décide », « pas de données ».",
+    situation:
+      "Tu diriges un bureau régional d'un secrétariat social, à Liège. Tu dis « Nous avons déjà un partenaire assurance », puis « C'est le siège qui décide », puis « On ne peut pas transmettre de données ». Tu acceptes si le conseiller demande si ton partenaire couvre les soignants et les professions médicales, demande qui contacter au siège, précise qu'aucune donnée n'est transmise (tu remets simplement son contact à ceux qui le souhaitent), et propose deux créneaux.",
+  },
 ];
 
-/** Fil rouge et argumentation, donnés à l'interlocuteur et à l'évaluation. */
-export const METHODE_PARTENAIRE = `Fil rouge de l'appel à une structure partenaire (bureau de tarification, agence de placement, fédération de soignants indépendants) :
-1. Ouverture : se présenter (prénom, nom, équipe), dire qu'on travaille avec des infirmiers et aides-soignants indépendants (citer un partenaire existant comme référence si c'est vrai), demander si on parle bien au responsable, demander deux minutes.
-2. La raison : « Vous connaissez vos infirmiers mieux que personne : vous voyez leurs revenus chaque mois. Presque aucun ne sait ce qu'il toucherait s'il tombait malade demain. Un infirmier malade ne facture plus rien, donc vous non plus. »
-3. La question : « Est-ce que certains de vos infirmiers vous ont déjà parlé d'un arrêt maladie, d'une blessure ou de leur pension ? », puis se taire et laisser l'autre répondre.
-4. La proposition : un bilan de protection offert aux infirmiers, sans engagement (revenu en cas d'arrêt, pension, déductions fiscales), rien dans leur dos, un service qui fidélise sans travail pour la structure.
-5. Le rendez-vous : environ 20 minutes, deux créneaux précis (« mardi 15h ou jeudi 10h ? »), en visio ou au bureau.
-6. Les objections : une objection est une information, pas un mur ; répondre court, avec ses mots, puis revenir au rendez-vous.
+/** Qui joue Claude, selon le type de partenaire. */
+export const ROLE_PARTENAIRE: Record<TypeStructure, string> = {
+  comptable: "responsable d'un cabinet comptable ou d'une fiduciaire",
+  maison_repos: "directeur d'une maison de repos",
+  tarification: "responsable d'une structure qui travaille avec des infirmiers et aides-soignants indépendants (bureau de tarification, agence de placement, soins à domicile)",
+  courtier_credit: "courtier en crédit hypothécaire",
+  agent_immo: "responsable d'une agence immobilière",
+  notaire: "notaire d'une étude de Liège",
+  kine: "responsable d'un cabinet de kinésithérapie de groupe",
+  federation: "responsable des formations d'une fédération de soignants indépendants",
+  secretariat_social: "responsable d'un bureau régional de secrétariat social ou de guichet d'entreprises",
+  autre: "responsable d'une structure partenaire potentielle",
+};
+
+const MOTS_CLES_TXT = "Les 5 mots-clés : Preuve (partenaire de référence réel) → malade → question (puis silence) → accord → mardi-jeudi.";
+
+/** Fil rouge, objections du type et objections communes, donnés à l'interlocuteur et à l'évaluation. */
+export function methodePartenaire(type: TypeStructure): string {
+  const s = SCRIPT_PAR_TYPE.get(type) ?? SCRIPT_PAR_TYPE.get("tarification")!;
+  const communes = FAMILLES_OBJECTIONS.flatMap((f) => f.objections)
+    .map((o) => `- ${o.ils_disent} : ${o.tu_reponds}`)
+    .join("\n");
+  const propres = s.objections.map((o) => `- ${o.ils_disent} : ${o.tu_reponds}`).join("\n");
+  return `Fil rouge de l'appel à un partenaire (${s.titre}) :
+Angle : ${s.angle}
+1. Ouverture : ${s.ouverture}
+2. La raison : ${s.raison}
+3. La question : ${s.question} Puis se taire et laisser l'autre répondre.
+4. La proposition : ${s.proposition}
+5. Le rendez-vous : ${s.rdv}
+6. Les objections : une objection est une information, pas un mur ; accueillir, répondre en une phrase, relancer par une question ou par les deux créneaux.
 7. La clôture : répéter jour, heure, lieu ou e-mail, demander le nom de famille, annoncer un mail de confirmation dans l'heure.
+${MOTS_CLES_TXT}
 
-Les 5 mots-clés : MonINFI (la référence) → malade → bilan → accord → mardi-jeudi.
+Objections propres à ce partenaire :
+${propres}
 
-Réponses attendues aux objections :
-- « Vous vendez quoi exactement ? » : je ne vends rien par téléphone ; j'offre un bilan de protection aux infirmiers, vous connaissez vos infirmiers mieux que personne. Puis rebondir sur l'histoire racontée.
-- « Envoyez-moi un mail » : avec plaisir, juste après qu'on se soit parlé 20 minutes ; mardi ou jeudi ?
-- « Rappelez-moi la semaine prochaine » : deux minutes maintenant suffisent pour voir si ça vous intéresse.
-- « Vous êtes courtier ? » : je suis conseiller financier, sous OVB Willemot ; je ne vous appelle pas pour vous vendre une assurance mais parce que vous connaissez vos infirmiers mieux que personne.
-- « On travaille déjà avec un courtier » : très bien ; tous vos infirmiers sont-ils passés chez lui ? Un deuxième avis ne coûte rien, et c'est vous qui leur offrez ce service.
-- Des soignants partent à la concurrence : justement, ce bilan est un avantage que votre concurrent n'offre pas ; ça aide à garder vos soignants.
-- « Ça me coûte combien ? / Gratuit ? Vous gagnez votre vie comment ? » : le bilan est gratuit ; si la personne décide de mettre une solution en place, c'est la compagnie qui me rémunère. (Ne jamais dire « les clients ne me paient rien » : la commission est incluse dans les primes. Pas de blague du type « je peux vous facturer ».)
-- « Je ne peux pas vous donner leurs coordonnées » : bien sûr ; ce sont vos infirmiers qui donnent leur accord d'abord, vous ne me transmettez rien sans eux.
-- « Vous faites quoi avec [partenaire] ? » : il m'envoie ses soignants qui le souhaitent, et je leur fais un bilan de protection. Donner un résultat concret sans nom (« un infirmier vient de mettre en place sa pension et sa protection décès »).
-- « Vous êtes seul ? » : j'ai une équipe de sept personnes, et je suis à temps plein.
-- « Je ne veux pas qu'ils aient l'impression que je les vends » : ce sont les infirmiers qui choisissent ; vous ne les engagez à rien.
-- « Un assureur nous a déjà déçus » : je comprends ; ma règle, c'est de protéger avant de vendre ; si l'infirmier n'a besoin de rien, je le lui dis ; commençons par deux ou trois infirmiers et vous jugerez sur pièce.
-- « Qu'est-ce qui me garantit… ? » : parler du statut réel (sous OVB Willemot, société agréée FSMA ; ne dire « je suis agréé » que si c'est vrai pour soi) et de l'obligation d'agir dans l'intérêt du client ; ne pas se cacher derrière un jargon réglementaire : la vraie force, ce sont les valeurs.
+Objections communes :
+${communes}
 
 Points de vigilance :
-- Dire « vos soignants » ou « vos infirmiers », jamais « votre client ».
-- Dire « Un infirmier malade ne facture plus rien, donc vous non plus » ; éviter « plus de travail pour vous », qui s'entend à l'envers à l'oral.
-- Ne jamais promettre de commission, de rétrocession ou d'avantage à la structure (à faire valider par la conformité d'OVB Willemot avant d'en parler).
-- Placer le mot « accord » : aucune coordonnée n'est transmise sans l'accord de l'infirmier.
+- Il parle environ 70 % du temps, le conseiller 30 % : le conseiller pose une vraie question puis se tait.
+- Dire « vos soignants », « vos clients » ou « vos équipes » selon le partenaire, jamais « votre client » pour des soignants.
+- Dire « revenu de remplacement » (pas « revenu garanti »), sans promesse de rendement.
+- Ne jamais promettre de commission, de rétrocession ou d'avantage au partenaire, ni annoncer un montant : à faire valider par la conformité d'OVB Willemot avant d'en parler. Répondre sur la rémunération avec transparence, sans montant.
+- Rester honnête sur le statut (« sous OVB Willemot, société agréée par la FSMA ») : ne dire « je suis agréé » que si c'est vrai pour soi.
+- Placer le mot « accord » : aucune coordonnée n'est transmise sans l'accord de la personne concernée.
 - Ne pas lire un texte : parler avec ses mots à partir des 5 mots-clés.`;
+}
 
 export const CRITERES_PARTENAIRE: Critere[] = [
-  { id: "ouverture", label: "Ouverture : présentation, référence, « deux minutes ? »" },
-  { id: "raison", label: "La raison : un infirmier malade ne facture plus rien" },
-  { id: "question", label: "La question sur les arrêts maladie, puis le silence" },
-  { id: "proposition", label: "Proposition : bilan offert, sans engagement, service qui fidélise" },
-  { id: "accord", label: "L'accord des soignants d'abord (rien transmis sans eux)" },
-  { id: "transparence", label: "Transparence sur le statut et la rémunération" },
+  { id: "ouverture", label: "Ouverture : présentation, référence réelle, « deux minutes ? »" },
+  { id: "raison", label: "La raison : ceux qu'ils accompagnent ne savent pas ce qu'ils toucheraient en cas d'arrêt" },
+  { id: "question", label: "Une vraie question de découverte, puis le silence" },
+  { id: "proposition", label: "Proposition : bilan offert, sans engagement, service pour le partenaire" },
+  { id: "accord", label: "L'accord de la personne d'abord (rien transmis sans elle)" },
+  { id: "transparence", label: "Transparence sur le statut et la rémunération (sans promesse)" },
   { id: "rdv", label: "Rendez-vous : deux créneaux précis, visio ou bureau" },
   { id: "cloture", label: "Clôture : jour, heure, lieu ou e-mail, nom de famille, confirmation" },
   { id: "objection", label: "Réponse aux objections (court, avec ses mots)" },
 ];
 
-// --- Page d'aide « Appels aux structures partenaires » ------------------------------------------------------------
+// --- Aide à la lecture --------------------------------------------------------------------------------------------
 
-export const MOTS_CLES = ["MonINFI", "malade", "bilan", "accord", "mardi-jeudi"] as const;
-
-export const FIL_ROUGE: { etape: string; titre: string; texte: string }[] = [
-  {
-    etape: "1",
-    titre: "Ouverture",
-    texte:
-      "« Bonjour, [prénom nom], de Prepared Minds Team. Je travaille avec des infirmiers et aides-soignants indépendants, notamment avec MonINFI à Liège. Est-ce que je parle bien au responsable du bureau ? Vous avez deux minutes ? »",
-  },
-  {
-    etape: "2",
-    titre: "La raison",
-    texte:
-      "« Vous connaissez vos infirmiers mieux que personne : vous voyez leurs revenus chaque mois. Presque aucun ne sait ce qu'il toucherait s'il tombait malade demain. Un infirmier malade ne facture plus rien, donc vous non plus. »",
-  },
-  {
-    etape: "3",
-    titre: "La question",
-    texte: "« Est-ce que certains de vos infirmiers vous ont déjà parlé d'un arrêt maladie, d'une blessure ou de leur pension ? » Puis tu te tais.",
-  },
-  {
-    etape: "4",
-    titre: "La proposition",
-    texte:
-      "« Un bilan de protection offert à vos infirmiers, sans engagement : revenu en cas d'arrêt, pension, déductions fiscales. Rien dans votre dos. Pour vous, un service qui fidélise, sans aucun travail de votre côté. »",
-  },
-  {
-    etape: "5",
-    titre: "Le rendez-vous",
-    texte: "« On en parle 20 minutes : mardi 15h ou jeudi 10h ? En visio ou à votre bureau ? »",
-  },
-  {
-    etape: "6-7",
-    titre: "Objections et clôture",
-    texte: "Voir le tableau ci-dessous. Toujours répéter jour, heure, lieu ou e-mail, demander le nom de famille, puis envoyer le mail de confirmation dans l'heure.",
-  },
-];
-
-export interface PhraseCle {
-  situation: string;
-  phrase: string;
-  /** Phrase sensible : à faire relire par la conformité (OVB Willemot) avant de la diffuser largement. */
-  conformite?: boolean;
-}
-
-export const PHRASES_CLES: PhraseCle[] = [
-  {
-    situation: "« Vous êtes courtier ? »",
-    phrase:
-      "« Je suis conseiller financier, sous OVB Willemot. Mais je ne vous appelle pas pour vous vendre une assurance. Je vous appelle parce que vous connaissez vos infirmiers mieux que personne. »",
-    conformite: true,
-  },
-  { situation: "Ils racontent une histoire (un arrêt, un départ)", phrase: "« C'est exactement pour des cas comme celui-là que je vous appelle. »" },
-  {
-    situation: "« On travaille déjà avec un courtier. »",
-    phrase: "« Très bien. Et tous vos infirmiers sont passés chez lui ? » puis « Un deuxième avis ne coûte rien, et c'est vous qui leur offrez ce service. »",
-  },
-  { situation: "Des soignants partent à la concurrence", phrase: "« Justement, ce bilan, c'est un avantage que votre concurrent n'offre pas. Ça aide à garder vos soignants. »" },
-  {
-    situation: "« Gratuit ? Vous gagnez votre vie comment ? »",
-    phrase: "« Le bilan est gratuit. Si la personne décide de mettre une solution en place, c'est la compagnie qui me rémunère. »",
-    conformite: true,
-  },
-  { situation: "« Je ne peux pas vous donner leurs coordonnées. »", phrase: "« Bien sûr. Ce sont vos infirmiers qui donnent leur accord d'abord, vous ne me transmettez rien sans eux. »" },
-  { situation: "« Vous faites quoi avec MonINFI ? »", phrase: "« MonINFI m'envoie ses soignants qui le souhaitent, et je leur fais un bilan de protection. »" },
-  { situation: "« Vous êtes seul ? »", phrase: "« J'ai une équipe de sept personnes, et je suis à temps plein. »" },
-  {
-    situation: "« Un assureur nous a déjà déçus. »",
-    phrase: "« Je comprends. Ma règle, c'est de protéger avant de vendre. Si l'infirmier n'a besoin de rien, je le lui dis. Commençons par deux ou trois infirmiers, et vous jugerez sur pièce. »",
-  },
-  {
-    situation: "« Qu'est-ce qui me garantit… ? »",
-    phrase: "« Je travaille sous OVB Willemot, société agréée par la FSMA, et je dois agir dans l'intérêt du client. » (Dis « je suis agréé » seulement si tu l'es toi-même.)",
-    conformite: true,
-  },
-  { situation: "« Rappelez-moi la semaine prochaine. »", phrase: "« Deux minutes maintenant suffisent pour voir si ça vous intéresse. »" },
-  { situation: "« Envoyez-moi un mail. »", phrase: "« Avec plaisir, juste après qu'on se soit parlé 20 minutes. Mardi ou jeudi ? »" },
-  { situation: "La clôture", phrase: "« Donc jeudi 10h, en visio / à votre bureau [adresse]. Je vous envoie la confirmation sur [e-mail]. » Puis demander le nom de famille." },
-];
+export const MOTS_CLES = ["Preuve", "malade", "question", "accord", "mardi-jeudi"] as const;
 
 /** À éviter à l'oral, d'après les 8 appels d'entraînement. */
 export const A_EVITER: string[] = [
-  "« Votre client » : dire « vos soignants » ou « vos infirmiers ».",
+  "« Votre client » pour des soignants : dire « vos soignants » ou « vos infirmiers ».",
   "« Plus de travail pour vous » : à l'oral, ça s'entend à l'envers. Dire « un infirmier malade ne facture plus rien, donc vous non plus ».",
   "« Les clients ne me paient rien » : la commission est incluse dans les primes. Dire que le bilan est gratuit et que c'est la compagnie qui rémunère.",
-  "La blague « si vous voulez, je peux vous facturer ».",
-  "Se retrancher derrière la réglementation (MiFID concerne surtout les placements) : parler du statut réel et de l'intérêt du client.",
-  "Promettre une commission ou un avantage à la structure, avant validation par la conformité d'OVB Willemot.",
+  "Les blagues sur la facture (« si vous voulez, je peux vous facturer ») : une personne méfiante peut mal les prendre.",
+  "Citer MiFID pour de l'assurance : MiFID concerne les placements. Parler du statut réel (sous OVB Willemot, société agréée par la FSMA) et de l'intérêt du client.",
+  "« Revenu garanti » : dire « revenu de remplacement ». Pas de promesse de rendement.",
+  "Promettre une commission ou un avantage au partenaire, ou annoncer un montant, avant validation par la conformité d'OVB Willemot.",
 ];
 
 // --- Suivi de la chasse aux partenaires --------------------------------------------------------------------------

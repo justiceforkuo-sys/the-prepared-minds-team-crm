@@ -95,7 +95,7 @@ export default async function ChassePage() {
       <p className="mb-3 mt-1 text-xs text-muted">
         Comptables, maisons de repos, tarification, courtiers, notaires… : une ligne par structure ou professionnel à transformer en partenaire. Coordonnées professionnelles uniquement (jamais d&apos;infirmier ni de client). Ta hiérarchie peut relire ta liste. Une commission ou un avantage pour une structure se fait valider par OVB Willemot (conformité FSMA) avant d&apos;en parler.
       </p>
-      <ChasseBoard lignes={miennes} aujourdhui={aujourdhui} />
+      <ChasseBoard lignes={miennes} aujourdhui={aujourdhui} moi={{ nom: me.name, tel: me.phone }} />
 
       {equipe.length > 0 && (
         <div className="mt-8">

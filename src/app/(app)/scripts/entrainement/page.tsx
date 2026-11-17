@@ -11,8 +11,8 @@ import type { SeanceLigne } from "./actions";
 // Le prospect fictif répond via Claude : on laisse jusqu'à 60 s à chaque réplique ou retour.
 export const maxDuration = 60;
 
-export default async function EntrainementPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
-  const { mode: modeParam } = await searchParams;
+export default async function EntrainementPage({ searchParams }: { searchParams: Promise<{ mode?: string; type?: string }> }) {
+  const { mode: modeParam, type: typeParam } = await searchParams;
   const reco = modeParam === "reco";
   const partenaire = modeParam === "partenaire";
   const mode = reco ? "reco" : partenaire ? "partenaire" : "appel";
@@ -63,10 +63,10 @@ export default async function EntrainementPage({ searchParams }: { searchParams:
         {reco
           ? "Claude joue un client fictif à la fin d'un rendez-vous. Tu déroules la méthode en 7 étapes (préaccord, feedback, process, message, geste, cercle par cercle, prévenir), puis tu reçois un retour étape par étape, une note sur 10 et un axe de progrès."
           : partenaire
-            ? "Claude joue le responsable fictif d'une structure qui travaille avec des infirmiers et aides-soignants indépendants (bureau de tarification, agence de placement…). Tu déroules le fil rouge (MonINFI, malade, bilan, accord, mardi-jeudi) pour décrocher un rendez-vous, puis tu reçois ton retour et une note sur 10."
+            ? "Claude joue le décideur fictif d'un partenaire potentiel (comptable, maison de repos, bureau de tarification, courtier, notaire, kiné, fédération…). Tu déroules le fil rouge (preuve, malade, question, accord, mardi-jeudi) pour décrocher un rendez-vous, puis tu reçois ton retour, ton temps de parole et une note sur 10."
             : "Claude joue un prospect fictif. Tu fixes un rendez-vous comme au téléphone (au clavier ou à la voix), puis tu reçois un retour étape par étape, une note sur 10 et un point à améliorer."}
       </p>
-      <Entrainement key={mode} mode={mode} />
+      <Entrainement key={`${mode}-${typeParam ?? ""}`} mode={mode} typeInitial={typeParam} />
 
       <div className="mt-8">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
