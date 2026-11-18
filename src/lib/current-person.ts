@@ -14,5 +14,8 @@ export async function getCurrentPerson(): Promise<Person | null> {
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
-  return (data as Person | null) ?? null;
+  // Une fiche désactivée (collaborateur parti) n'a plus accès au CRM, même avec une session encore valide.
+  const person = data as Person | null;
+  if (person && !person.active) return null;
+  return person ?? null;
 }
