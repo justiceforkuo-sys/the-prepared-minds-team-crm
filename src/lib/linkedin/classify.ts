@@ -41,6 +41,9 @@ const NETWORK_P1 = [
   "multi site", "federation",
 ];
 const INDEPENDENT = ["independant", "independante", "liberal", "freelance", "zelfstandig", "self employed"];
+const INDEPENDENT_WHOLE = ["indep"]; // « indép. »
+// Petite structure : un gérant ou une gérante de cabinet n'ouvre pas l'accès à toute une équipe.
+const SMALL_PRACTICE = ["cabinet"];
 
 export interface ClassifyInput {
   firstName: string;
@@ -64,7 +67,7 @@ export function classify(input: ClassifyInput, teamNames: Set<string>): Classifi
 
   const tags: string[] = [];
   if (company.includes("g4s")) tags.push("ex-collègue G4S");
-  if (anyOf(both, INDEPENDENT)) tags.push("indépendant");
+  if (anyOf(both, INDEPENDENT, INDEPENDENT_WHOLE)) tags.push("indépendant");
 
   const isTeam =
     anyOf(company, ["prepared mind", "futurs leaders"], ["ovb"]) || (fullName.length > 0 && teamNames.has(fullName));
@@ -72,6 +75,8 @@ export function classify(input: ClassifyInput, teamNames: Set<string>): Classifi
 
   if (anyOf(position, LEADERSHIP) && anyOf(both, CARE_STEMS, CARE_WHOLE)) {
     const strong = anyOf(both, NETWORK_P1);
+    // Indépendant ou petit cabinet, sans réseau : c'est un soignant à accompagner (B), pas une structure partenaire (A).
+    if (!strong && (tags.includes("indépendant") || anyOf(both, SMALL_PRACTICE))) return { grp: "B", priority: 1, tags };
     return { grp: "A", priority: strong ? 1 : 2, tags };
   }
 

@@ -1,15 +1,16 @@
+import { normalize } from "./classify";
 import type { LinkedinGroup, MessageStep } from "./types";
 
 type TemplateGroup = "A" | "B" | "C" | "D";
 
-// Modèles d'équipe. Variables : {prenom} {entreprise} {calendly} {prenom_collab} {signature}
+// Modèles d'équipe. Variables : {prenom} {entreprise} {contexte} {calendly} {prenom_collab} {signature}
 export const TEAM_TEMPLATES: Record<TemplateGroup, Record<"1" | "2" | "3", string>> = {
   A: {
     "1": `Bonjour {prenom},
 
 Merci pour la connexion. J'accompagne des soignants, salariés et indépendants, sur leur protection sociale et leur pension, et je travaille déjà avec une structure infirmière en Wallonie.
 
-Une question simple : chez {entreprise}, est-ce que vos équipes vous parlent de ces sujets (arrêt maladie, pension, statut complémentaire), ou c'est totalement absent du quotidien ?
+Une question simple : {contexte}, est-ce que vos équipes vous parlent de ces sujets (arrêt maladie, pension, statut complémentaire), ou c'est totalement absent du quotidien ?
 
 Belle journée,
 {prenom_collab}`,
@@ -158,6 +159,8 @@ export function displayName(name: string): string {
 
 export interface MessageContext {
   firstName: string;
+  /** Étiquettes du contact : « contexte:… » force le contexte du message 1 (ex. « contexte:dans votre maison de repos »). */
+  tags?: string[];
   company: string | null;
   position?: string | null;
   grp: LinkedinGroup;
@@ -172,6 +175,28 @@ export function templateFor(grp: LinkedinGroup, step: MessageStep): string | nul
   return null;
 }
 
+/**
+ * Où la personne travaille, dit comme on le dirait à voix haute : « dans votre maison de repos », « au CHU »…
+ * Étiquette « contexte:… » sur le contact en priorité ; sinon déduit de l'entreprise et du poste ;
+ * à défaut « chez {entreprise} », ou « dans votre structure » sans entreprise.
+ */
+export function contexteFor(ctx: Pick<MessageContext, "company" | "position" | "tags">): string {
+  const forced = ctx.tags?.find((t) => t.toLowerCase().startsWith("contexte:"))?.slice("contexte:".length).trim();
+  if (forced) return forced;
+  const company = ctx.company?.trim() ?? "";
+  const text = normalize(`${company} ${ctx.position ?? ""}`);
+  const has = (...stems: string[]) => stems.some((s) => text.includes(s));
+  const whole = (...ws: string[]) => ws.some((w) => new RegExp(`(^| )${w}( |$)`).test(text));
+  if (has("residence services") && !has("repos")) return "dans votre résidence-services";
+  if (has("repos", "residence") || whole("mr", "mrs")) return "dans votre maison de repos";
+  if (whole("chu")) return "au CHU";
+  if (whole("chr")) return "au CHR";
+  if (has("hopital", "clinique")) return has("clinique") ? "dans votre clinique" : "dans votre hôpital";
+  if (whole("ugib")) return "dans les associations de l'UGIB";
+  if (has("asbl", "association", "federation") || whole("acn", "vzw")) return "dans votre association";
+  return company ? `chez ${company}` : "dans votre structure";
+}
+
 export function renderMessage(template: string, ctx: MessageContext): string {
   const me = displayName(ctx.collaboratorName);
   const myFirst = capitalizeName(me);
@@ -180,6 +205,7 @@ export function renderMessage(template: string, ctx: MessageContext): string {
   const vars: Record<string, string> = {
     prenom: capitalizeName(ctx.firstName),
     entreprise: company || companyFallback,
+    contexte: contexteFor(ctx),
     calendly: calendlyFor(ctx.grp, ctx.calendlyLinks, ctx.calendlyUrl) ?? CALENDLY_PLACEHOLDER,
     prenom_collab: myFirst,
     mon_prenom: myFirst,
@@ -188,3 +214,13 @@ export function renderMessage(template: string, ctx: MessageContext): string {
   };
   return template.replace(/\{(\w+)\}/g, (m, key: string) => (key in vars ? vars[key] : m));
 }
+
+// Notes d'invitation LinkedIn (compte Premium : jusqu'à 300 caractères). Variables : {prenom} {prenom_collab} ;
+// « [relation commune] » reste à compléter à la main (une personne ou un groupe en commun).
+export const INVITATION_NOTES: Record<"A" | "B" | "C" | "D", string> = {
+  A: "Bonjour {prenom}, j'accompagne des soignants sur leur protection sociale et leur pension, et je travaille déjà avec une structure infirmière en Wallonie. Nous avons [relation commune] en commun, je serais heureux de vous compter dans mon réseau. Belle journée, {prenom_collab}",
+  B: "Bonjour {prenom}, j'accompagne des infirmiers et des aides-soignants sur leur protection sociale et leur pension. Nous avons [relation commune] en commun, je serais heureux de vous compter dans mon réseau. Belle journée, {prenom_collab}",
+  C: "Bonjour {prenom}, je conseille des indépendants et des professions de santé (OVB Willemot). Nous avons [relation commune] en commun, et je serais ravi d'échanger sur des recommandations croisées. Belle journée, {prenom_collab}",
+  D: "Salut {prenom}, je développe une équipe dans le conseil financier pour indépendants (Prepared Minds Team, sous OVB). Nous avons [relation commune] en commun, ravi de t'avoir dans mon réseau. {prenom_collab}",
+};
+export const INVITATION_NOTE_LIMIT = 300;

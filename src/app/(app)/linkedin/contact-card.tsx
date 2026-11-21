@@ -157,6 +157,7 @@ export function ContactCard({
     step && resolved
       ? renderMessage(resolved.body, {
           firstName: contact.first_name,
+          tags: contact.tags,
           company: contact.company,
           position: contact.position,
           grp: contact.grp,

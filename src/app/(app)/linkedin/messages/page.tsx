@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import type { LinkedinTemplate, TemplateStat } from "@/lib/linkedin/types";
 import type { CalendlyLinks } from "@/lib/linkedin/messages";
 import { MessagesEditor } from "./messages-editor";
+import { InvitationNotes } from "./invitation-notes";
 
 interface PersonRow {
   id: string;
@@ -65,6 +66,7 @@ export default async function MessagesPage() {
         stats={stats}
         badges={(badgeRows as { user_id: string; badge: string }[] | null) ?? []}
       />
+      <InvitationNotes meName={person.name} />
     </div>
   );
 }

@@ -77,6 +77,7 @@ export const FSMA_REMINDER =
 export const VARIABLES: { token: string; label: string }[] = [
   { token: "{prenom}", label: "Prénom du contact" },
   { token: "{entreprise}", label: "Entreprise" },
+  { token: "{contexte}", label: "Où il ou elle travaille (maison de repos, CHU…)" },
   { token: "{poste}", label: "Poste" },
   { token: "{calendly}", label: "Mon lien Calendly" },
   { token: "{mon_prenom}", label: "Mon prénom" },
